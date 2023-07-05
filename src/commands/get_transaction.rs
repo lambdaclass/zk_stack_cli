@@ -1,10 +1,10 @@
 use crate::cli::ZKSyncWeb3Config;
+use clap::Args;
+use eyre::ContextCompat;
 use zksync_web3_rs::{
     providers::{Middleware, Provider},
     types::H256,
 };
-use clap::Args;
-use eyre::ContextCompat;
 
 #[derive(Args)]
 pub(crate) struct GetTransaction {

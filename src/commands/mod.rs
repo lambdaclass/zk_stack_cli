@@ -1,5 +1,5 @@
-pub(crate) mod deploy;
-pub(crate) use deploy::Deploy;
+// pub(crate) mod deploy;
+// pub(crate) use deploy::Deploy;
 
 pub(crate) mod call;
 pub(crate) use call::Call;
@@ -18,6 +18,12 @@ pub(crate) use pay::Pay;
 
 pub(crate) mod compile;
 pub(crate) use compile::CompileArgs;
+
+pub(crate) mod encode;
+pub(crate) use encode::EncodeArgs;
+
+pub(crate) mod selector;
+pub(crate) use selector::SelectorArgs;
 
 // It is set so that the transaction is replay-protected (EIP-155)
 // https://era.zksync.io/docs/api/hardhat/testing.html#connect-wallet-to-local-nodes

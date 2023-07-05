@@ -1,8 +1,8 @@
 use crate::cli::ZKSyncWeb3Config;
+use clap::Args;
+use zksync_web3_rs::signers::LocalWallet;
 use zksync_web3_rs::zks_provider::ZKSProvider;
 use zksync_web3_rs::{providers::Provider, types::Address};
-use zksync_web3_rs::signers::LocalWallet;
-use clap::Args;
 
 // TODO: Optional parameters were omitted, they should be added in the future.
 #[derive(Args)]

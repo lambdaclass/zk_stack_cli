@@ -1,8 +1,11 @@
-use clap::{command, Args, Parser, Subcommand};
 use crate::commands::{
-    account_balance, call, compile, deploy, get_contract, get_transaction, pay, AccountBalance,
-    Call, CompileArgs, Deploy, GetContract, GetTransaction, Pay,
+    account_balance, call, compile,
+    encode::{self, EncodeArgs},
+    get_contract, get_transaction, pay,
+    selector::{self, SelectorArgs},
+    AccountBalance, Call, CompileArgs, GetContract, GetTransaction, Pay,
 };
+use clap::{command, Args, Parser, Subcommand};
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
 
@@ -25,19 +28,21 @@ pub struct ZKSyncWeb3Config {
 
 #[derive(Subcommand)]
 enum ZKSyncWeb3Command {
-    Deploy(Deploy),
+    // Deploy(Deploy),
     Call(Call),
     GetContract(GetContract),
     GetTransaction(GetTransaction),
     Balance(AccountBalance),
     Pay(Pay),
     Compile(CompileArgs),
+    Encode(EncodeArgs),
+    Selector(SelectorArgs),
 }
 
 pub async fn start() -> eyre::Result<()> {
     let ZKSyncWeb3 { command, config } = ZKSyncWeb3::parse();
     match command {
-        ZKSyncWeb3Command::Deploy(args) => deploy::run(args, config).await?,
+        // ZKSyncWeb3Command::Deploy(args) => deploy::run(args, config).await?,
         ZKSyncWeb3Command::Call(args) => call::run(args, config).await?,
         ZKSyncWeb3Command::GetContract(args) => get_contract::run(args, config).await?,
         ZKSyncWeb3Command::GetTransaction(args) => get_transaction::run(args, config).await?,
@@ -46,6 +51,8 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncWeb3Command::Compile(args) => {
             let _ = compile::run(args)?;
         }
+        ZKSyncWeb3Command::Encode(args) => encode::run(args).await?,
+        ZKSyncWeb3Command::Selector(args) => selector::run(args).await?,
     };
 
     Ok(())

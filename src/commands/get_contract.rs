@@ -1,9 +1,9 @@
 use crate::cli::ZKSyncWeb3Config;
+use clap::Args;
 use zksync_web3_rs::{
     providers::{Middleware, Provider},
     types::Address,
 };
-use clap::Args;
 
 #[derive(Args)]
 pub(crate) struct GetContract {

@@ -1,4 +1,6 @@
 use crate::cli::ZKSyncWeb3Config;
+use clap::Args;
+use eyre::ContextCompat;
 use zksync_web3_rs::zks_provider::ZKSProvider;
 use zksync_web3_rs::{
     prelude::{k256::ecdsa::SigningKey, MiddlewareBuilder, SignerMiddleware},
@@ -9,8 +11,6 @@ use zksync_web3_rs::{
         TransactionReceipt, U256,
     },
 };
-use clap::Args;
-use eyre::ContextCompat;
 
 use super::L2_CHAIN_ID;
 
