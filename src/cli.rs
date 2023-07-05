@@ -1,9 +1,6 @@
 use crate::commands::{
-    account_balance, call, compile,
-    encode::{self, EncodeArgs},
-    get_contract, get_transaction, pay,
-    selector::{self, SelectorArgs},
-    AccountBalance, Call, CompileArgs, GetContract, GetTransaction, Pay,
+    account_balance, call, compile, encode, get_contract, get_transaction, pay, selector,
+    AccountBalance, Call, CompileArgs, EncodeArgs, GetContract, GetTransaction, Pay, SelectorArgs,
 };
 use clap::{command, Args, Parser, Subcommand};
 
