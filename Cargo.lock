@@ -3610,7 +3610,11 @@ dependencies = [
  "clap",
  "env_logger",
  "eyre",
+ "hex",
  "log",
+ "serde",
+ "serde_json",
+ "thiserror",
  "tokio",
  "zksync-web3-rs",
 ]
