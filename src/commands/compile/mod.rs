@@ -1,6 +1,15 @@
-use zksync_web3_rs::zks_utils::program_path;
 use clap::Parser;
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
+
+pub mod constants;
+pub mod errors;
+pub mod output;
+pub mod project;
+
+pub use constants::*;
+pub use errors::*;
+pub use output::*;
+pub use project::*;
 
 #[derive(Parser)]
 pub struct CompileArgs {
@@ -94,4 +103,21 @@ pub(crate) fn run(args: CompileArgs) -> eyre::Result<String> {
     log::info!("{compilation_output:?}");
 
     Ok(compilation_output)
+}
+
+/// Returns the location for a program in the $PATH.
+pub fn program_path(program_name: &str) -> Option<PathBuf> {
+    if let Ok(path_env) = env::var("PATH") {
+        let paths: Vec<PathBuf> = env::split_paths(&path_env).collect();
+
+        for path in paths {
+            let program_path = path.join(program_name);
+
+            if program_path.is_file() {
+                return Some(program_path);
+            }
+        }
+    }
+
+    None
 }

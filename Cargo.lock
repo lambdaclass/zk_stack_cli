@@ -3586,14 +3586,13 @@ dependencies = [
 [[package]]
 name = "zksync-web3-rs"
 version = "0.1.0"
-source = "git+https://www.github.com/LambdaClass/zksync-web3-rs#d8ddc079f2077b9a139c08ab5d4f5391c5a792c4"
+source = "git+https://www.github.com/LambdaClass/zksync-web3-rs#8609966e8a14923879d38e6e69df53d78d1ccf94"
 dependencies = [
  "async-trait",
  "clap",
  "env_logger",
  "ethers",
  "ethers-contract",
- "eyre",
  "hex",
  "log",
  "serde",
