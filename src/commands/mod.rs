@@ -1,5 +1,5 @@
-// pub(crate) mod deploy;
-// pub(crate) use deploy::Deploy;
+pub(crate) mod deploy;
+pub(crate) use deploy::Deploy;
 
 pub(crate) mod call;
 pub(crate) use call::Call;
