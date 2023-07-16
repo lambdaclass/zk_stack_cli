@@ -27,6 +27,9 @@ pub(crate) use selector::SelectorArgs;
 
 pub(crate) mod get_bridge_contracts;
 
+pub(crate) mod get_bytecode_by_hash;
+pub(crate) use get_bytecode_by_hash::GetBytecodeByHashArgs;
+
 // It is set so that the transaction is replay-protected (EIP-155)
 // https://era.zksync.io/docs/api/hardhat/testing.html#connect-wallet-to-local-nodes
 #[allow(dead_code)]

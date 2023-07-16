@@ -1,7 +1,7 @@
 use crate::commands::{
-    account_balance, call, compile, deploy, encode, get_bridge_contracts, get_contract,
-    get_transaction, pay, selector, AccountBalance, Call, CompileArgs, Deploy, EncodeArgs,
-    GetContract, GetTransaction, Pay, SelectorArgs,
+    account_balance, call, compile, deploy, encode, get_bridge_contracts, get_bytecode_by_hash,
+    get_contract, get_transaction, pay, selector, AccountBalance, Call, CompileArgs, Deploy,
+    EncodeArgs, GetBytecodeByHashArgs, GetContract, GetTransaction, Pay, SelectorArgs,
 };
 use clap::{command, Args, Parser, Subcommand};
 
@@ -36,6 +36,7 @@ enum ZKSyncWeb3Command {
     Encode(EncodeArgs),
     Selector(SelectorArgs),
     GetBridgeContracts,
+    GetBytecodeByHash(GetBytecodeByHashArgs),
 }
 
 pub async fn start() -> eyre::Result<()> {
@@ -53,6 +54,9 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncWeb3Command::Encode(args) => encode::run(args).await?,
         ZKSyncWeb3Command::Selector(args) => selector::run(args).await?,
         ZKSyncWeb3Command::GetBridgeContracts => get_bridge_contracts::run(config).await?,
+        ZKSyncWeb3Command::GetBytecodeByHash(args) => {
+            get_bytecode_by_hash::run(args, config).await?
+        }
     };
 
     Ok(())
