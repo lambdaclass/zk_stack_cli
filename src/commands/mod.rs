@@ -1,34 +1,14 @@
-pub(crate) mod deploy;
-pub(crate) use deploy::Deploy;
-
-pub(crate) mod call;
-pub(crate) use call::Call;
-
-pub(crate) mod get_contract;
-pub(crate) use get_contract::GetContract;
-
-pub(crate) mod get_transaction;
-pub(crate) use get_transaction::GetTransaction;
-
 pub(crate) mod account_balance;
-pub(crate) use account_balance::AccountBalance;
-
-pub(crate) mod pay;
-pub(crate) use pay::Pay;
-
+pub(crate) mod call;
 pub(crate) mod compile;
-pub(crate) use compile::CompileArgs;
-
+pub(crate) mod deploy;
 pub(crate) mod encode;
-pub(crate) use encode::EncodeArgs;
-
-pub(crate) mod selector;
-pub(crate) use selector::SelectorArgs;
-
 pub(crate) mod get_bridge_contracts;
-
 pub(crate) mod get_bytecode_by_hash;
-pub(crate) use get_bytecode_by_hash::GetBytecodeByHashArgs;
+pub(crate) mod get_contract;
+pub(crate) mod get_transaction;
+pub(crate) mod pay;
+pub(crate) mod selector;
 
 // It is set so that the transaction is replay-protected (EIP-155)
 // https://era.zksync.io/docs/api/hardhat/testing.html#connect-wallet-to-local-nodes

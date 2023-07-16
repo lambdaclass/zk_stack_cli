@@ -1,5 +1,5 @@
-use crate::cli::ZKSyncWeb3Config;
-use clap::Args;
+use crate::cli::ZKSyncConfig;
+use clap::Args as ClapArgs;
 use eyre::ContextCompat;
 use zksync_web3_rs::zks_provider::ZKSProvider;
 use zksync_web3_rs::{
@@ -14,8 +14,8 @@ use zksync_web3_rs::{
 
 use super::L2_CHAIN_ID;
 
-#[derive(Args)]
-pub(crate) struct Pay {
+#[derive(ClapArgs)]
+pub(crate) struct Args {
     #[clap(short, long, default_value = "0", name = "AMOUNT_TO_TRANSFER")]
     pub amount: U256,
     #[clap(short, long, name = "SENDER_ADDRESS")]
@@ -26,7 +26,7 @@ pub(crate) struct Pay {
     pub private_key: Wallet<SigningKey>,
 }
 
-pub(crate) async fn run(args: Pay, config: ZKSyncWeb3Config) -> eyre::Result<()> {
+pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let signer = Wallet::with_chain_id(args.private_key, L2_CHAIN_ID);
     let provider = Provider::try_from(format!(
         "http://{host}:{port}",

@@ -1,5 +1,5 @@
 [package]
-name = "zksync_era_cli"
+name = "zksync-era-cli"
 version = "0.1.0"
 edition = "2021"
 

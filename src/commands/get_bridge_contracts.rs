@@ -1,8 +1,8 @@
-use crate::cli::ZKSyncWeb3Config;
+use crate::cli::ZKSyncConfig;
 use zksync_web3_rs::providers::Provider;
 use zksync_web3_rs::zks_provider::ZKSProvider;
 
-pub(crate) async fn run(config: ZKSyncWeb3Config) -> eyre::Result<()> {
+pub(crate) async fn run(config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(format!(
         "http://{host}:{port}",
         host = config.host,

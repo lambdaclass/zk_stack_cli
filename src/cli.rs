@@ -1,23 +1,22 @@
 use crate::commands::{
     account_balance, call, compile, deploy, encode, get_bridge_contracts, get_bytecode_by_hash,
-    get_contract, get_transaction, pay, selector, AccountBalance, Call, CompileArgs, Deploy,
-    EncodeArgs, GetBytecodeByHashArgs, GetContract, GetTransaction, Pay, SelectorArgs,
+    get_contract, get_transaction, pay, selector,
 };
 use clap::{command, Args, Parser, Subcommand};
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
-#[command(name="zksync-web3-rs", author, version=VERSION_STRING, about, long_about = None)]
-struct ZKSyncWeb3 {
+#[command(name="zksync-era-cli", author, version=VERSION_STRING, about, long_about = None)]
+struct ZKSyncCLI {
     #[command(subcommand)]
-    command: ZKSyncWeb3Command,
+    command: ZKSyncCommand,
     #[clap(flatten)]
-    config: ZKSyncWeb3Config,
+    config: ZKSyncConfig,
 }
 
 #[derive(Args)]
-pub struct ZKSyncWeb3Config {
+pub struct ZKSyncConfig {
     #[clap(long, default_value = "localhost")]
     pub host: String,
     #[clap(short, long, default_value = "3050")]
@@ -25,36 +24,36 @@ pub struct ZKSyncWeb3Config {
 }
 
 #[derive(Subcommand)]
-enum ZKSyncWeb3Command {
-    Deploy(Deploy),
-    Call(Call),
-    GetContract(GetContract),
-    GetTransaction(GetTransaction),
-    Balance(AccountBalance),
-    Pay(Pay),
-    Compile(CompileArgs),
-    Encode(EncodeArgs),
-    Selector(SelectorArgs),
+enum ZKSyncCommand {
+    Deploy(deploy::Args),
+    Call(call::Args),
+    GetContract(get_contract::Args),
+    GetTransaction(get_transaction::Args),
+    Balance(account_balance::Args),
+    Pay(pay::Args),
+    Compile(compile::Args),
+    Encode(encode::Args),
+    Selector(selector::Args),
     GetBridgeContracts,
-    GetBytecodeByHash(GetBytecodeByHashArgs),
+    GetBytecodeByHash(get_bytecode_by_hash::Args),
 }
 
 pub async fn start() -> eyre::Result<()> {
-    let ZKSyncWeb3 { command, config } = ZKSyncWeb3::parse();
+    let ZKSyncCLI { command, config } = ZKSyncCLI::parse();
     match command {
-        ZKSyncWeb3Command::Deploy(args) => deploy::run(args, config).await?,
-        ZKSyncWeb3Command::Call(args) => call::run(args, config).await?,
-        ZKSyncWeb3Command::GetContract(args) => get_contract::run(args, config).await?,
-        ZKSyncWeb3Command::GetTransaction(args) => get_transaction::run(args, config).await?,
-        ZKSyncWeb3Command::Balance(args) => account_balance::run(args, config).await?,
-        ZKSyncWeb3Command::Pay(args) => pay::run(args, config).await?,
-        ZKSyncWeb3Command::Compile(args) => {
+        ZKSyncCommand::Deploy(args) => deploy::run(args, config).await?,
+        ZKSyncCommand::Call(args) => call::run(args, config).await?,
+        ZKSyncCommand::GetContract(args) => get_contract::run(args, config).await?,
+        ZKSyncCommand::GetTransaction(args) => get_transaction::run(args, config).await?,
+        ZKSyncCommand::Balance(args) => account_balance::run(args, config).await?,
+        ZKSyncCommand::Pay(args) => pay::run(args, config).await?,
+        ZKSyncCommand::Compile(args) => {
             let _ = compile::run(args)?;
         }
-        ZKSyncWeb3Command::Encode(args) => encode::run(args).await?,
-        ZKSyncWeb3Command::Selector(args) => selector::run(args).await?,
-        ZKSyncWeb3Command::GetBridgeContracts => get_bridge_contracts::run(config).await?,
-        ZKSyncWeb3Command::GetBytecodeByHash(args) => {
+        ZKSyncCommand::Encode(args) => encode::run(args).await?,
+        ZKSyncCommand::Selector(args) => selector::run(args).await?,
+        ZKSyncCommand::GetBridgeContracts => get_bridge_contracts::run(config).await?,
+        ZKSyncCommand::GetBytecodeByHash(args) => {
             get_bytecode_by_hash::run(args, config).await?
         }
     };

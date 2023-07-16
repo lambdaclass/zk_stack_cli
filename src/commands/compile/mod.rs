@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::Args as ClapArgs;
 use std::{env, path::PathBuf};
 
 pub mod constants;
@@ -11,8 +11,8 @@ pub use errors::*;
 pub use output::*;
 pub use project::*;
 
-#[derive(Parser)]
-pub struct CompileArgs {
+#[derive(ClapArgs)]
+pub struct Args {
     // TODO: Handle this like Foundry does.
     #[clap(long, num_args(1..), name = "CONTRACT_PATH")]
     pub contract_paths: Vec<PathBuf>,
@@ -37,7 +37,7 @@ pub struct CompileArgs {
     pub asm: bool,
 }
 
-pub(crate) fn run(args: CompileArgs) -> eyre::Result<String> {
+pub(crate) fn run(args: Args) -> eyre::Result<String> {
     let zksolc_path = program_path("zksolc").ok_or(eyre::eyre!("zksolc not found"))?;
     let mut command = &mut std::process::Command::new(zksolc_path);
     if let Some(solc) = args.solc {

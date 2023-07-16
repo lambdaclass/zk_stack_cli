@@ -1,16 +1,16 @@
-use crate::cli::ZKSyncWeb3Config;
-use clap::Args;
+use crate::cli::ZKSyncConfig;
+use clap::Args as ClapArgs;
 use zksync_web3_rs::providers::Provider;
 use zksync_web3_rs::types::{Bytes, H256};
 use zksync_web3_rs::zks_provider::ZKSProvider;
 
-#[derive(Args)]
-pub(crate) struct GetBytecodeByHashArgs {
+#[derive(ClapArgs)]
+pub(crate) struct Args {
     #[clap(long, name = "CONTRACT_BYTECODE_HASH")]
     hash: H256,
 }
 
-pub(crate) async fn run(args: GetBytecodeByHashArgs, config: ZKSyncWeb3Config) -> eyre::Result<()> {
+pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(format!(
         "http://{host}:{port}",
         host = config.host,

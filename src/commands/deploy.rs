@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
-use crate::cli::ZKSyncWeb3Config;
+use crate::cli::ZKSyncConfig;
 use crate::commands::compile::ZKSProject;
-use clap::Args;
+use clap::Args as ClapArgs;
 use eyre::ContextCompat;
 use zksync_web3_rs::abi::Token;
 use zksync_web3_rs::signers::LocalWallet;
@@ -13,8 +13,8 @@ use zksync_web3_rs::zks_utils::ERA_CHAIN_ID;
 use zksync_web3_rs::ZKSWallet;
 use zksync_web3_rs::{providers::Provider, signers::Signer};
 
-#[derive(Args)]
-pub(crate) struct Deploy {
+#[derive(ClapArgs)]
+pub(crate) struct Args {
     #[clap(
         long,
         name = "CONTRACT PATH",
@@ -37,7 +37,7 @@ pub(crate) struct Deploy {
     pub bytecode: Option<Bytes>,
 }
 
-pub(crate) async fn run(args: Deploy, config: ZKSyncWeb3Config) -> eyre::Result<()> {
+pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let era_provider = Provider::try_from(format!(
         "http://{host}:{port}",
         host = config.host,

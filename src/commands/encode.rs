@@ -1,12 +1,12 @@
-use clap::Args;
+use clap::Args as ClapArgs;
 use std::str::FromStr;
 use zksync_web3_rs::{
     abi::{encode, HumanReadableParser, Token, Tokenizable},
     types::U256,
 };
 
-#[derive(Args)]
-pub(crate) struct EncodeArgs {
+#[derive(ClapArgs)]
+pub(crate) struct Args {
     #[clap(long, name = "FUNCTION_SIGNATURE")]
     pub function: Option<String>,
     #[clap(long, num_args(1..), name = "VALUE")]
@@ -15,7 +15,7 @@ pub(crate) struct EncodeArgs {
     pub types: Vec<String>,
 }
 
-pub(crate) async fn run(args: EncodeArgs) -> eyre::Result<()> {
+pub(crate) async fn run(args: Args) -> eyre::Result<()> {
     let parsed_arguments = args
         .arguments
         .iter()

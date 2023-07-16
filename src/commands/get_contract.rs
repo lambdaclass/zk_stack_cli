@@ -1,17 +1,17 @@
-use crate::cli::ZKSyncWeb3Config;
-use clap::Args;
+use crate::cli::ZKSyncConfig;
+use clap::Args as ClapArgs;
 use zksync_web3_rs::{
     providers::{Middleware, Provider},
     types::Address,
 };
 
-#[derive(Args)]
-pub(crate) struct GetContract {
+#[derive(ClapArgs)]
+pub(crate) struct Args {
     #[clap(short, long, name = "CONTRACT_ADDRESS")]
     pub contract: String,
 }
 
-pub(crate) async fn run(args: GetContract, config: ZKSyncWeb3Config) -> eyre::Result<()> {
+pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(format!(
         "http://{host}:{port}",
         host = config.host,

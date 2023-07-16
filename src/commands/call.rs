@@ -1,5 +1,5 @@
-use crate::cli::ZKSyncWeb3Config;
-use clap::Args;
+use crate::cli::ZKSyncConfig;
+use clap::Args as ClapArgs;
 use zksync_web3_rs::abi::{decode, ParamType, Tokenize};
 use zksync_web3_rs::providers::Middleware;
 use zksync_web3_rs::signers::LocalWallet;
@@ -9,8 +9,8 @@ use zksync_web3_rs::zks_provider::ZKSProvider;
 use zksync_web3_rs::{providers::Provider, types::Address};
 
 // TODO: Optional parameters were omitted, they should be added in the future.
-#[derive(Args)]
-pub(crate) struct Call {
+#[derive(ClapArgs)]
+pub(crate) struct Args {
     #[clap(short, long, name = "CONTRACT_ADDRESS")]
     pub contract: Address,
     #[clap(short, long, name = "FUNCTION_SIGNATURE")]
@@ -25,7 +25,7 @@ pub(crate) struct Call {
     pub private_key: LocalWallet,
 }
 
-pub(crate) async fn run(args: Call, config: ZKSyncWeb3Config) -> eyre::Result<()> {
+pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(format!(
         "http://{host}:{port}",
         host = config.host,
