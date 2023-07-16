@@ -75,8 +75,8 @@ pub(crate) async fn run(args: Deploy, config: ZKSyncWeb3Config) -> eyre::Result<
             .deploy(
                 compiled_abi,
                 compiled_bytecode.to_vec(),
+                args.constructor_args,
                 None,
-                Some(args.constructor_args),
             )
             .await?
             .contract_address
