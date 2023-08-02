@@ -27,10 +27,10 @@ make cli
 
 ### Usage
 
-Running `zksync_era_cli` outputs the following:
+Running `zksync-era-cli` outputs the following:
 
 ```
-Usage: zksync_era_cli [OPTIONS] <COMMAND>
+Usage: zksync-era-cli [OPTIONS] <COMMAND>
 
 Commands:
   deploy
@@ -51,7 +51,7 @@ Options:
 Deploys the contract located in `CONTRACT_PATH/src` signing the transaction with `PRIVATE_KEY`.
 
 ```
-zksync_era_cli deploy --contract <CONTRACT_PATH> --private-key <PRIVATE_KEY>
+zksync-era-cli deploy --contract <CONTRACT_PATH> --private-key <PRIVATE_KEY>
 ```
 
 #### `zksync_era_cli call`
@@ -59,7 +59,7 @@ zksync_era_cli deploy --contract <CONTRACT_PATH> --private-key <PRIVATE_KEY>
 Calls `FUNCTION_SIGNATURE` of `CONTRACT_ADDRESS` with args `FUNCTION_ARGS`. If you want o call a `public view` contract function then you don't need to provide your `PRIVATE_KEY`. You must provide the latter only if you want to call a contract function that performs a state change.
 
 ```
-zksync_era_cli call --contract <CONTRACT_ADDRESS> --function <FUNCTION_SIGNATURE> --args <FUNCTION_ARGS> --private-key <PRIVATE_KEY>
+zksync-era-cli call --contract <CONTRACT_ADDRESS> --function <FUNCTION_SIGNATURE> --args <FUNCTION_ARGS> --private-key <PRIVATE_KEY>
 ```
 
 #### `zksync_era_cli get-contract`
@@ -67,7 +67,7 @@ zksync_era_cli call --contract <CONTRACT_ADDRESS> --function <FUNCTION_SIGNATURE
 Gets `CONTRACT_ADDRESS`'s bytecode.
 
 ```
-zksync_era_cli get-contract --contract <CONTRACT_ADDRESS>
+zksync-era-cli get-contract --contract <CONTRACT_ADDRESS>
 ```
 
 #### `zksync_era_cli get-transaction`
@@ -75,7 +75,7 @@ zksync_era_cli get-contract --contract <CONTRACT_ADDRESS>
 Get the transaction corresponding to `TRANSACTION_HASH`.
 
 ```
-zksync_era_cli get-transaction --transaction <TRANSACTION_HASH>
+zksync-era-cli get-transaction --transaction <TRANSACTION_HASH>
 ```
 
 #### `zksync_era_cli balance`
@@ -83,7 +83,7 @@ zksync_era_cli get-transaction --transaction <TRANSACTION_HASH>
 Gets the balance of the `ACCOUNT_ADDRESS`.
 
 ```
-zksync_era_cli balance --account <ACCOUNT_ADDRESS>
+zksync-era-cli balance --account <ACCOUNT_ADDRESS>
 ```
 
 #### `zksync_era_cli pay`
@@ -91,7 +91,7 @@ zksync_era_cli balance --account <ACCOUNT_ADDRESS>
 Pays `AMOUNT` from `SENDER_ADDRESS` to `RECEIVER_ADDRESS` signing the transaction with `SENDER_PRIVATE_KEY`.
 
 ```
-zksync_era_cli pay --amount <AMOUNT_TO_TRANSFER> --from <SENDER_ADDRESS> --to <RECEIVER_ADDRESS> --private-key <SENDER_PRIVATE_KEY>
+zksync-era-cli pay --amount <AMOUNT_TO_TRANSFER> --from <SENDER_ADDRESS> --to <RECEIVER_ADDRESS> --private-key <SENDER_PRIVATE_KEY>
 ```
 
 #### `zksync_era_cli compile`
@@ -101,7 +101,7 @@ zksync_era_cli pay --amount <AMOUNT_TO_TRANSFER> --from <SENDER_ADDRESS> --to <R
 Compiles the contract located in `PATH_TO_CONTRACT` using the zksolc compiler.
 
 ```
-zksync_era_cli compile --solc <PATH_TO_SOLC> --standard-json -- <PATH_TO_CONTRACT>
+zksync-era-cli compile --solc <PATH_TO_SOLC> --standard-json -- <PATH_TO_CONTRACT>
 ```
 
 ##### Status (for full compatibility)
