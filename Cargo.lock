@@ -3584,9 +3584,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "zksync-era-cli"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "env_logger",
+ "eyre",
+ "hex",
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "zksync-web3-rs",
+]
+
+[[package]]
 name = "zksync-web3-rs"
 version = "0.1.0"
-source = "git+https://www.github.com/LambdaClass/zksync-web3-rs#8609966e8a14923879d38e6e69df53d78d1ccf94"
+source = "git+https://www.github.com/LambdaClass/zksync-web3-rs#54c2145cee69bbc5e2f55c6bdfc5662ef250cd0c"
 dependencies = [
  "async-trait",
  "clap",
@@ -3600,22 +3616,6 @@ dependencies = [
  "sha2 0.9.9",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "zksync_era_cli"
-version = "0.1.0"
-dependencies = [
- "clap",
- "env_logger",
- "eyre",
- "hex",
- "log",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "zksync-web3-rs",
 ]
 
 [[package]]
