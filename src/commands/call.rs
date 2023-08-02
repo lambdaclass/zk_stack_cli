@@ -51,6 +51,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
                 .iter()
                 .map(|output_type| match output_type.as_str() {
                     "uint256" => ParamType::Uint(256),
+                    "sint256" => ParamType::Int(256),
                     _ => todo!(),
                 })
                 .collect();
