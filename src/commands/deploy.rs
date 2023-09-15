@@ -3,6 +3,7 @@ use std::str::FromStr;
 use crate::cli::ZKSyncConfig;
 use crate::commands::compile::ZKSProject;
 use clap::Args as ClapArgs;
+use eyre::eyre;
 use eyre::ContextCompat;
 use zksync_web3_rs::abi::Token;
 use zksync_web3_rs::signers::LocalWallet;
@@ -59,14 +60,11 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
 
         let compilation_output = project.compile()?;
         let artifact = compilation_output
-            .find_contract(
-                ContractInfo::from_str(&format!(
-                    "{contract_path}:{contract_name}",
-                    contract_name = args.contract_name.context("no contract name provided")?,
-                ))
-                .unwrap(),
-            )
-            .unwrap();
+            .find_contract(ContractInfo::from_str(&format!(
+                "{contract_path}:{contract_name}",
+                contract_name = args.contract_name.context("no contract name provided")?,
+            ))?)
+            .ok_or(eyre!("Artifact not found"))?;
         let compiled_bytecode = artifact.bin.clone().context("no bytecode")?;
         let compiled_abi = artifact.abi.clone().context("no abi")?;
 
