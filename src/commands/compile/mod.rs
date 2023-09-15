@@ -1,12 +1,10 @@
 use clap::Args as ClapArgs;
 use std::{env, path::PathBuf};
 
-pub mod constants;
 pub mod errors;
 pub mod output;
 pub mod project;
 
-pub use constants::*;
 pub use errors::*;
 pub use output::*;
 pub use project::*;
