@@ -38,10 +38,7 @@ impl ZKSProject {
             .args(source_files(self.base_project.root()));
 
         let command_output = command.output().map_err(|e| {
-            ZKCompilerError::CompilationError(format!(
-                "failed to execute zksolc: {}",
-                e.to_string()
-            ))
+            ZKCompilerError::CompilationError(format!("failed to execute zksolc: {e}"))
         })?;
 
         let compilation_output = String::from_utf8_lossy(&command_output.stdout)

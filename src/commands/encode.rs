@@ -1,4 +1,5 @@
 use clap::Args as ClapArgs;
+use eyre::eyre;
 use std::str::FromStr;
 use zksync_web3_rs::{
     abi::{encode, HumanReadableParser, Token, Tokenizable},
@@ -20,10 +21,7 @@ pub(crate) async fn run(args: Args) -> eyre::Result<()> {
         .arguments
         .iter()
         .zip(args.types.iter())
-        .map(|(arg, t)| match t.as_str() {
-            "uint256" => U256::from_str(&arg).map(Tokenizable::into_token),
-            _ => todo!(),
-        })
+        .map(|(arg, t)| parse_token(arg, t))
         .collect::<Result<Vec<Token>, _>>()?;
 
     let encoded = if let Some(function_signature) = args.function {
@@ -39,4 +37,13 @@ pub(crate) async fn run(args: Args) -> eyre::Result<()> {
     log::info!("{binding:?}");
 
     Ok(())
+}
+
+fn parse_token(arg: &str, t: &str) -> eyre::Result<Token> {
+    let x = match t {
+        "uint256" => Ok(U256::from_str(arg).map(Tokenizable::into_token)),
+        other => Err(eyre!("Could not parse type: {other}")),
+    }??;
+
+    Ok(x)
 }
