@@ -1,6 +1,7 @@
 use crate::commands::{
     account_balance, call, compile, deploy, encode, get_bridge_contracts, get_bytecode_by_hash,
-    get_contract, get_transaction, pay, selector, get_confirmed_tokens, get_l1_batch_details, get_l2_to_l1_proof, main_contract,
+    get_confirmed_tokens, get_contract, get_l1_batch_details, get_l2_to_l1_proof, get_transaction,
+    main_contract, pay, selector,
 };
 use clap::{command, Args, Parser, Subcommand};
 
@@ -57,9 +58,7 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::Encode(args) => encode::run(args).await?,
         ZKSyncCommand::Selector(args) => selector::run(args).await?,
         ZKSyncCommand::GetBridgeContracts => get_bridge_contracts::run(config).await?,
-        ZKSyncCommand::GetBytecodeByHash(args) => {
-            get_bytecode_by_hash::run(args, config).await?
-        }
+        ZKSyncCommand::GetBytecodeByHash(args) => get_bytecode_by_hash::run(args, config).await?,
         ZKSyncCommand::ConfirmedTokens(args) => get_confirmed_tokens::run(args, config).await?,
         ZKSyncCommand::L1BatchDetails(args) => get_l1_batch_details::run(args, config).await?,
         ZKSyncCommand::L2ToL1LogProof(args) => get_l2_to_l1_proof::run(args, config).await?,

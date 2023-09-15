@@ -2,7 +2,7 @@ use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
 use zksync_web3_rs::providers::Provider;
-use zksync_web3_rs::types::{H256, U64, Address};
+use zksync_web3_rs::types::{Address, H256, U64};
 use zksync_web3_rs::zks_provider::ZKSProvider;
 
 #[derive(ClapArgs)]
@@ -11,15 +11,42 @@ pub(crate) struct Args {
     transaction: H256,
     #[clap(long, name = "L2_TO_L1_LOG_INDEX")]
     log_index: Option<u64>,
-    #[clap(long, action, conflicts_with = "msg_proof, block, sender, msg", group = "log", name = "LOG_PROOF")]
+    #[clap(
+        long,
+        action,
+        conflicts_with = "msg_proof, block, sender, msg",
+        group = "log",
+        name = "LOG_PROOF"
+    )]
     log_proof: bool,
-    #[clap(long, action, conflicts_with = "log_proof, l2_to_l1_log_index", group = "msg", name = "MESSAGE_PROOF")]
+    #[clap(
+        long,
+        action,
+        conflicts_with = "log_proof, l2_to_l1_log_index",
+        group = "msg",
+        name = "MESSAGE_PROOF"
+    )]
     msg_proof: bool,
-    #[clap(long, conflicts_with = "log_proof, l2_to_l1_log_index", group = "msg", name = "MESSAGE_BLOCK")]
+    #[clap(
+        long,
+        conflicts_with = "log_proof, l2_to_l1_log_index",
+        group = "msg",
+        name = "MESSAGE_BLOCK"
+    )]
     block: U64,
-    #[clap(long, conflicts_with = "log_proof, l2_to_l1_log_index", group = "msg", name = "MESSAGE_SENDER")]
+    #[clap(
+        long,
+        conflicts_with = "log_proof, l2_to_l1_log_index",
+        group = "msg",
+        name = "MESSAGE_SENDER"
+    )]
     sender: Address,
-    #[clap(long, conflicts_with = "log_proof, l2_to_l1_log_index", group = "msg", name = "MESSAGE")]
+    #[clap(
+        long,
+        conflicts_with = "log_proof, l2_to_l1_log_index",
+        group = "msg",
+        name = "MESSAGE"
+    )]
     msg: H256,
 }
 
