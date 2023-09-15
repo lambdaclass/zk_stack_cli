@@ -1,5 +1,6 @@
 use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
+use eyre::eyre;
 use zksync_web3_rs::abi::{decode, ParamType, Tokenize};
 use zksync_web3_rs::providers::Middleware;
 use zksync_web3_rs::signers::LocalWallet;
@@ -46,20 +47,19 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             .data(data);
         let transaction: TypedTransaction = request.into();
         let encoded_output = Middleware::call(&provider, &transaction, None).await?;
-        let decoded_output = if let Some(output_types) = args.output_types {
+        if let Some(output_types) = args.output_types {
             let parsed_param_types: Vec<ParamType> = output_types
                 .iter()
                 .map(|output_type| match output_type.as_str() {
-                    "uint256" => ParamType::Uint(256),
-                    "sint256" => ParamType::Int(256),
-                    _ => todo!(),
+                    "uint256" => Ok(ParamType::Uint(256)),
+                    "sint256" => Ok(ParamType::Int(256)),
+                    other => Err(eyre!("Unable to parse output type: {other}")),
                 })
-                .collect();
+                .collect::<eyre::Result<Vec<ParamType>>>()?;
             decode(&parsed_param_types, &encoded_output)?
         } else {
             encoded_output.into_tokens()
-        };
-        decoded_output
+        }
     } else {
         ZKSProvider::call(&provider, args.contract, function_signature, args.args).await?
     };
