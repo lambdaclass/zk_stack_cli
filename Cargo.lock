@@ -1005,6 +1005,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "84ebb401ba97c6f5af278c2c9936c4546cad75dec464b439ae6df249906f4caa"
 dependencies = [
  "ethers-core",
+ "ethers-solc",
  "reqwest",
  "semver",
  "serde",
