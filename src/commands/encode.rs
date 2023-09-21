@@ -2,7 +2,7 @@ use clap::Args as ClapArgs;
 use eyre::eyre;
 use std::str::FromStr;
 use zksync_web3_rs::{
-    abi::{encode, HumanReadableParser, Token, Tokenizable},
+    prelude::abi::{encode, HumanReadableParser, Token, Tokenizable},
     types::U256,
 };
 

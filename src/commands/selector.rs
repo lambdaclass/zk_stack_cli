@@ -1,5 +1,5 @@
 use clap::Args as ClapArgs;
-use zksync_web3_rs::abi::HumanReadableParser;
+use zksync_web3_rs::prelude::abi::HumanReadableParser;
 
 #[derive(ClapArgs)]
 pub(crate) struct Args {
