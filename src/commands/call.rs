@@ -1,12 +1,13 @@
 use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::eyre;
-use zksync_web3_rs::abi::{decode, ParamType, Tokenize};
+use zksync_web3_rs::prelude::abi::{decode, ParamType, Tokenize};
 use zksync_web3_rs::providers::Middleware;
 use zksync_web3_rs::signers::LocalWallet;
 use zksync_web3_rs::types::transaction::eip2718::TypedTransaction;
 use zksync_web3_rs::types::{Bytes, Eip1559TransactionRequest};
 use zksync_web3_rs::zks_provider::ZKSProvider;
+use zksync_web3_rs::zks_wallet::CallRequest;
 use zksync_web3_rs::{providers::Provider, types::Address};
 
 // TODO: Optional parameters were omitted, they should be added in the future.
@@ -61,7 +62,11 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             encoded_output.into_tokens()
         }
     } else {
-        ZKSProvider::call(&provider, args.contract, function_signature, args.args).await?
+        let mut call_request = CallRequest::new(args.contract, function_signature.to_owned());
+        if let Some(args) = args.args {
+            call_request = call_request.function_parameters(args);
+        }
+        ZKSProvider::call(&provider, &call_request).await?
     };
     log::info!("{output:?}");
     Ok(())

@@ -5,12 +5,13 @@ use crate::commands::compile::ZKSProject;
 use clap::Args as ClapArgs;
 use eyre::eyre;
 use eyre::ContextCompat;
-use zksync_web3_rs::abi::Token;
+use zksync_web3_rs::prelude::abi::Token;
 use zksync_web3_rs::signers::LocalWallet;
 use zksync_web3_rs::solc::info::ContractInfo;
 use zksync_web3_rs::solc::{Project, ProjectPathsConfig};
 use zksync_web3_rs::types::Bytes;
 use zksync_web3_rs::zks_utils::ERA_CHAIN_ID;
+use zksync_web3_rs::zks_wallet::DeployRequest;
 use zksync_web3_rs::ZKSWallet;
 use zksync_web3_rs::{providers::Provider, signers::Signer};
 
@@ -68,17 +69,14 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         let compiled_bytecode = artifact.bin.clone().context("no bytecode")?;
         let compiled_abi = artifact.abi.clone().context("no abi")?;
 
+        let deploy_request = DeployRequest::with(
+            compiled_abi,
+            compiled_bytecode.to_vec(),
+            args.constructor_args,
+        );
+
         // TODO(Ivan): Wait until deploy does not compile anymore.
-        zk_wallet
-            .deploy(
-                compiled_abi,
-                compiled_bytecode.to_vec(),
-                args.constructor_args,
-                None,
-            )
-            .await?
-            .contract_address
-            .context("no contract address")?
+        zk_wallet.deploy(&deploy_request).await?
     } else {
         panic!("no bytecode or contract path provided")
     };

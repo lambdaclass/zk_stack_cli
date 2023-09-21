@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use zksync_web3_rs::{
-    abi::{Abi, Param, StateMutability},
+    prelude::abi::{Abi, Param, StateMutability},
     solc::info::ContractInfoRef,
     types::Bytes,
 };
