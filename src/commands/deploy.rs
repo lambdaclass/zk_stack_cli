@@ -51,10 +51,10 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             &contract_path,
             &args.contract_name.context("no contract name provided")?,
             compile::compiler::Compiler::ZKSolc,
-        );
+        )?;
 
-        let compiled_bytecode = artifact.bin();
-        let compiled_abi = artifact.abi();
+        let compiled_bytecode = artifact.bin()?;
+        let compiled_abi = artifact.abi()?;
 
         let deploy_request = DeployRequest::with(
             compiled_abi,
