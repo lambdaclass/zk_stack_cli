@@ -1,7 +1,7 @@
 use crate::commands::{
-    account_balance, call, compile, deploy, encode, get_bridge_contracts, get_bytecode_by_hash,
-    get_confirmed_tokens, get_contract, get_l1_batch_details, get_l2_to_l1_proof, get_transaction,
-    main_contract, pay, selector, download_compiler,
+    account_balance, call, compile, deploy, download_compiler, encode, get_bridge_contracts,
+    get_bytecode_by_hash, get_confirmed_tokens, get_contract, get_l1_batch_details,
+    get_l2_to_l1_proof, get_transaction, main_contract, pay, selector,
 };
 use clap::{command, Args, Parser, Subcommand};
 
