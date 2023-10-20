@@ -1,4 +1,5 @@
 use super::{output::ZKSArtifact, project::ZKSProject};
+use eyre::ContextCompat;
 use std::{ffi::OsString, path::PathBuf, str::FromStr};
 use zksync_web3_rs::{
     prelude::{abi::Abi, info::ContractInfo, Project, ProjectPathsConfig},
@@ -12,6 +13,8 @@ pub enum Compiler {
     Solc,
 }
 
+// Unwrap is allowed here because of the trait.
+#[allow(clippy::unwrap_used)]
 impl From<OsString> for Compiler {
     fn from(compiler: OsString) -> Self {
         match compiler.to_str().unwrap() {
@@ -28,94 +31,102 @@ pub enum Artifact {
     SolcArtifact(ConfigurableContractArtifact),
 }
 
+#[allow(dead_code)]
 impl Artifact {
-    pub fn abi(&self) -> Abi {
+    pub fn abi(&self) -> eyre::Result<Abi> {
         match self {
-            Artifact::ZKSArtifact(artifact) => artifact.abi.clone().unwrap(),
-            Artifact::SolcArtifact(artifact) => artifact.abi.clone().unwrap().abi,
+            Artifact::ZKSArtifact(artifact) => artifact.abi.clone().context("abi not found"),
+            Artifact::SolcArtifact(artifact) => {
+                Ok(artifact.abi.clone().context("abi not found")?.abi)
+            }
         }
     }
 
-    pub fn bin(&self) -> Bytes {
+    pub fn bin(&self) -> eyre::Result<Bytes> {
         match self {
-            Artifact::ZKSArtifact(artifact) => artifact.bin.clone().unwrap(),
-            Artifact::SolcArtifact(artifact) => artifact
+            Artifact::ZKSArtifact(artifact) => artifact.bin.clone().context("bytecode not found"),
+            Artifact::SolcArtifact(artifact) => Ok(artifact
                 .bytecode
                 .clone()
-                .unwrap()
+                .context("bytecode not found")?
                 .object
                 .as_bytes()
-                .unwrap()
-                .clone(),
+                .context("empty object")?
+                .clone()),
         }
     }
 }
 
-pub fn compile(contract_path: &str, contract_name: &str, compiler: Compiler) -> Artifact {
+pub fn compile(
+    contract_path: &str,
+    contract_name: &str,
+    compiler: Compiler,
+) -> eyre::Result<Artifact> {
     match compiler {
         Compiler::ZKSolc => compile_with_zksolc(contract_path, contract_name),
         Compiler::Solc => compile_with_solc(contract_path, contract_name),
     }
 }
 
-fn compile_with_zksolc(contract_path: &str, contract_name: &str) -> Artifact {
+fn compile_with_zksolc(contract_path: &str, contract_name: &str) -> eyre::Result<Artifact> {
     let root = PathBuf::from(contract_path);
     let zk_project = ZKSProject::from(
         Project::builder()
             .paths(ProjectPathsConfig::builder().build_with_root(root))
             .set_auto_detect(true)
-            .build()
-            .unwrap(),
+            .build()?,
     );
-    let compilation_output = zk_project.compile().unwrap();
+    let compilation_output = zk_project.compile()?;
     let artifact = compilation_output
-        .find_contract(ContractInfo::from_str(&format!("{contract_path}:{contract_name}")).unwrap())
-        .unwrap()
+        .find_contract(ContractInfo::from_str(&format!(
+            "{contract_path}:{contract_name}"
+        ))?)
+        .context("contract not found in compilation output")?
         .clone();
-    Artifact::ZKSArtifact(artifact)
+    Ok(Artifact::ZKSArtifact(artifact))
 }
 
-fn compile_with_solc(contract_path: &str, contract_name: &str) -> Artifact {
+fn compile_with_solc(contract_path: &str, contract_name: &str) -> eyre::Result<Artifact> {
     let root = PathBuf::from(contract_path);
     let project = Project::builder()
         .paths(ProjectPathsConfig::builder().build_with_root(root))
         .set_auto_detect(true)
-        .build()
-        .unwrap();
-    let compilation_output = project.compile().unwrap();
+        .build()?;
+    let compilation_output = project.compile()?;
     let artifact = compilation_output
-        .find_contract(ContractInfo::from_str(&format!("{contract_path}:{contract_name}")).unwrap())
-        .unwrap()
+        .find_contract(ContractInfo::from_str(&format!(
+            "{contract_path}:{contract_name}"
+        ))?)
+        .context("contract not found in compilation output")?
         .clone();
-    Artifact::SolcArtifact(artifact)
+    Ok(Artifact::SolcArtifact(artifact))
 }
 
-pub fn build(contract_path: &str, compiler: Compiler) {
+#[allow(dead_code)]
+pub fn build(contract_path: &str, compiler: Compiler) -> eyre::Result<()> {
     match compiler {
         Compiler::ZKSolc => build_with_zksolc(contract_path),
         Compiler::Solc => build_with_solc(contract_path),
     }
 }
 
-fn build_with_zksolc(contract_path: &str) {
+fn build_with_zksolc(contract_path: &str) -> eyre::Result<()> {
     let root = PathBuf::from(contract_path);
     let zk_project = ZKSProject::from(
         Project::builder()
             .paths(ProjectPathsConfig::builder().build_with_root(root))
             .set_auto_detect(true)
-            .build()
-            .unwrap(),
+            .build()?,
     );
-    zk_project.build().unwrap();
+    zk_project.build().map_err(|e| eyre::eyre!(e))
 }
 
-fn build_with_solc(contract_path: &str) {
+fn build_with_solc(contract_path: &str) -> eyre::Result<()> {
     let root = PathBuf::from(contract_path);
     let project = Project::builder()
         .paths(ProjectPathsConfig::builder().build_with_root(root))
         .set_auto_detect(true)
-        .build()
-        .unwrap();
+        .build()?;
 
     let solc_path = PathBuf::from("src/compiler/bin/solc");
 
@@ -129,7 +140,7 @@ fn build_with_solc(contract_path: &str) {
         .arg("--")
         .args(source_files(project.root()));
 
-    let command_output = command.output().unwrap();
+    let command_output = command.output()?;
 
     log::info!(
         "stdout: {}",
@@ -145,4 +156,6 @@ fn build_with_solc(contract_path: &str) {
             .trim()
             .to_owned()
     );
+
+    Ok(())
 }
