@@ -53,7 +53,7 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::Balance(args) => account_balance::run(args, config).await?,
         ZKSyncCommand::Pay(args) => pay::run(args, config).await?,
         ZKSyncCommand::Compile(args) => {
-            let _ = compile::run(args)?;
+            let _ = compile::run(args).await?;
         }
         ZKSyncCommand::Encode(args) => encode::run(args).await?,
         ZKSyncCommand::Selector(args) => selector::run(args).await?,
