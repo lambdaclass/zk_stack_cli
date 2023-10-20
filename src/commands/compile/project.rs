@@ -14,11 +14,15 @@ impl From<Project> for ZKSProject {
 impl ZKSProject {
     pub fn compile(&self) -> Result<ZKSCompilationOutput, ZKCompilerError> {
         let zksolc_path = dirs::config_dir()
-            .unwrap()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
             .join("eth-compilers")
             .join("zksolc");
         let solc_path = dirs::config_dir()
-            .unwrap()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
             .join("eth-compilers")
             .join("solc");
 
@@ -46,11 +50,15 @@ impl ZKSProject {
 
     pub fn build(&self) -> Result<(), ZKCompilerError> {
         let zksolc_path = dirs::config_dir()
-            .unwrap()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
             .join("eth-compilers")
             .join("zksolc");
         let solc_path = dirs::config_dir()
-            .unwrap()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
             .join("eth-compilers")
             .join("solc");
 
