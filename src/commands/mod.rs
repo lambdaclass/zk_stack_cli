@@ -13,6 +13,7 @@ pub(crate) mod get_transaction;
 pub(crate) mod main_contract;
 pub(crate) mod pay;
 pub(crate) mod selector;
+pub(crate) mod download_compiler;
 
 // It is set so that the transaction is replay-protected (EIP-155)
 // https://era.zksync.io/docs/api/hardhat/testing.html#connect-wallet-to-local-nodes
