@@ -11,11 +11,5 @@ pub(crate) mod get_l1_batch_details;
 pub(crate) mod get_l2_to_l1_proof;
 pub(crate) mod get_transaction;
 pub(crate) mod main_contract;
-pub(crate) mod pay;
 pub(crate) mod selector;
-
-// It is set so that the transaction is replay-protected (EIP-155)
-// https://era.zksync.io/docs/api/hardhat/testing.html#connect-wallet-to-local-nodes
-#[allow(dead_code)]
-const L1_CHAIN_ID: u64 = 9;
-const L2_CHAIN_ID: u64 = 270;
+pub(crate) mod transfer;
