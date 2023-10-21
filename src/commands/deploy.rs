@@ -5,7 +5,6 @@ use eyre::ContextCompat;
 use zksync_web3_rs::prelude::abi::Token;
 use zksync_web3_rs::signers::LocalWallet;
 use zksync_web3_rs::types::Bytes;
-use zksync_web3_rs::zks_utils::ERA_CHAIN_ID;
 use zksync_web3_rs::zks_wallet::DeployRequest;
 use zksync_web3_rs::ZKSWallet;
 use zksync_web3_rs::{providers::Provider, signers::Signer};
@@ -32,6 +31,8 @@ pub(crate) struct Args {
     pub private_key: LocalWallet,
     #[clap(long, name = "CONTRACT BYTECODE")]
     pub bytecode: Option<Bytes>,
+    #[clap(long, name = "CHAIN_ID")]
+    pub chain_id: u16,
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
@@ -40,7 +41,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         host = config.host,
         port = config.port
     ))?;
-    let wallet = args.private_key.with_chain_id(ERA_CHAIN_ID);
+    let wallet = args.private_key.with_chain_id(args.chain_id);
     let zk_wallet = ZKSWallet::new(wallet, None, Some(era_provider.clone()), None)?;
     let contract_address = if let Some(bytecode) = args.bytecode {
         zk_wallet
