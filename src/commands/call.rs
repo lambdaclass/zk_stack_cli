@@ -85,6 +85,16 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             .map(|output_type| match output_type.as_str() {
                 "uint256" => Ok(ParamType::Uint(256)),
                 "sint256" => Ok(ParamType::Int(256)),
+                "address" => Ok(ParamType::Address),
+                "bool" => Ok(ParamType::Bool),
+                "bytes" => Ok(ParamType::Bytes),
+                "string" => Ok(ParamType::String),
+                "[]uint256" => Ok(ParamType::Array(Box::new(ParamType::Uint(256)))),
+                "[]sint256" => Ok(ParamType::Array(Box::new(ParamType::Int(256)))),
+                "[]address" => Ok(ParamType::Array(Box::new(ParamType::Address))),
+                "[]bool" => Ok(ParamType::Array(Box::new(ParamType::Bool))),
+                "[]bytes" => Ok(ParamType::Array(Box::new(ParamType::Bytes))),
+                "[]string" => Ok(ParamType::Array(Box::new(ParamType::String))),
                 other => Err(eyre!("Unable to parse output type: {other}")),
             })
             .collect::<eyre::Result<Vec<ParamType>>>()?;
