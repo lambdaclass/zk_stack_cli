@@ -1,7 +1,7 @@
 use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::eyre;
-use zksync_web3_rs::prelude::abi::{encode, decode, ParamType, Tokenize, HumanReadableParser};
+use zksync_web3_rs::prelude::abi::{decode, encode, HumanReadableParser, ParamType, Tokenize};
 use zksync_web3_rs::providers::Middleware;
 use zksync_web3_rs::signers::LocalWallet;
 use zksync_web3_rs::types::transaction::eip2718::TypedTransaction;
@@ -57,11 +57,15 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         } else if args.contract == zks_utils::MODEXP_PRECOMPILE_ADDRESS {
             zks_utils::mod_exp_function()
         } else {
-            HumanReadableParser::parse_function(&function_signature)?
+            HumanReadableParser::parse_function(function_signature)?
         };
-        let function_args = function.decode_input(&zks_utils::encode_args(&function, &function_args)?)?;
+        let function_args =
+            function.decode_input(&zks_utils::encode_args(&function, &function_args)?)?;
 
-        let data = match (!function_args.is_empty(), zks_utils::is_precompile(args.contract)) {
+        let data = match (
+            !function_args.is_empty(),
+            zks_utils::is_precompile(args.contract),
+        ) {
             // The contract to call is a precompile with arguments.
             (true, true) => encode(&function_args),
             // The contract to call is a regular contract with arguments.
