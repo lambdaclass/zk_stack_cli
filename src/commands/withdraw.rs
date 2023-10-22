@@ -6,8 +6,9 @@ use zksync_web3_rs::{
     signers::{LocalWallet, Signer},
     types::{Address, U256},
     utils::parse_units,
+    zks_provider::ZKSProvider,
     zks_wallet::WithdrawRequest,
-    ZKSWallet, zks_provider::ZKSProvider,
+    ZKSWallet,
 };
 
 #[derive(ClapArgs)]
@@ -35,8 +36,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     ))?;
 
     let wallet = args.from.with_chain_id(args.chain_id);
-    let zk_wallet =
-        ZKSWallet::new(wallet, None, Some(l2_provider.clone()), Some(l1_provider))?;
+    let zk_wallet = ZKSWallet::new(wallet, None, Some(l2_provider.clone()), Some(l1_provider))?;
 
     // See balances before withdraw
     let l1_balance_before = zk_wallet.eth_balance().await?;
@@ -67,7 +67,8 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         .get_eth_provider()
         .unwrap()
         .get_transaction_receipt(tx_finalize_hash)
-        .await?.context("Failed to get transaction receipt")?;
+        .await?
+        .context("Failed to get transaction receipt")?;
     log::info!(
         "L1 Transaction hash: {:?}",
         tx_finalize_receipt.transaction_hash
