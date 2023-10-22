@@ -61,11 +61,10 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
 
     log::info!("L2 Transaction hash: {:?}", tx_receipt.transaction_hash);
 
-    let tx_finalize_hash = zk_wallet.finalize_withdraw(tx_hash).await.unwrap();
+    let tx_finalize_hash = zk_wallet.finalize_withdraw(tx_hash).await?;
 
     let tx_finalize_receipt = zk_wallet
-        .get_eth_provider()
-        .unwrap()
+        .get_eth_provider()?
         .get_transaction_receipt(tx_finalize_hash)
         .await?
         .context("Failed to get transaction receipt")?;
