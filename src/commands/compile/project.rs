@@ -1,7 +1,5 @@
-use super::program_path;
 use super::{errors::ZKCompilerError, output::ZKSCompilationOutput};
-use zksync_web3_rs::solc::utils::source_files;
-use zksync_web3_rs::solc::Project;
+use zksync_web3_rs::{prelude::Project, solc::utils::source_files};
 
 pub struct ZKSProject {
     pub base_project: Project,
@@ -15,23 +13,23 @@ impl From<Project> for ZKSProject {
 
 impl ZKSProject {
     pub fn compile(&self) -> Result<ZKSCompilationOutput, ZKCompilerError> {
-        let zksolc_path = program_path("zksolc").ok_or(ZKCompilerError::CompilationError(
-            "zksolc not found".to_owned(),
-        ))?;
+        let zksolc_path = dirs::config_dir()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
+            .join("eth-compilers")
+            .join("zksolc");
+        let solc_path = dirs::config_dir()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
+            .join("eth-compilers")
+            .join("solc");
 
-        let mut command = &mut std::process::Command::new(zksolc_path);
-
-        if let Some(solc) = program_path("solc") {
-            command = command.arg("--solc").arg(solc);
-        } else if let Ok(solc) = std::env::var("SOLC_PATH") {
-            command = command.arg("--solc").arg(solc);
-        } else {
-            return Err(ZKCompilerError::CompilationError(
-                "no solc path provided".to_owned(),
-            ));
-        }
-
-        command = command
+        let command = &mut std::process::Command::new(zksolc_path);
+        command
+            .arg("--solc")
+            .arg(solc_path)
             .arg("--combined-json")
             .arg("abi,bin")
             .arg("--")
@@ -48,5 +46,52 @@ impl ZKSProject {
 
         serde_json::from_str(&compilation_output)
             .map_err(|e| ZKCompilerError::CompilationError(e.to_string()))
+    }
+
+    pub fn build(&self) -> Result<(), ZKCompilerError> {
+        let zksolc_path = dirs::config_dir()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
+            .join("eth-compilers")
+            .join("zksolc");
+        let solc_path = dirs::config_dir()
+            .ok_or(ZKCompilerError::CompilationError(
+                "config dir not found".to_owned(),
+            ))?
+            .join("eth-compilers")
+            .join("solc");
+
+        let command = &mut std::process::Command::new(zksolc_path);
+        command
+            .arg("--solc")
+            .arg(solc_path)
+            .arg("--combined-json")
+            .arg("abi,bin")
+            .arg("--output-dir")
+            .arg("contracts/build/")
+            .arg("--")
+            .args(source_files(self.base_project.root()));
+
+        let command_output = command.output().map_err(|e| {
+            ZKCompilerError::CompilationError(format!("failed to execute zksolc: {e}"))
+        })?;
+
+        log::info!(
+            "stdout: {}",
+            String::from_utf8_lossy(&command_output.stdout)
+                .into_owned()
+                .trim()
+                .to_owned()
+        );
+        log::info!(
+            "stderr: {}",
+            String::from_utf8_lossy(&command_output.stderr)
+                .into_owned()
+                .trim()
+                .to_owned()
+        );
+
+        Ok(())
     }
 }

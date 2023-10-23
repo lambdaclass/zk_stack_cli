@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::cli::ZKSyncConfig;
-use crate::commands::compile::ZKSProject;
+use crate::commands::compile::project::ZKSProject;
 use clap::Args as ClapArgs;
 use eyre::eyre;
 use eyre::ContextCompat;

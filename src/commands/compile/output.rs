@@ -1,13 +1,12 @@
-use std::collections::HashMap;
+use zksync_web3_rs::prelude::abi::{Abi, Param};
+use zksync_web3_rs::prelude::artifacts::StateMutability;
+use zksync_web3_rs::prelude::info::ContractInfoRef;
+use zksync_web3_rs::prelude::types::Bytes;
 
 use serde::{Deserialize, Serialize};
-use zksync_web3_rs::{
-    prelude::abi::{Abi, Param, StateMutability},
-    solc::info::ContractInfoRef,
-    types::Bytes,
-};
+use std::collections::HashMap;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ZKSArtifact {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub abi: Option<Abi>,
