@@ -1,13 +1,12 @@
 use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::eyre;
-use zksync_web3_rs::prelude::abi::{decode, ParamType, Tokenize};
+use zksync_web3_rs::prelude::abi::{decode, encode, HumanReadableParser, ParamType, Tokenize};
 use zksync_web3_rs::providers::Middleware;
 use zksync_web3_rs::signers::LocalWallet;
 use zksync_web3_rs::types::transaction::eip2718::TypedTransaction;
 use zksync_web3_rs::types::{Bytes, Eip1559TransactionRequest};
-use zksync_web3_rs::zks_provider::ZKSProvider;
-use zksync_web3_rs::zks_wallet::CallRequest;
+use zksync_web3_rs::zks_utils;
 use zksync_web3_rs::{providers::Provider, types::Address};
 
 // TODO: Optional parameters were omitted, they should be added in the future.
@@ -25,6 +24,8 @@ pub(crate) struct Args {
     pub output_types: Option<Vec<String>>,
     #[clap(short, long, name = "PRIVATE_KEY")]
     pub private_key: LocalWallet,
+    #[clap(long, name = "CHAIN_ID")]
+    pub chain_id: u16,
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
@@ -42,32 +43,70 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         &args.function
     };
 
-    let output = if let Some(data) = args.data {
-        let request = Eip1559TransactionRequest::new()
-            .to(args.contract)
-            .data(data);
-        let transaction: TypedTransaction = request.into();
-        let encoded_output = Middleware::call(&provider, &transaction, None).await?;
-        if let Some(output_types) = args.output_types {
-            let parsed_param_types: Vec<ParamType> = output_types
-                .iter()
-                .map(|output_type| match output_type.as_str() {
-                    "uint256" => Ok(ParamType::Uint(256)),
-                    "sint256" => Ok(ParamType::Int(256)),
-                    other => Err(eyre!("Unable to parse output type: {other}")),
-                })
-                .collect::<eyre::Result<Vec<ParamType>>>()?;
-            decode(&parsed_param_types, &encoded_output)?
+    let mut request = Eip1559TransactionRequest::new()
+        .to(args.contract)
+        .chain_id(args.chain_id);
+
+    if let Some(data) = args.data {
+        request = request.data(data);
+    } else if let Some(function_args) = args.args {
+        let function = if args.contract == zks_utils::ECADD_PRECOMPILE_ADDRESS {
+            zks_utils::ec_add_function()
+        } else if args.contract == zks_utils::ECMUL_PRECOMPILE_ADDRESS {
+            zks_utils::ec_mul_function()
+        } else if args.contract == zks_utils::MODEXP_PRECOMPILE_ADDRESS {
+            zks_utils::mod_exp_function()
         } else {
-            encoded_output.into_tokens()
-        }
+            HumanReadableParser::parse_function(function_signature)?
+        };
+        let function_args =
+            function.decode_input(&zks_utils::encode_args(&function, &function_args)?)?;
+
+        let data = match (
+            !function_args.is_empty(),
+            zks_utils::is_precompile(args.contract),
+        ) {
+            // The contract to call is a precompile with arguments.
+            (true, true) => encode(&function_args),
+            // The contract to call is a regular contract with arguments.
+            (true, false) => function.encode_input(&function_args)?,
+            // The contract to call is a precompile without arguments.
+            (false, true) => Default::default(),
+            // The contract to call is a regular contract without arguments.
+            (false, false) => function.short_signature().into(),
+        };
+
+        request = request.data(data);
+    }
+
+    let transaction: TypedTransaction = request.into();
+
+    let encoded_output = Middleware::call(&provider, &transaction, None).await?;
+
+    let decoded_output = if let Some(output_types) = args.output_types {
+        let parsed_param_types: Vec<ParamType> = output_types
+            .iter()
+            .map(|output_type| match output_type.as_str() {
+                "uint256" => Ok(ParamType::Uint(256)),
+                "sint256" => Ok(ParamType::Int(256)),
+                "address" => Ok(ParamType::Address),
+                "bool" => Ok(ParamType::Bool),
+                "bytes" => Ok(ParamType::Bytes),
+                "string" => Ok(ParamType::String),
+                "[]uint256" => Ok(ParamType::Array(Box::new(ParamType::Uint(256)))),
+                "[]sint256" => Ok(ParamType::Array(Box::new(ParamType::Int(256)))),
+                "[]address" => Ok(ParamType::Array(Box::new(ParamType::Address))),
+                "[]bool" => Ok(ParamType::Array(Box::new(ParamType::Bool))),
+                "[]bytes" => Ok(ParamType::Array(Box::new(ParamType::Bytes))),
+                "[]string" => Ok(ParamType::Array(Box::new(ParamType::String))),
+                other => Err(eyre!("Unable to parse output type: {other}")),
+            })
+            .collect::<eyre::Result<Vec<ParamType>>>()?;
+        decode(&parsed_param_types, &encoded_output)?
     } else {
-        let mut call_request = CallRequest::new(args.contract, function_signature.to_owned());
-        if let Some(args) = args.args {
-            call_request = call_request.function_parameters(args);
-        }
-        ZKSProvider::call(&provider, &call_request).await?
+        encoded_output.into_tokens()
     };
-    log::info!("{output:?}");
+
+    log::info!("{decoded_output:?}");
     Ok(())
 }
