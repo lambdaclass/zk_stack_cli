@@ -1,12 +1,10 @@
 use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
-use zksync_web3_rs::eip712::{Eip712Meta, Eip712Transaction, Eip712TransactionRequest};
+use zksync_web3_rs::eip712::Eip712TransactionRequest;
 use zksync_web3_rs::prelude::abi::{encode, HumanReadableParser};
-use zksync_web3_rs::providers::{Middleware, ProviderError};
 use zksync_web3_rs::signers::{LocalWallet, Signer};
-use zksync_web3_rs::types::transaction::eip712::Eip712Error;
-use zksync_web3_rs::types::{Bytes, Signature};
+use zksync_web3_rs::types::Bytes;
 use zksync_web3_rs::zks_provider::ZKSProvider;
 use zksync_web3_rs::zks_utils;
 use zksync_web3_rs::{providers::Provider, types::Address};
@@ -45,16 +43,11 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         &args.function
     };
 
-    let sender_address = args.private_key.address();
+    let sender = args.private_key.with_chain_id(args.chain_id);
 
     let mut request = Eip712TransactionRequest::new()
         .r#type(zks_utils::EIP712_TX_TYPE)
-        .from(sender_address)
-        .to(args.contract)
-        .chain_id(args.chain_id)
-        .nonce(provider.get_transaction_count(sender_address, None).await?)
-        .gas_price(provider.get_gas_price().await?)
-        .max_fee_per_gas(provider.get_gas_price().await?);
+        .to(args.contract);
 
     if let Some(data) = args.data {
         request = request.data(data);
@@ -88,29 +81,8 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         request = request.data(data);
     }
 
-    let fee = provider.estimate_fee(request.clone()).await?;
-    request = request
-        .max_priority_fee_per_gas(fee.max_priority_fee_per_gas)
-        .max_fee_per_gas(fee.max_fee_per_gas)
-        .gas_limit(fee.gas_limit);
-
-    let signable_data: Eip712Transaction = request
-        .clone()
-        .try_into()
-        .map_err(|e: Eip712Error| ProviderError::CustomError(e.to_string()))?;
-    let signature: Signature = args
-        .private_key
-        .sign_typed_data(&signable_data)
-        .await
-        .map_err(|e| ProviderError::CustomError(format!("error signing transaction: {e}")))?;
-    request = request.custom_data(Eip712Meta::new().custom_signature(signature.to_vec()));
-
-    let encoded_rlp = &*request
-        .rlp_signed(signature)
-        .map_err(|e| ProviderError::CustomError(format!("error encoding transaction: {e}")))?;
-
     let tx_receipt = provider
-        .send_raw_transaction([&[zks_utils::EIP712_TX_TYPE], encoded_rlp].concat().into())
+        .send_transaction_eip712(&sender, request)
         .await?
         .await?
         .context("Failed to get transaction receipt")?;
