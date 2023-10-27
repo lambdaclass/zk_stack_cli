@@ -23,8 +23,7 @@ pub(crate) async fn run(args: Args) -> eyre::Result<()> {
         &args.contract_path,
         &args.contract_name,
         args.compiler,
-    )
-    .unwrap();
+    )?;
     log::info!("{output:?}");
     Ok(())
 }
