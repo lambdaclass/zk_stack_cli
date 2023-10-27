@@ -18,7 +18,13 @@ pub(crate) struct Args {
 }
 
 pub(crate) async fn run(args: Args) -> eyre::Result<()> {
-    let output = compiler::compile(&args.project_root, &args.contract_path, &args.contract_name, args.compiler).unwrap();
+    let output = compiler::compile(
+        &args.project_root,
+        &args.contract_path,
+        &args.contract_name,
+        args.compiler,
+    )
+    .unwrap();
     log::info!("{output:?}");
     Ok(())
 }

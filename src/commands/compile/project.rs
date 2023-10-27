@@ -40,9 +40,15 @@ impl ZKSProject {
         })?;
 
         if !command_output.stderr.is_empty() {
-            log::error!("STDERR: {}", String::from_utf8_lossy(&command_output.stderr));
+            log::error!(
+                "STDERR: {}",
+                String::from_utf8_lossy(&command_output.stderr)
+            );
         } else {
-            log::info!("STDOUT: {}", String::from_utf8_lossy(&command_output.stdout));
+            log::info!(
+                "STDOUT: {}",
+                String::from_utf8_lossy(&command_output.stdout)
+            );
         }
 
         let compilation_output = String::from_utf8_lossy(&command_output.stdout)

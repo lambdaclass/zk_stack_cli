@@ -69,7 +69,11 @@ pub fn compile(
     }
 }
 
-fn compile_with_zksolc(project_root: &str, contract_path: &str, contract_name: &str) -> eyre::Result<Artifact> {
+fn compile_with_zksolc(
+    project_root: &str,
+    contract_path: &str,
+    contract_name: &str,
+) -> eyre::Result<Artifact> {
     let root = PathBuf::from(project_root);
     let zk_project = ZKSProject::from(
         Project::builder()
