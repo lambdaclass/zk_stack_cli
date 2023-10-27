@@ -58,18 +58,19 @@ impl Artifact {
 }
 
 pub fn compile(
+    project_root: &str,
     contract_path: &str,
     contract_name: &str,
     compiler: Compiler,
 ) -> eyre::Result<Artifact> {
     match compiler {
-        Compiler::ZKSolc => compile_with_zksolc(contract_path, contract_name),
+        Compiler::ZKSolc => compile_with_zksolc(project_root, contract_path, contract_name),
         Compiler::Solc => compile_with_solc(contract_path, contract_name),
     }
 }
 
-fn compile_with_zksolc(contract_path: &str, contract_name: &str) -> eyre::Result<Artifact> {
-    let root = PathBuf::from(contract_path);
+fn compile_with_zksolc(project_root: &str, contract_path: &str, contract_name: &str) -> eyre::Result<Artifact> {
+    let root = PathBuf::from(project_root);
     let zk_project = ZKSProject::from(
         Project::builder()
             .paths(ProjectPathsConfig::builder().build_with_root(root))
