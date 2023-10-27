@@ -11,6 +11,8 @@ use zksync_web3_rs::{providers::Provider, signers::Signer};
 
 #[derive(ClapArgs)]
 pub(crate) struct Args {
+    #[clap(short, long, name = "PROJECT_ROOT_PATH")]
+    pub project_root: String,
     #[clap(
         long,
         name = "CONTRACT PATH",
@@ -49,6 +51,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             .await?
     } else if let Some(contract_path) = args.contract.clone() {
         let artifact = compile::compiler::compile(
+            &args.project_root,
             &contract_path,
             &args.contract_name.context("no contract name provided")?,
             compile::compiler::Compiler::ZKSolc,
