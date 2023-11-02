@@ -14,7 +14,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(format!(
         "http://{host}:{port}",
         host = config.host,
-        port = config.port
+        port = config.l2_port
     ))?
     .interval(std::time::Duration::from_millis(10));
     let l1_batch_details = provider.get_l1_batch_details(args.batch).await?;

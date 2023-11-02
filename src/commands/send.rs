@@ -1,11 +1,11 @@
 use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
-use eyre::eyre;
-use zksync_web3_rs::prelude::abi::{decode, encode, HumanReadableParser, ParamType, Tokenize};
-use zksync_web3_rs::providers::Middleware;
-use zksync_web3_rs::signers::LocalWallet;
-use zksync_web3_rs::types::transaction::eip2718::TypedTransaction;
-use zksync_web3_rs::types::{Bytes, Eip1559TransactionRequest};
+use eyre::ContextCompat;
+use zksync_web3_rs::eip712::Eip712TransactionRequest;
+use zksync_web3_rs::prelude::abi::{encode, HumanReadableParser};
+use zksync_web3_rs::signers::{LocalWallet, Signer};
+use zksync_web3_rs::types::Bytes;
+use zksync_web3_rs::zks_provider::ZKSProvider;
 use zksync_web3_rs::zks_utils;
 use zksync_web3_rs::{providers::Provider, types::Address};
 
@@ -43,9 +43,11 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         &args.function
     };
 
-    let mut request = Eip1559TransactionRequest::new()
-        .to(args.contract)
-        .chain_id(args.chain_id);
+    let sender = args.private_key.with_chain_id(args.chain_id);
+
+    let mut request = Eip712TransactionRequest::new()
+        .r#type(zks_utils::EIP712_TX_TYPE)
+        .to(args.contract);
 
     if let Some(data) = args.data {
         request = request.data(data);
@@ -79,34 +81,13 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         request = request.data(data);
     }
 
-    let transaction: TypedTransaction = request.into();
+    let tx_receipt = provider
+        .send_transaction_eip712(&sender, request)
+        .await?
+        .await?
+        .context("Failed to get transaction receipt")?;
 
-    let encoded_output = Middleware::call(&provider, &transaction, None).await?;
+    log::info!("{:?}", tx_receipt.transaction_hash);
 
-    let decoded_output = if let Some(output_types) = args.output_types {
-        let parsed_param_types: Vec<ParamType> = output_types
-            .iter()
-            .map(|output_type| match output_type.as_str() {
-                "uint256" => Ok(ParamType::Uint(256)),
-                "sint256" => Ok(ParamType::Int(256)),
-                "address" => Ok(ParamType::Address),
-                "bool" => Ok(ParamType::Bool),
-                "bytes" => Ok(ParamType::Bytes),
-                "string" => Ok(ParamType::String),
-                "[]uint256" => Ok(ParamType::Array(Box::new(ParamType::Uint(256)))),
-                "[]sint256" => Ok(ParamType::Array(Box::new(ParamType::Int(256)))),
-                "[]address" => Ok(ParamType::Array(Box::new(ParamType::Address))),
-                "[]bool" => Ok(ParamType::Array(Box::new(ParamType::Bool))),
-                "[]bytes" => Ok(ParamType::Array(Box::new(ParamType::Bytes))),
-                "[]string" => Ok(ParamType::Array(Box::new(ParamType::String))),
-                other => Err(eyre!("Unable to parse output type: {other}")),
-            })
-            .collect::<eyre::Result<Vec<ParamType>>>()?;
-        decode(&parsed_param_types, &encoded_output)?
-    } else {
-        encoded_output.into_tokens()
-    };
-
-    log::info!("{decoded_output:?}");
     Ok(())
 }

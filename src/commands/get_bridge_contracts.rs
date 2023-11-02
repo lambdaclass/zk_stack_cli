@@ -6,7 +6,7 @@ pub(crate) async fn run(config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(format!(
         "http://{host}:{port}",
         host = config.host,
-        port = config.port
+        port = config.l2_port
     ))?
     .interval(std::time::Duration::from_millis(10));
     let bridge_contracts = provider.get_bridge_contracts().await?;
