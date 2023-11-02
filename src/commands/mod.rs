@@ -13,5 +13,6 @@ pub(crate) mod get_l2_to_l1_proof;
 pub(crate) mod get_transaction;
 pub(crate) mod main_contract;
 pub(crate) mod selector;
+pub(crate) mod send;
 pub(crate) mod transfer;
 pub(crate) mod withdraw;
