@@ -1,7 +1,7 @@
 use crate::commands::{
     account_balance, call, compile, deploy, deposit, encode, get_bridge_contracts,
     get_bytecode_by_hash, get_confirmed_tokens, get_contract, get_l1_batch_details,
-    get_l2_to_l1_proof, get_transaction, main_contract, selector, transfer,
+    get_l2_to_l1_proof, get_transaction, main_contract, selector, send, transfer, withdraw,
 };
 use clap::{command, Args, Parser, Subcommand};
 
@@ -44,6 +44,8 @@ enum ZKSyncCommand {
     MainContract,
     Transfer(transfer::Args),
     Deposit(deposit::Args),
+    Withdraw(withdraw::Args),
+    Send(send::Args),
 }
 
 pub async fn start() -> eyre::Result<()> {
@@ -65,6 +67,8 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::MainContract => main_contract::run(config).await?,
         ZKSyncCommand::Transfer(args) => transfer::run(args, config).await?,
         ZKSyncCommand::Deposit(args) => deposit::run(args, config).await?,
+        ZKSyncCommand::Withdraw(args) => withdraw::run(args, config).await?,
+        ZKSyncCommand::Send(args) => send::run(args, config).await?,
     };
 
     Ok(())
