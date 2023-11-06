@@ -49,35 +49,39 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
 
     if let Some(data) = args.data {
         request = request.data(data);
-    } else if let Some(function_args) = args.args {
-        let function = if args.contract == zks_utils::ECADD_PRECOMPILE_ADDRESS {
-            zks_utils::ec_add_function()
-        } else if args.contract == zks_utils::ECMUL_PRECOMPILE_ADDRESS {
-            zks_utils::ec_mul_function()
-        } else if args.contract == zks_utils::MODEXP_PRECOMPILE_ADDRESS {
-            zks_utils::mod_exp_function()
-        } else {
-            HumanReadableParser::parse_function(function_signature)?
-        };
-        let function_args =
-            function.decode_input(&zks_utils::encode_args(&function, &function_args)?)?;
-
-        let data = match (
-            !function_args.is_empty(),
-            zks_utils::is_precompile(args.contract),
-        ) {
-            // The contract to call is a precompile with arguments.
-            (true, true) => encode(&function_args),
-            // The contract to call is a regular contract with arguments.
-            (true, false) => function.encode_input(&function_args)?,
-            // The contract to call is a precompile without arguments.
-            (false, true) => Default::default(),
-            // The contract to call is a regular contract without arguments.
-            (false, false) => function.short_signature().into(),
-        };
-
-        request = request.data(data);
     }
+
+    let function = if args.contract == zks_utils::ECADD_PRECOMPILE_ADDRESS {
+        zks_utils::ec_add_function()
+    } else if args.contract == zks_utils::ECMUL_PRECOMPILE_ADDRESS {
+        zks_utils::ec_mul_function()
+    } else if args.contract == zks_utils::MODEXP_PRECOMPILE_ADDRESS {
+        zks_utils::mod_exp_function()
+    } else {
+        HumanReadableParser::parse_function(function_signature)?
+    };
+
+    let function_args = if let Some(function_args) = args.args {
+        function.decode_input(&zks_utils::encode_args(&function, &function_args)?)?
+    } else {
+        vec![]
+    };
+
+    let data = match (
+        !function_args.is_empty(),
+        zks_utils::is_precompile(args.contract),
+    ) {
+        // The contract to call is a precompile with arguments.
+        (true, true) => encode(&function_args),
+        // The contract to call is a regular contract with arguments.
+        (true, false) => function.encode_input(&function_args)?,
+        // The contract to call is a precompile without arguments.
+        (false, true) => Default::default(),
+        // The contract to call is a regular contract without arguments.
+        (false, false) => function.short_signature().into(),
+    };
+
+    request = request.data(data);
 
     let transaction: TypedTransaction = request.into();
 
