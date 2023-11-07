@@ -12,7 +12,7 @@ use crate::cli::ZKSyncConfig;
 
 #[derive(ClapArgs)]
 pub struct Args {
-    #[clap(long, name = "AMOUNT_TO_TRANSFER")]
+    #[clap(long, name = "AMOUNT_TO_TRANSFER", value_parser=U256::from_dec_str)]
     pub amount: U256,
     #[clap(short, long, name = "SENDER_PRIVATE_KEY")]
     pub from: LocalWallet,
