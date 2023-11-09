@@ -3,11 +3,12 @@ use clap::Args as ClapArgs;
 use eyre::eyre;
 use zksync_web3_rs::prelude::abi::{decode, encode, HumanReadableParser, ParamType, Tokenize};
 use zksync_web3_rs::providers::Middleware;
-use zksync_web3_rs::signers::LocalWallet;
 use zksync_web3_rs::types::transaction::eip2718::TypedTransaction;
 use zksync_web3_rs::types::{Bytes, Eip1559TransactionRequest};
 use zksync_web3_rs::zks_utils;
 use zksync_web3_rs::{providers::Provider, types::Address};
+
+pub const ERA_IN_MEMORY_NODE_CHAIN_ID: u16 = 260;
 
 // TODO: Optional parameters were omitted, they should be added in the future.
 #[derive(ClapArgs)]
@@ -87,7 +88,13 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
 
     let transaction: TypedTransaction = request.into();
 
-    let encoded_output = Middleware::call(&provider, &transaction, None).await?;
+    let call_result = Middleware::call(&provider, &transaction, None).await?;
+    let encoded_output = if args.chain_id == ERA_IN_MEMORY_NODE_CHAIN_ID {
+        let (output, _) = parse_call_result(&call_result);
+        output
+    } else {
+        call_result
+    };
 
     let decoded_output = if let Some(output_types) = args.output_types {
         let parsed_param_types: Vec<ParamType> = output_types
@@ -115,4 +122,12 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
 
     log::info!("{decoded_output:?}");
     Ok(())
+}
+
+pub fn parse_call_result(bytes: &[u8]) -> (Bytes, u32) {
+    let gas_used_bytes = bytes[0..4].to_vec();
+    let output = bytes[4..].to_vec();
+    let gas_used = u32::from_le_bytes(gas_used_bytes.try_into().unwrap());
+
+    (output.into(), gas_used)
 }
