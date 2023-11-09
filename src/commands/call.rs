@@ -29,11 +29,15 @@ pub(crate) struct Args {
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(format!(
-        "http://{host}:{port}",
-        host = config.host,
-        port = config.l2_port
-    ))?;
+    let provider = if let Some(port) = config.l2_port {
+        Provider::try_from(format!(
+            "http://{host}:{port}",
+            host = config.host,
+            port = port
+        ))?
+    } else {
+        Provider::try_from(format!("{host}", host = config.host,))?
+    };
 
     // Note: CLI syntactic sugar need to be handle in the run() function.
     // If more sugar cases are needed, we should switch to a match statement.
