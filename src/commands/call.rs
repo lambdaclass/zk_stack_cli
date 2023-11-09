@@ -22,8 +22,6 @@ pub(crate) struct Args {
     pub data: Option<Bytes>,
     #[clap(long, num_args(1..), requires = "data", name = "OUTPUT_TYPES")]
     pub output_types: Option<Vec<String>>,
-    #[clap(short, long, name = "PRIVATE_KEY")]
-    pub private_key: LocalWallet,
     #[clap(long, name = "CHAIN_ID")]
     pub chain_id: u16,
 }
