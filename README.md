@@ -1,31 +1,42 @@
 # zkSync Era CLI
 
-CLI tool for fast development on zkSync Era, built using `zksync-web3-rs` SDK.
+CLI tool for fast development on zkSync Era, built using [`zksync-web3-rs`](https://crates.io/crates/zksync-web3-rs) SDK.
 
 ## Table of Contents
 
-- [CLI](#cli)
+- [zkSync Era CLI](#zksync-era-cli)
+  - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
-  - [Usage](#usage)
-    - [`zksync_era_cli deploy`](#zksync_era_cli-deploy)
-    - [`zksync_era_cli call`](#zksync_era_cli-call)
-    - [`zksync_era_cli get-contract`](#zksync_era_cli-get-contract)
-    - [`zksync_era_cli get-transaction`](#zksync_era_cli-get-transaction)
-    - [`zksync_era_cli balance`](#zksync_era_cli-balance)
-    - [`zksync_era_cli pay`](#zksync_era_cli-pay)
-    - [`zksync_era_cli compile`](#zksync_era_cli-compile)
-      - [Status (for full compatibility)](#status-for-full-compatibility)
+  - [Commands](#commands)
+    - [`zksync-era-cli deploy`](#zksync-era-cli-deploy)
+    - [`zksync-era-cli call`](#zksync-era-cli-call)
+    - [`zksync-era-cli send`](#zksync-era-cli-send)
+    - [`zksync-era-cli get-contract`](#zksync-era-cli-get-contract)
+    - [`zksync-era-cli get-transaction`](#zksync-era-cli-get-transaction)
+    - [`zksync-era-cli balance`](#zksync-era-cli-balance)
+    - [`zksync-era-cli transfer`](#zksync-era-cli-transfer)
+    - [`zksync-era-cli encode`](#zksync-era-cli-encode)
+    - [`zksync-era-cli selector`](#zksync-era-cli-selector)
+    - [`zksync-era-cli get-bridge-contracts`](#zksync-era-cli-get-bridge-contracts)
+    - [`zksync-era-cli get-bytecode-by-hash`](#zksync-era-cli-get-bytecode-by-hash)
+    - [`zksync-era-cli confirmed-tokens`](#zksync-era-cli-confirmed-tokens)
+    - [`zksync-era-cli l1-batch-details`](#zksync-era-cli-l1-batch-details)
+    - [`zksync-era-cli l2-to-l1-log-proof`](#zksync-era-cli-l2-to-l1-log-proof)
+    - [`zksync-era-cli main-contract`](#zksync-era-cli-main-contract)
+    - [`zksync-era-cli deposit`](#zksync-era-cli-deposit)
+    - [`zksync-era-cli withdraw`](#zksync-era-cli-withdraw)
+    - [`zksync-era-cli compile`](#zksync-era-cli-compile)
+      - [Status (for full compatibility) with compiler](#status-for-full-compatibility-with-compiler)
 
-## CLI
-### Installation
+## Installation
 
 ```
-git clone git@github.com:lambdaclass/zksync_era_cli.git
-cd zksync_era_cli
+git clone git@github.com:lambdaclass/zksync-era-cli.git
+cd zksync-era-cli
 make cli
 ```
 
-### Usage
+## Commands
 
 Running `zksync-era-cli` outputs the following:
 
@@ -37,32 +48,56 @@ Commands:
   call
   get-contract
   get-transaction
-  help             Print this message or the help of the given subcommand(s)
+  balance
+  compile
+  encode
+  selector
+  get-bridge-contracts
+  get-bytecode-by-hash
+  confirmed-tokens
+  l1-batch-details
+  l2-to-l1-log-proof
+  main-contract
+  transfer
+  deposit
+  withdraw
+  send
+  help                  Print this message or the help of the given subcommand(s)
 
 Options:
-      --host <HOST>  [default: 65.21.140.36]
-  -p, --port <PORT>  [default: 8545]
-  -h, --help         Print help
-  -V, --version      Print version
+      --host <HOST>        [default: localhost]
+  -l, --l2-port <L2_PORT>  [default: 3050]
+  -l, --l1-port <L1_PORT>  [default: 8545]
+  -h, --help               Print help
+  -V, --version            Print version
 ```
 
-#### `zksync_era_cli deploy`
+### `zksync-era-cli deploy`
 
-Deploys the contract located in `CONTRACT_PATH/src` signing the transaction with `PRIVATE_KEY`.
-
-```
-zksync-era-cli deploy --contract <CONTRACT_PATH> --private-key <PRIVATE_KEY>
-```
-
-#### `zksync_era_cli call`
-
-Calls `FUNCTION_SIGNATURE` of `CONTRACT_ADDRESS` with args `FUNCTION_ARGS`. If you want o call a `public view` contract function then you don't need to provide your `PRIVATE_KEY`. You must provide the latter only if you want to call a contract function that performs a state change.
+Deploys the contract located inside the `PROJECT_PATH` directory, signing the transaction with `PRIVATE_KEY`.
 
 ```
-zksync-era-cli call --contract <CONTRACT_ADDRESS> --function <FUNCTION_SIGNATURE> --args <FUNCTION_ARGS> --private-key <PRIVATE_KEY>
+zksync-era-cli deploy --project-root <PROJECT_PATH> --private-key <PRIVATE_KEY> 
 ```
 
-#### `zksync_era_cli get-contract`
+
+### `zksync-era-cli call`
+
+Calls `FUNCTION_SIGNATURE` of `CONTRACT_ADDRESS` with args `FUNCTION_ARGS` or the corresponding calldata instead using the `--data` flag. Use this command to call a `public view` contract function, if the contract function performs a state change the send command must be used.
+
+```
+zksync-era-cli call --contract <CONTRACT_ADDRESS> --function <FUNCTION_SIGNATURE> --args <FUNCTION_ARGS>
+```
+
+### `zksync-era-cli send`
+
+Sends a transaction to a function which modifies the state with signature `FUNCTION_SIGNATURE` of `CONTRACT_ADDRESS` with args `FUNCTION_ARGS` or the corresponding calldata instead using the `--data` flag. The transaction will be signed with the sender `PRIVATE_KEY`.
+
+```
+zksync-era-cli send --contract <CONTRACT_ADDRESS> --function <FUNCTION_SIGNATURE> --private-key <PRIVATE_KEY> --chain-id <CHAIN_ID>
+```
+
+### `zksync-era-cli get-contract`
 
 Gets `CONTRACT_ADDRESS`'s bytecode.
 
@@ -70,7 +105,7 @@ Gets `CONTRACT_ADDRESS`'s bytecode.
 zksync-era-cli get-contract --contract <CONTRACT_ADDRESS>
 ```
 
-#### `zksync_era_cli get-transaction`
+### `zksync-era-cli get-transaction`
 
 Get the transaction corresponding to `TRANSACTION_HASH`.
 
@@ -78,7 +113,7 @@ Get the transaction corresponding to `TRANSACTION_HASH`.
 zksync-era-cli get-transaction --transaction <TRANSACTION_HASH>
 ```
 
-#### `zksync_era_cli balance`
+### `zksync-era-cli balance`
 
 Gets the balance of the `ACCOUNT_ADDRESS`.
 
@@ -86,25 +121,110 @@ Gets the balance of the `ACCOUNT_ADDRESS`.
 zksync-era-cli balance --account <ACCOUNT_ADDRESS>
 ```
 
-#### `zksync_era_cli pay`
+### `zksync-era-cli transfer`
 
-Pays `AMOUNT` from `SENDER_ADDRESS` to `RECEIVER_ADDRESS` signing the transaction with `SENDER_PRIVATE_KEY`.
-
-```
-zksync-era-cli pay --amount <AMOUNT_TO_TRANSFER> --from <SENDER_ADDRESS> --to <RECEIVER_ADDRESS> --private-key <SENDER_PRIVATE_KEY>
-```
-
-#### `zksync_era_cli compile`
-
-> This command is a wrapper for the zksolc compiler.
-
-Compiles the contract located in `PATH_TO_CONTRACT` using the zksolc compiler.
+Transfer `AMOUNT` from `SENDER_PRIVATE_KEY` to `RECEIVER_ADDRESS` signing the transaction with senders private key.
 
 ```
-zksync-era-cli compile --solc <PATH_TO_SOLC> --standard-json -- <PATH_TO_CONTRACT>
+zksync-era-cli transfer --amount <AMOUNT_TO_TRANSFER> --from <SENDER_PRIVATE_KEY> --to <RECEIVER_ADDRESS>
 ```
 
-##### Status (for full compatibility)
+### `zksync-era-cli encode`
+
+Encodes a function with signature `FUNCTION_SIGNATURE` and arguments `ARGUMENTS` which types are `ARG_TYPES`.
+
+```
+zksync-era-cli encode --function <FUNCTION_SIGNATURE> --arguments <ARGUMENTS> --types <ARG_TYPES>
+```
+
+### `zksync-era-cli selector`
+
+Encodes the function signature `FUNCTION_SIGNATURE` into the function selector.
+
+```
+zksync-era-cli selector --function-signature <FUNCTION_SIGNATURE>
+```
+
+### `zksync-era-cli get-bridge-contracts`
+
+Returns the addresses of the bridge contracts in L1 and L2 nodes.
+
+```
+zksync-era-cli get-bridge-contracts
+```
+
+### `zksync-era-cli get-bytecode-by-hash`
+
+Returns the contract bytecode from its hash `CONTRACT_BYTECODE_HASH`
+
+```
+zksync-era-cli get-bytecode-by-hash --hash <CONTRACT_BYTECODE_HASH>
+```
+
+### `zksync-era-cli confirmed-tokens`
+
+Returns address, symbol, name, and decimal information of all tokens within a range of ids starting in `FROM` to `FROM` + `LIMIT`
+
+Confirmd in this context means any token bridged to zkSync via the official bridge.
+
+```
+zksync-era-cli confirmed-tokens --from <FROM> --limit <LIMIT>
+```
+
+### `zksync-era-cli l1-batch-details`
+
+Returns data pertaining to the batch with number `L1_BATCH_NUMBER`.
+
+```
+zksync-era-cli confirmed-tokens --from <FROM> --limit <LIMIT>
+```
+
+### `zksync-era-cli l2-to-l1-log-proof`
+
+This command takes two possible flags, `--log-proof` or `--msg-proof`. One of them must be present.
+
+If the command is running with `--log-proof` command it
+gets the proof for the corresponding L2 to L1 log a transaction with hash `TRANSACTION_HASH`, and the index `LOG_INDEX` of the L2 to L1 log produced within the transaction.
+
+If the command is running with `--msg-proof` command it
+gets the proof for the message sent via the L1Messenger system contract with sender address `MESSAGE_SENDER`, the message `MESSAGE` and block number `MESSAGE_BLOCK`.
+
+```
+zksync-era-cli l2-to-l1-log-proof --transaction <TRANSACTION_HASH> --block <MESSAGE_BLOCK> --sender <MESSAGE_SENDER> --msg <MESSAGE> --log-index <LOG_INDEX>
+```
+### `zksync-era-cli main-contract`
+
+Returns the address of the zkSync Era contract.
+
+```
+zksync-era-cli main-contract
+```
+
+### `zksync-era-cli deposit`
+
+Performs a deposit for an amount `AMOUNT_TO_DEPOSIT_IN_ETHER` from the L1 account with private key `SENDER_PRIVATE_KEY` and L1 chain id `CHAIN_ID` to the account with the same address in L2. In case the address from L1 and L2 were different the L2 address can be specified with the `--to` argument.
+
+```
+zksync-era-cli deposit --amount <AMOUNT_TO_DEPOSIT_IN_ETHER> --from <SENDER_PRIVATE_KEY> --chain-id <CHAIN_ID>
+```
+
+### `zksync-era-cli withdraw`
+
+Performs a withdraw for an amount `AMOUNT_TO_WITHDRAW_IN_ETHER` from the L2 account with private key `SENDER_PRIVATE_KEY` and L2 chain id `CHAIN_ID` to the account with the same address in L1. In case the address from L2 and L1 were different the L1 address can be specified with the `--to` argument.
+
+```
+zksync-era-cli withdraw --amount <AMOUNT_TO_WITHDRAW_IN_ETHER> --from <SENDER_PRIVATE_KEY> --chain-id <CHAIN_ID>
+```
+
+### `zksync-era-cli compile`
+
+Compiles a contract, using the binary located in `COMPILER_PATH` (zksolc or solc), contained in the project with path `PROJECT_ROOT_PATH` with the corresponding path `CONTRACT_PATH` and contract name being `CONTRACT_NAME`.
+
+```
+zksync-era-cli compile --compiler <COMPILER_PATH> --project-root <PROJECT_ROOT_PATH> --contract-path <CONTRACT_PATH> --contract-name <CONTRACT_NAME>
+```
+
+#### Status (for full compatibility) with compiler
 
 | Flags                      | Description                                                                                                                                                                                                                                                 | Supported | State |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----- |
