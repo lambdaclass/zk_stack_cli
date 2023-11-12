@@ -44,10 +44,15 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     } else {
         // Note: CLI syntactic sugar need to be handle in the run() function.
         // If more sugar cases are needed, we should switch to a match statement.
-        let function_signature = if args.function.clone().unwrap().is_empty() {
+        let function_signature = if args
+            .function
+            .clone()
+            .context("No function signature provided")?
+            .is_empty()
+        {
             "function()"
         } else {
-            func = args.function.unwrap();
+            func = args.function.context("No function signature provided")?;
             &func
         };
 
@@ -80,7 +85,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             // The contract to call is a regular contract without arguments.
             (false, false) => function.short_signature().into(),
         };
-    
+
         request = request.data(data);
     }
 

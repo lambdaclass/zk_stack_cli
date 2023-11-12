@@ -48,10 +48,15 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     } else if let Some(function_args) = args.args {
         // Note: CLI syntactic sugar need to be handle in the run() function.
         // If more sugar cases are needed, we should switch to a match statement.
-        let function_signature = if args.function.clone().unwrap().is_empty() {
+        let function_signature = if args
+            .function
+            .clone()
+            .context("No function signature provided")?
+            .is_empty()
+        {
             "function()"
         } else {
-            func = args.function.unwrap();
+            func = args.function.context("No function signature provided")?;
             &func
         };
 
