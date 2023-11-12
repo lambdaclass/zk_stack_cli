@@ -11,7 +11,7 @@ pub struct ZKSArtifact {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub abi: Option<Abi>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bin: Option<Bytes>,
+    pub bytecode: Option<Bytes>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
