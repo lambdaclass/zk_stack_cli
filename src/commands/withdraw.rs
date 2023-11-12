@@ -24,16 +24,26 @@ pub struct Args {
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let l1_provider = Provider::try_from(format!(
-        "http://{host}:{port}",
-        host = config.host,
-        port = config.l1_port
-    ))?;
-    let l2_provider = Provider::try_from(format!(
-        "http://{host}:{port}",
-        host = config.host,
-        port = config.l2_port
-    ))?;
+    let l1_provider = if let Some(port) = config.l1_port {
+        Provider::try_from(format!(
+            "http://{host}:{port}",
+            host = config.host,
+            port = port
+        ))?
+    } else {
+        Provider::try_from(format!("{host}", host = config.host,))?
+    }
+    .interval(std::time::Duration::from_millis(10));
+    let l2_provider = if let Some(port) = config.l2_port {
+        Provider::try_from(format!(
+            "http://{host}:{port}",
+            host = config.host,
+            port = port
+        ))?
+    } else {
+        Provider::try_from(format!("{host}", host = config.host,))?
+    }
+    .interval(std::time::Duration::from_millis(10));
 
     let wallet = args.from.with_chain_id(args.chain_id);
     let zk_wallet = ZKSWallet::new(wallet, None, Some(l2_provider.clone()), Some(l1_provider))?;

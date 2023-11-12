@@ -11,11 +11,15 @@ pub(crate) struct Args {
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(format!(
-        "http://{host}:{port}",
-        host = config.host,
-        port = config.l2_port
-    ))?
+    let provider = if let Some(port) = config.l2_port {
+        Provider::try_from(format!(
+            "http://{host}:{port}",
+            host = config.host,
+            port = port
+        ))?
+    } else {
+        Provider::try_from(format!("{host}", host = config.host,))?
+    }
     .interval(std::time::Duration::from_millis(10));
     let l1_batch_details = provider.get_l1_batch_details(args.batch).await?;
     log::info!("{:#?}", l1_batch_details);

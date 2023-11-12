@@ -22,18 +22,20 @@ pub(crate) struct Args {
     pub data: Option<Bytes>,
     #[clap(long, num_args(1..), requires = "data", name = "OUTPUT_TYPES")]
     pub output_types: Option<Vec<String>>,
-    #[clap(short, long, name = "PRIVATE_KEY")]
-    pub private_key: LocalWallet,
     #[clap(long, name = "CHAIN_ID")]
     pub chain_id: u16,
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(format!(
-        "http://{host}:{port}",
-        host = config.host,
-        port = config.l2_port
-    ))?;
+    let provider = if let Some(port) = config.l2_port {
+        Provider::try_from(format!(
+            "http://{host}:{port}",
+            host = config.host,
+            port = port
+        ))?
+    } else {
+        Provider::try_from(format!("{host}", host = config.host,))?
+    };
 
     // Note: CLI syntactic sugar need to be handle in the run() function.
     // If more sugar cases are needed, we should switch to a match statement.

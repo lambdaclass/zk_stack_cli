@@ -20,10 +20,10 @@ struct ZKSyncCLI {
 pub struct ZKSyncConfig {
     #[clap(long, default_value = "localhost")]
     pub host: String,
-    #[clap(short, long, default_value = "3050")]
-    pub l2_port: u16,
-    #[clap(short, long, default_value = "8545")]
-    pub l1_port: u16,
+    #[clap(long)]
+    pub l2_port: Option<u16>,
+    #[clap(long)]
+    pub l1_port: Option<u16>,
 }
 
 #[derive(Subcommand)]
