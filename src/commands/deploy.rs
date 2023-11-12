@@ -11,7 +11,7 @@ use zksync_web3_rs::{providers::Provider, signers::Signer};
 #[derive(ClapArgs)]
 pub(crate) struct Args {
     #[clap(short, long, name = "PROJECT_ROOT_PATH")]
-    pub project_root: String,
+    pub project_root: Option<String>,
     #[clap(
         long,
         name = "CONTRACT PATH",
@@ -28,7 +28,7 @@ pub(crate) struct Args {
     pub contract_name: Option<String>,
     #[clap(
         long,
-        name = "CONTRACT NAME",
+        name = "CONTRACT ARTIFACT PATH",
         requires = "contract",
         conflicts_with = "contract, contract_name"
     )]
@@ -51,7 +51,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let zk_wallet = ZKSWallet::new(wallet, None, Some(era_provider.clone()), None)?;
     let contract_address = if let Some(contract_path) = args.contract {
         let artifact = compile::compiler::compile(
-            &args.project_root,
+            &args.project_root.context("Project root path is required")?,
             &contract_path,
             &args.contract_name.context("Contract name is required")?,
             compile::compiler::Compiler::ZKSolc,
