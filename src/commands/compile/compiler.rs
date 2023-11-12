@@ -44,7 +44,7 @@ impl Artifact {
 
     pub fn bin(&self) -> eyre::Result<Bytes> {
         match self {
-            Artifact::ZKSArtifact(artifact) => artifact.bin.clone().context("bytecode not found"),
+            Artifact::ZKSArtifact(artifact) => artifact.bytecode.clone().context("bytecode not found"),
             Artifact::SolcArtifact(artifact) => Ok(artifact
                 .bytecode
                 .clone()

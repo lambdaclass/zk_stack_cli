@@ -69,7 +69,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         zk_wallet.deploy(&deploy_request).await?
     } else if let Some(artifact_path) = args.contract_artifact {
         let artifact: ZKSArtifact = serde_json::from_slice(&std::fs::read(artifact_path)?)?;
-        let compiled_bytecode = artifact.bin.context("Contract bytecode is missing")?;
+        let compiled_bytecode = artifact.bytecode.context("Contract bytecode is missing")?;
         let compiled_abi = artifact.abi.context("Contract ABI is missing")?;
 
         let deploy_request = DeployRequest::with(
