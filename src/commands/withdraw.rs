@@ -25,23 +25,15 @@ pub struct Args {
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let l1_provider = if let Some(port) = config.l1_port {
-        Provider::try_from(format!(
-            "http://{host}:{port}",
-            host = config.host,
-            port = port
-        ))?
+        Provider::try_from(format!("http://{host}:{port}", host = config.host))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.clone())?
     }
     .interval(std::time::Duration::from_millis(10));
     let l2_provider = if let Some(port) = config.l2_port {
-        Provider::try_from(format!(
-            "http://{host}:{port}",
-            host = config.host,
-            port = port
-        ))?
+        Provider::try_from(format!("http://{host}:{port}", host = config.host))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.clone())?
     }
     .interval(std::time::Duration::from_millis(10));
 
