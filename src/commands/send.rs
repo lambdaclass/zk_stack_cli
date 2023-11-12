@@ -3,6 +3,7 @@ use clap::Args as ClapArgs;
 use eyre::ContextCompat;
 use zksync_web3_rs::eip712::Eip712TransactionRequest;
 use zksync_web3_rs::prelude::abi::{encode, HumanReadableParser};
+use zksync_web3_rs::providers::Middleware;
 use zksync_web3_rs::signers::{LocalWallet, Signer};
 use zksync_web3_rs::types::Bytes;
 use zksync_web3_rs::zks_provider::ZKSProvider;
@@ -89,11 +90,19 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     }
 
     let tx_receipt = provider
-        .send_transaction_eip712(&sender, request)
+        .send_transaction_eip712(&sender, request.clone())
         .await?
         .await?
         .context("Failed to get transaction receipt")?;
 
+    request = request
+        .from(sender.address())
+        .chain_id(sender.chain_id())
+        .nonce(provider.get_transaction_count(sender.address(), None).await?)
+        .gas_price(provider.get_gas_price().await?)
+        .max_fee_per_gas(provider.get_gas_price().await?);
+
+    log::info!("Estimated Gas: {:?}", provider.estimate_fee(request).await?);
     log::info!("{:?}", tx_receipt.transaction_hash);
 
     Ok(())
