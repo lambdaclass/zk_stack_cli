@@ -74,12 +74,23 @@ Options:
 
 ### `zksync-era-cli deploy`
 
-Deploys the contract located inside the `PROJECT_PATH` directory, signing the transaction with `PRIVATE_KEY`.
+Deploys a contract, this can be done in two ways:
+
+#### Deploying from contract path
+
+Deploys a contract, the project root path (`PROJECT_PATH`), the `CONTRACT_PATH` and the `CONTRACT_NAME` must be specified. The `PRIVATE_KEY` is needed to sign the deploy transaction.
 
 ```
-zksync-era-cli deploy --project-root <PROJECT_PATH> --private-key <PRIVATE_KEY> 
+zksync-era-cli deploy --project-root <PROJECT_PATH> --contract <CONTRACT_PATH> --contract-name <CONTRACT_NAME> --private-key <PRIVATE_KEY> 
 ```
 
+#### Deploying from a compiled contract (artifact)
+
+Deploys a contract that was previously compiled and saved as an artifact. The `PRIVATE_KEY` is needed to sign the deploy transaction.
+
+```
+zksync-era-cli deploy --contract_artifact <CONTRACT_NAME> --private-key <PRIVATE_KEY> 
+```
 
 ### `zksync-era-cli call`
 
