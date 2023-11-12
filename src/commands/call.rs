@@ -1,6 +1,6 @@
 use crate::cli::ZKSyncConfig;
 use clap::Args as ClapArgs;
-use eyre::eyre;
+use eyre::{eyre, ContextCompat};
 use zksync_web3_rs::prelude::abi::{decode, encode, HumanReadableParser, ParamType, Tokenize};
 use zksync_web3_rs::providers::Middleware;
 use zksync_web3_rs::types::transaction::eip2718::TypedTransaction;
@@ -29,13 +29,9 @@ pub(crate) struct Args {
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = if let Some(port) = config.l2_port {
-        Provider::try_from(format!(
-            "http://{host}:{port}",
-            host = config.host,
-            port = port
-        ))?
+        Provider::try_from(format!("http://{host}:{port}", host = config.host))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.clone())?
     };
 
     let mut request = Eip1559TransactionRequest::new()
@@ -92,7 +88,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
 
     let call_result = Middleware::call(&provider, &transaction, None).await?;
     let encoded_output = if args.chain_id == ERA_IN_MEMORY_NODE_CHAIN_ID {
-        let (output, _) = parse_call_result(&call_result);
+        let (output, _) = parse_call_result(&call_result)?;
         output
     } else {
         call_result
@@ -126,10 +122,17 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     Ok(())
 }
 
-pub fn parse_call_result(bytes: &[u8]) -> (Bytes, u32) {
-    let gas_used_bytes = bytes[0..4].to_vec();
-    let output = bytes[4..].to_vec();
-    let gas_used = u32::from_le_bytes(gas_used_bytes.try_into().unwrap());
+pub fn parse_call_result(bytes: &[u8]) -> eyre::Result<(Bytes, u32)> {
+    let gas_used_bytes = bytes
+        .get(0..4)
+        .context("Unable to get the gas used")?
+        .to_vec();
+    let output = bytes.get(4..).context("Unable to get the output")?.to_vec();
+    let gas_used = u32::from_le_bytes(
+        gas_used_bytes
+            .try_into()
+            .map_err(|e| eyre!("Unable to parse gas used from call result: {e:?}"))?,
+    );
 
-    (output.into(), gas_used)
+    Ok((output.into(), gas_used))
 }
