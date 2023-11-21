@@ -14,9 +14,9 @@ use zksync_web3_rs::{providers::Provider, types::Address};
 pub(crate) struct Args {
     #[clap(short, long, name = "CONTRACT_ADDRESS")]
     pub contract: Address,
-    #[clap(short, long, name = "FUNCTION_SIGNATURE")]
-    pub function: String,
-    #[clap(short, long, num_args(1..), name = "FUNCTION_ARGS")]
+    #[clap(short, long, name = "FUNCTION_SIGNATURE", conflicts_with = "data")]
+    pub function: Option<String>,
+    #[clap(short, long, num_args(1..), name = "FUNCTION_ARGS", conflicts_with = "data")]
     pub args: Option<Vec<String>>,
     #[clap(long, name = "DATA")]
     pub data: Option<Bytes>,
@@ -30,23 +30,11 @@ pub(crate) struct Args {
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = if let Some(port) = config.l2_port {
-        Provider::try_from(format!(
-            "http://{host}:{port}",
-            host = config.host,
-            port = port
-        ))?
+        Provider::try_from(format!("http://{host}:{port}", host = config.host))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.clone())?
     }
     .interval(std::time::Duration::from_millis(10));
-
-    // Note: CLI syntactic sugar need to be handle in the run() function.
-    // If more sugar cases are needed, we should switch to a match statement.
-    let function_signature = if args.function.is_empty() {
-        "function()"
-    } else {
-        &args.function
-    };
 
     let sender = args.private_key.with_chain_id(args.chain_id);
 
@@ -54,9 +42,24 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         .r#type(zks_utils::EIP712_TX_TYPE)
         .to(args.contract);
 
+    let func: String;
     if let Some(data) = args.data {
         request = request.data(data);
     } else if let Some(function_args) = args.args {
+        // Note: CLI syntactic sugar need to be handle in the run() function.
+        // If more sugar cases are needed, we should switch to a match statement.
+        let function_signature = if args
+            .function
+            .clone()
+            .context("No function signature provided")?
+            .is_empty()
+        {
+            "function()"
+        } else {
+            func = args.function.context("No function signature provided")?;
+            &func
+        };
+
         let function = if args.contract == zks_utils::ECADD_PRECOMPILE_ADDRESS {
             zks_utils::ec_add_function()
         } else if args.contract == zks_utils::ECMUL_PRECOMPILE_ADDRESS {
