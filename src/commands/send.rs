@@ -98,7 +98,11 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     request = request
         .from(sender.address())
         .chain_id(sender.chain_id())
-        .nonce(provider.get_transaction_count(sender.address(), None).await?)
+        .nonce(
+            provider
+                .get_transaction_count(sender.address(), None)
+                .await?,
+        )
         .gas_price(provider.get_gas_price().await?)
         .max_fee_per_gas(provider.get_gas_price().await?);
 

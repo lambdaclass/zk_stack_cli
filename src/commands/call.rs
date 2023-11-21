@@ -84,7 +84,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             // The contract to call is a regular contract without arguments.
             (false, false) => function.short_signature().into(),
         };
-    
+
         request = request.data(data);
     }
 
