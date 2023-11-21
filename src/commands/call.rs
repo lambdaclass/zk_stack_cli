@@ -29,9 +29,13 @@ pub(crate) struct Args {
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = if let Some(port) = config.l2_port {
-        Provider::try_from(format!("http://{host}:{port}", host = config.host))?
+        Provider::try_from(format!(
+            "http://{host}:{port}",
+            host = config.host,
+            port = port
+        ))?
     } else {
-        Provider::try_from(config.host.clone())?
+        Provider::try_from(config.host.to_owned())?
     };
 
     let mut request = Eip1559TransactionRequest::new()

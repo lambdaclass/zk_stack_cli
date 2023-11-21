@@ -2,8 +2,8 @@ use clap::Args as ClapArgs;
 use eyre::eyre;
 use std::str::FromStr;
 use zksync_web3_rs::{
-    prelude::abi::{encode, HumanReadableParser, Token, Tokenizable},
-    types::U256,
+    prelude::abi::{encode, HumanReadableParser, Token},
+    types::{Address, U256},
 };
 
 #[derive(ClapArgs)]
@@ -41,9 +41,20 @@ pub(crate) async fn run(args: Args) -> eyre::Result<()> {
 
 fn parse_token(arg: &str, t: &str) -> eyre::Result<Token> {
     let x = match t {
-        "uint256" => Ok(U256::from_str(arg).map(Tokenizable::into_token)),
-        other => Err(eyre!("Could not parse type: {other}")),
-    }??;
+        "uint256" => Ok(Token::Uint(U256::from_str(arg)?)),
+        "sint256" => Ok(Token::Int(U256::from_str(arg)?)),
+        "address" => Ok(Token::Address(Address::from_str(arg)?)),
+        "bool" => Ok(Token::Bool(arg.parse::<bool>()?)),
+        "bytes" => Ok(Token::Bytes(hex::decode(arg)?)),
+        "string" => Ok(Token::String(arg.to_owned())),
+        // "[]uint256" => Ok(Token::Array(Token::Uint(U256::from_str(arg)?))),
+        // "[]sint256" => Ok(Token::Array(Token::Int(U256::from_str(arg)?))),
+        // "[]address" => Ok(Token::Array(Token::Address)),
+        // "[]bool" => Ok(Token::Array(Token::Bool)),
+        // "[]bytes" => Ok(Token::Array(Token::Bytes)),
+        // "[]string" => Ok(Token::Array(Token::String)),
+        other => Err(eyre!("Unable to parse output type: {other}")),
+    }?;
 
     Ok(x)
 }

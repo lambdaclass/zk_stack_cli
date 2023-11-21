@@ -13,9 +13,13 @@ pub(crate) struct Args {
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = if let Some(port) = config.l2_port {
-        Provider::try_from(format!("http://{host}:{port}", host = config.host))?
+        Provider::try_from(format!(
+            "http://{host}:{port}",
+            host = config.host,
+            port = port
+        ))?
     } else {
-        Provider::try_from(config.host.clone())?
+        Provider::try_from(config.host.to_owned())?
     }
     .interval(std::time::Duration::from_millis(10));
     let confirmed_tokens = provider.get_confirmed_tokens(args.from, args.limit).await?;
