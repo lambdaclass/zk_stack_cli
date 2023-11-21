@@ -30,7 +30,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             port = port
         ))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.to_owned())?
     }
     .interval(std::time::Duration::from_millis(10));
     let wallet = args.from.with_chain_id(args.chain_id);

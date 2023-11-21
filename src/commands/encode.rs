@@ -46,7 +46,7 @@ fn parse_token(arg: &str, t: &str) -> eyre::Result<Token> {
         "address" => Ok(Token::Address(Address::from_str(arg)?)),
         "bool" => Ok(Token::Bool(arg.parse::<bool>()?)),
         "bytes" => Ok(Token::Bytes(hex::decode(arg)?)),
-        "string" => Ok(Token::String(arg.to_string())),
+        "string" => Ok(Token::String(arg.to_owned())),
         // "[]uint256" => Ok(Token::Array(Token::Uint(U256::from_str(arg)?))),
         // "[]sint256" => Ok(Token::Array(Token::Int(U256::from_str(arg)?))),
         // "[]address" => Ok(Token::Array(Token::Address)),

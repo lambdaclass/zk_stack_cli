@@ -45,7 +45,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             port = port
         ))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.to_owned())?
     };
     let wallet = args.private_key.with_chain_id(args.chain_id);
     let zk_wallet = ZKSWallet::new(wallet, None, Some(era_provider.clone()), None)?;

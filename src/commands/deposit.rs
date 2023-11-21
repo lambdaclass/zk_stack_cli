@@ -33,7 +33,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             port = port
         ))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.to_owned())?
     };
     let l2_provider = if let Some(port) = config.l2_port {
         Provider::try_from(format!(
@@ -42,7 +42,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             port = port
         ))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.to_owned())?
     };
     let wallet = args.from.with_chain_id(args.chain_id);
     let zk_wallet = ZKSWallet::new(

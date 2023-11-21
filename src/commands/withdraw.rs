@@ -31,7 +31,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             port = port
         ))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.to_owned())?
     }
     .interval(std::time::Duration::from_millis(10));
     let l2_provider = if let Some(port) = config.l2_port {
@@ -41,7 +41,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
             port = port
         ))?
     } else {
-        Provider::try_from(format!("{host}", host = config.host,))?
+        Provider::try_from(config.host.to_owned())?
     }
     .interval(std::time::Duration::from_millis(10));
 
