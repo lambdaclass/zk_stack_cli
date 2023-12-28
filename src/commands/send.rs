@@ -50,7 +50,7 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let func: String;
     if let Some(data) = args.data {
         request = request.data(data);
-    } else if let Some(function_args) = args.args {
+    } else {
         // Note: CLI syntactic sugar need to be handle in the run() function.
         // If more sugar cases are needed, we should switch to a match statement.
         let function_signature = if args
@@ -74,8 +74,11 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         } else {
             HumanReadableParser::parse_function(function_signature)?
         };
-        let function_args =
-            function.decode_input(&zks_utils::encode_args(&function, &function_args)?)?;
+        let function_args = if let Some(function_args) = args.args {
+            function.decode_input(&zks_utils::encode_args(&function, &function_args)?)?
+        } else {
+            vec![]
+        };
 
         let data = match (
             !function_args.is_empty(),
