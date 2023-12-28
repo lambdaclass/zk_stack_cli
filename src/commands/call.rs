@@ -25,6 +25,8 @@ pub(crate) struct Args {
     pub output_types: Option<Vec<String>>,
     #[clap(long, name = "CHAIN_ID")]
     pub chain_id: u16,
+    #[clap(long, name = "FROM_ADDRESS")]
+    pub from: Option<Address>,
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
@@ -93,7 +95,11 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         request = request.data(data);
     }
 
-    let transaction: TypedTransaction = request.into();
+    let mut transaction: TypedTransaction = request.into();
+
+    if let Some(from) = args.from {
+        transaction.set_from(from);
+    }
 
     let call_result = Middleware::call(&provider, &transaction, None).await?;
     let encoded_output = if args.chain_id == ERA_IN_MEMORY_NODE_CHAIN_ID {
