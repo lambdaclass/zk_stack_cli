@@ -94,12 +94,6 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         request = request.data(data);
     }
 
-    let tx_receipt = provider
-        .send_transaction_eip712(&sender, request.clone())
-        .await?
-        .await?
-        .context("Failed to get transaction receipt")?;
-
     request = request
         .from(sender.address())
         .chain_id(sender.chain_id())
@@ -111,7 +105,16 @@ pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
         .gas_price(provider.get_gas_price().await?)
         .max_fee_per_gas(provider.get_gas_price().await?);
 
-    log::info!("Estimated Gas: {:?}", provider.estimate_fee(request).await?);
+    log::info!(
+        "Estimated Gas: {:?}",
+        provider.estimate_fee(request.clone()).await?
+    );
+    let tx_receipt = provider
+        .send_transaction_eip712(&sender, request.clone())
+        .await?
+        .await?
+        .context("Failed to get transaction receipt")?;
+
     log::info!("{:?}", tx_receipt.transaction_hash);
 
     Ok(())
