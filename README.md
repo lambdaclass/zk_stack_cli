@@ -36,6 +36,44 @@ Running `zks` outputs the following:
 Usage: zks <COMMAND>
 
 Commands:
+  wallet    Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks.
+  chain     Chain interaction commands. These make use of the JSON-RPC API.
+  prover    Prover commands. TODO.
+  contract  Contract interaction commands.
+  help      Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+### Wallet
+
+```
+Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks.
+
+Usage: zks wallet <COMMAND>
+
+Commands:
+  balance
+  deposit
+  finalize-withdraw
+  transfer
+  withdraw
+  help               Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+### Chain
+
+```
+Chain interaction commands. These make use of the JSON-RPC API.
+
+Usage: zks chain <COMMAND>
+
+Commands:
   get-code               Get the deployed bytecode of a contract
   get-transaction        Get a transaction by hash
   compile                Compile Solidity/Yul contracts
@@ -63,15 +101,41 @@ Options:
   -V, --version  Print version
 ```
 
+### Contract
+
+```
+Contract interaction commands.
+
+Usage: zks contract <COMMAND>
+
+Commands:
+  call
+  deploy
+  send
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+### Prover
+
+TODO
+
 ## Configuration
 
 The CLI can be configured with a `.toml` file. The default configuration path is `etc/config.toml`. The configuration file should look like this:
 
 ```toml
+[network]
 l1_rpc_url=""
 l1_explorer_url=""
 l2_rpc_url=""
 l2_explorer_url=""
+
+[wallet]
+address=""
+private_key=""
 ```
 
 ## Features
@@ -112,8 +176,9 @@ l2_explorer_url=""
 | `deploy` | Deploy a contract | 🏗️ |
 | `call` | Call a contract | 🏗️ |
 | `send` | Send a transaction | 🏗️ |
-| `balance` | Get the balance of an account | 🏗️ |
-| `transfer` | Transfer funds | 🏗️ |
+| `balance` | Get the balance of an account | ✔️ |
+| `transfer` ERC20 | Transfer funds | ✔️ |
+| `transfer` Base Token | Transfer funds | 🏗️ |
 | `compile` | Compile a contract | 🏗️ |
 | `deposit` | Deposit funds | 🏗️ |
 | `withdraw` | Withdraw funds | 🏗️ |
