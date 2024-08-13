@@ -28,7 +28,6 @@
     clippy::string_add,
     clippy::string_slice,
     clippy::string_to_string,
-    clippy::todo,
     clippy::try_err
 )]
 #![deny(clippy::unwrap_used, clippy::expect_used)]
