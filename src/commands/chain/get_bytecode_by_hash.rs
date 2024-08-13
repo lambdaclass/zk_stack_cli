@@ -17,7 +17,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
         .await?
         .map(Bytes::from);
     if let Some(contract_bytecode) = contract_bytecode {
-        println!("{:#?}", contract_bytecode);
+        println!("{contract_bytecode:#?}");
     } else {
         println!("0x");
     }
