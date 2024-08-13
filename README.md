@@ -55,11 +55,11 @@ Wallet interaction commands. The configured wallet could operate both with the L
 Usage: zks wallet <COMMAND>
 
 Commands:
-  balance
-  deposit
-  finalize-withdraw
-  transfer
-  withdraw
+  balance            Get the balance of the wallet.
+  deposit            Deposit funds into the wallet.
+  finalize-withdraw  Finalize a pending withdrawal.
+  transfer           Transfer funds to another wallet.
+  withdraw           Withdraw funds from the wallet.
   help               Print this message or the help of the given subcommand(s)
 
 Options:
@@ -109,9 +109,9 @@ Contract interaction commands.
 Usage: zks contract <COMMAND>
 
 Commands:
-  call
-  deploy
-  send
+  call    Call view functions on a contract.
+  deploy  Deploy a contract.
+  send    Call non-view functions on a contract.
   help    Print this message or the help of the given subcommand(s)
 
 Options:

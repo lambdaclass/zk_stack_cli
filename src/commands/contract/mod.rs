@@ -8,8 +8,11 @@ pub(crate) mod send;
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    #[clap(about = "Call view functions on a contract.")]
     Call(call::Args),
+    #[clap(about = "Deploy a contract.")]
     Deploy(deploy::Args),
+    #[clap(about = "Call non-view functions on a contract.")]
     Send(send::Args),
 }
 

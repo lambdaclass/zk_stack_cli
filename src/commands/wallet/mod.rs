@@ -10,10 +10,15 @@ pub(crate) mod withdraw;
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    #[clap(about = "Get the balance of the wallet.")]
     Balance(balance::Args),
+    #[clap(about = "Deposit funds into the wallet.")]
     Deposit(deposit::Args),
+    #[clap(about = "Finalize a pending withdrawal.")]
     FinalizeWithdraw(finalize_withdraw::Args),
+    #[clap(about = "Transfer funds to another wallet.")]
     Transfer(transfer::Args),
+    #[clap(about = "Withdraw funds from the wallet.")]
     Withdraw,
 }
 
