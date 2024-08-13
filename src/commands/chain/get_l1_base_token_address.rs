@@ -1,5 +1,6 @@
 use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
+use eyre::ContextCompat;
 use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::ZKMiddleware;
 
@@ -16,7 +17,9 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     if args.explorer_url && cfg.network.l1_explorer_url.is_some() {
         println!(
             "{}/address/{l1_base_token_address:#?}",
-            cfg.network.l1_explorer_url.unwrap()
+            cfg.network
+                .l1_explorer_url
+                .context("L1 Explorer URL missing in config")?
         );
     } else {
         println!("{l1_base_token_address:#?}");

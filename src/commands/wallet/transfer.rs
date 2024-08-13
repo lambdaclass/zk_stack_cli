@@ -33,7 +33,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .send()
             .await?
             .await?
-            .unwrap();
+            .context("Failed to transfer ERC20 token")?;
     } else {
         todo!("Base token transfer");
     }

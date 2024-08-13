@@ -18,7 +18,7 @@ pub(crate) struct Args {
     pub to: Option<Address>,
 }
 
-pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+pub(crate) async fn run(args: Args, _cfg: ZKSyncConfig) -> eyre::Result<()> {
     match (args.from, args.to) {
         (None, None) => todo!("Self Deposit"),
         (None, Some(_)) => todo!("Deposit to another account"),

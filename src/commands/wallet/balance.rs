@@ -19,11 +19,11 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     let wallet_address = cfg.wallet.context("Wallet config missing")?.address;
     if let Some(token_address) = args.token_address {
         let erc20 = ERC20::new(token_address, Arc::new(provider));
-        let balance = erc20.balance_of(wallet_address).await.unwrap();
-        let token_symbol = erc20.symbol().await.unwrap();
+        let balance = erc20.balance_of(wallet_address).await?;
+        let token_symbol = erc20.symbol().await?;
         println!("Balance: {balance} {token_symbol}");
     } else {
-        let balance = provider.get_balance(wallet_address, None).await.unwrap();
+        let balance = provider.get_balance(wallet_address, None).await?;
         println!("Base Token Balance: {balance}");
     }
     Ok(())

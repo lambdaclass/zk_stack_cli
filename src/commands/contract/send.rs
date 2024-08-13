@@ -12,6 +12,6 @@ pub(crate) struct Args {
     pub args: Vec<String>,
 }
 
-pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+pub(crate) async fn run(_args: Args, _cfg: ZKSyncConfig) -> eyre::Result<()> {
     todo!("Send")
 }
