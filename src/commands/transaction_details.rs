@@ -1,23 +1,20 @@
 use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
-use zksync_ethers_rs::{
-    providers::{Middleware, Provider},
-    types::H256,
-};
+use zksync_ethers_rs::{providers::Provider, types::H256, ZKMiddleware};
 
 #[derive(ClapArgs)]
 pub(crate) struct Args {
-    #[clap(short, long, name = "TRANSACTION_HASH")]
-    pub transaction: H256,
+    #[clap(long = "hash", name = "TRANSACTION_HASH")]
+    pub transaction_hash: H256,
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(config.l2_rpc_url)?;
-    let transaction = provider
-        .get_transaction(args.transaction)
+    let transaction_details = provider
+        .get_transaction_details(args.transaction_hash)
         .await?
         .context("No pending transaction")?;
-    log::info!("{:#?}", transaction);
+    log::info!("{transaction_details:#?}");
     Ok(())
 }

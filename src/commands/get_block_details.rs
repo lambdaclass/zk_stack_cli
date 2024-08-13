@@ -5,15 +5,17 @@ use zksync_ethers_rs::ZKMiddleware;
 
 #[derive(ClapArgs)]
 pub(crate) struct Args {
-    #[clap(long, name = "FROM")]
-    from: u32,
-    #[clap(long, name = "LIMIT")]
-    limit: u8,
+    #[clap(long = "number")]
+    block_number: u32,
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(config.l2_rpc_url)?;
-    let confirmed_tokens = provider.get_confirmed_tokens(args.from, args.limit).await?;
-    println!("Confirmed Tokens: {confirmed_tokens:#?}");
+    let block_details = provider.get_block_details(args.block_number).await?;
+    if let Some(block_details) = block_details {
+        println!("{block_details:#?}");
+    } else {
+        println!("Block {} not found", args.block_number);
+    }
     Ok(())
 }

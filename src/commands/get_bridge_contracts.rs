@@ -1,26 +1,39 @@
-use crate::cli::ZKSyncConfig;
-use zksync_web3_rs::providers::Provider;
-use zksync_web3_rs::zks_provider::ZKSProvider;
+use crate::config::ZKSyncConfig;
+use zksync_ethers_rs::providers::Provider;
+use zksync_ethers_rs::ZKMiddleware;
 
 pub(crate) async fn run(config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = if let Some(port) = config.l2_port {
-        Provider::try_from(format!(
-            "http://{host}:{port}",
-            host = config.host,
-            port = port
-        ))?
-    } else {
-        Provider::try_from(config.host.to_owned())?
-    }
-    .interval(std::time::Duration::from_millis(10));
+    let provider = Provider::try_from(config.l2_rpc_url)?;
     let bridge_contracts = provider.get_bridge_contracts().await?;
-    log::info!(
-        "L1 ERC20 default bridge contract: {:#?}",
-        bridge_contracts.l1_erc20_default_bridge
-    );
-    log::info!(
-        "L2 ERC20 default bridge contract: {:#?}",
-        bridge_contracts.l2_erc20_default_bridge
-    );
+    if let Some(l1_shared_bridge) = bridge_contracts.l1_shared_default_bridge {
+        println!("L1 Shared Bridge: {l1_shared_bridge:#?}");
+    } else {
+        println!("L1 Shared Bridge: Not set");
+    }
+    if let Some(l1_erc20_bridge) = bridge_contracts.l1_erc20_default_bridge {
+        println!("L1 ERC20 Bridge: {l1_erc20_bridge:#?}");
+    } else {
+        println!("L1 ERC20 Bridge: Not set");
+    }
+    if let Some(l1_weth_bridge) = bridge_contracts.l1_weth_bridge {
+        println!("L1 WETH Bridge: {l1_weth_bridge:#?}");
+    } else {
+        println!("L1 WETH Bridge: Not set");
+    }
+    if let Some(l2_shared_bridge) = bridge_contracts.l2_shared_default_bridge {
+        println!("L2 Shared Bridge: {l2_shared_bridge:#?}");
+    } else {
+        println!("L2 Shared Bridge: Not set");
+    }
+    if let Some(l2_erc20_bridge) = bridge_contracts.l2_erc20_default_bridge {
+        println!("L2 ERC20 Bridge: {l2_erc20_bridge:#?}");
+    } else {
+        println!("L2 ERC20 Bridge: Not set");
+    }
+    if let Some(l2_weth_bridge) = bridge_contracts.l2_weth_bridge {
+        println!("L2 WETH Bridge: {l2_weth_bridge:#?}");
+    } else {
+        println!("L2 WETH Bridge: Not set");
+    }
     Ok(())
 }

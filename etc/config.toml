@@ -1,0 +1,4 @@
+l1_rpc_url=""
+l1_explorer_url="https://sepolia.etherscan.io"
+l2_rpc_url="http://zksync-devnet-03:3050"
+l2_explorer_url="http://zksync-devnet-03:3010"

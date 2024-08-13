@@ -1,15 +1,15 @@
 [package]
-name = "zksync-era-cli"
+name = "zks"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-zksync-web3-rs = { version = "0.1.1", features = ["ethers-solc"]}
-# zksync-web3-rs = { path = "../zksync-web3-rs", features = ["ethers-solc"]}
+zksync-ethers-rs = { git = "https://github.com/lambdaclass/zksync-web3-rs", branch = "zksync-ethers-rs-v1" }
 tokio = "1"
-env_logger = "0.10"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = "0.1"
 log = "0.4"
 clap = "4.3"
 eyre = "0.6"
@@ -18,3 +18,4 @@ serde = "1"
 thiserror = "1"
 hex = "0.4"
 dirs = "5.0.1"
+toml = "0.8.19"

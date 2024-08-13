@@ -5,15 +5,17 @@ use zksync_ethers_rs::ZKMiddleware;
 
 #[derive(ClapArgs)]
 pub(crate) struct Args {
-    #[clap(long, name = "FROM")]
-    from: u32,
-    #[clap(long, name = "LIMIT")]
-    limit: u8,
+    #[clap(long)]
+    id: Option<u16>,
 }
 
 pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
     let provider = Provider::try_from(config.l2_rpc_url)?;
-    let confirmed_tokens = provider.get_confirmed_tokens(args.from, args.limit).await?;
-    println!("Confirmed Tokens: {confirmed_tokens:#?}");
+    let protocol_version = provider.get_protocol_version(args.id).await?;
+    if let Some(protocol_version) = protocol_version {
+        println!("{protocol_version:#?}");
+    } else {
+        println!("Protocol version not found");
+    }
     Ok(())
 }
