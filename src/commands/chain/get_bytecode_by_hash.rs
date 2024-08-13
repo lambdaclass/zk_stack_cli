@@ -10,8 +10,8 @@ pub(crate) struct Args {
     hash: H256,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let contract_bytecode = provider
         .get_bytecode_by_hash(args.hash)
         .await?

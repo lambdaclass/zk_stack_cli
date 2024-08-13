@@ -9,8 +9,8 @@ pub(crate) struct Args {
     batch: u32,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let l1_batch_details = provider.get_l1_batch_details(args.batch).await?;
     println!("{l1_batch_details:#?}");
     Ok(())

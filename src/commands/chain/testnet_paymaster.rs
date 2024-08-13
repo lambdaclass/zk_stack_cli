@@ -9,14 +9,14 @@ pub(crate) struct Args {
     explorer_url: bool,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let testnet_paymaster_address = provider.get_testnet_paymaster().await?;
     print!("Testnet Paymaster Address: ");
-    if args.explorer_url && config.l2_explorer_url.is_some() {
+    if args.explorer_url && cfg.network.l2_explorer_url.is_some() {
         println!(
             "{}/address/{testnet_paymaster_address:#?}",
-            config.l2_explorer_url.unwrap()
+            cfg.network.l2_explorer_url.unwrap()
         );
     } else {
         println!("{testnet_paymaster_address:#?}");

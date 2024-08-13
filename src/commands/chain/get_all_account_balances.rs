@@ -8,8 +8,8 @@ pub(crate) struct Args {
     pub account_address: Address,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let all_account_balances = provider
         .get_all_account_balances(args.account_address)
         .await?;

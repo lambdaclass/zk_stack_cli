@@ -9,14 +9,14 @@ pub(crate) struct Args {
     explorer_url: bool,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let l1_base_token_address = provider.get_base_token_l1_address().await?;
     print!("L1 Base Token Address: ");
-    if args.explorer_url && config.l1_explorer_url.is_some() {
+    if args.explorer_url && cfg.network.l1_explorer_url.is_some() {
         println!(
             "{}/address/{l1_base_token_address:#?}",
-            config.l1_explorer_url.unwrap()
+            cfg.network.l1_explorer_url.unwrap()
         );
     } else {
         println!("{l1_base_token_address:#?}");

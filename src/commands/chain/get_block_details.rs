@@ -9,8 +9,8 @@ pub(crate) struct Args {
     block_number: u32,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let block_details = provider.get_block_details(args.block_number).await?;
     if let Some(block_details) = block_details {
         println!("{block_details:#?}");

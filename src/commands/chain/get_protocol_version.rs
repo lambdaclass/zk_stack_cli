@@ -9,8 +9,8 @@ pub(crate) struct Args {
     id: Option<u16>,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let protocol_version = provider.get_protocol_version(args.id).await?;
     if let Some(protocol_version) = protocol_version {
         println!("{protocol_version:#?}");

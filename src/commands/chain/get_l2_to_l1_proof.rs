@@ -50,8 +50,8 @@ pub(crate) struct Args {
     msg: H256,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let proof = if args.log_proof {
         provider
             .get_l2_to_l1_log_proof(args.transaction, args.log_index)

@@ -2,8 +2,8 @@ use crate::config::ZKSyncConfig;
 use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::ZKMiddleware;
 
-pub(crate) async fn run(config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let bridge_contracts = provider.get_bridge_contracts().await?;
     if let Some(l1_shared_bridge) = bridge_contracts.l1_shared_default_bridge {
         println!("L1 Shared Bridge: {l1_shared_bridge:#?}");

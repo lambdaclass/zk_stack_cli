@@ -9,8 +9,8 @@ pub(crate) struct Args {
     pub transaction_hash: H256,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let transaction_details = provider
         .get_transaction_details(args.transaction_hash)
         .await?

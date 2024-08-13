@@ -11,8 +11,8 @@ pub(crate) struct Args {
     limit: u8,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = Provider::try_from(config.l2_rpc_url)?;
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let confirmed_tokens = provider.get_confirmed_tokens(args.from, args.limit).await?;
     println!("Confirmed Tokens: {confirmed_tokens:#?}");
     Ok(())
