@@ -27,10 +27,6 @@ Whether you're a developer focused on deploying and interacting with contracts o
 
 ## Installation
 
-> [!NOTE]
-> Before running `make cli` take a look at the [Configuration](#configuration) section.
-> If you want to change the configuration, you will have to rebuild the tool with the Makefile.
-
 ```
 git clone git@github.com:lambdaclass/zksync_era_cli.git
 cd zksync_era_cli
@@ -38,6 +34,10 @@ make cli
 ```
 
 ## Usage
+
+> [!NOTE]
+> Before using the tool take a look at the [Configuration](#configuration) section.
+> The configuration file can be changed after the installation process.
 
 Running `zks` outputs the following:
 
