@@ -1,9 +1,9 @@
-use crate::cli::ZKSyncConfig;
+use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
-use zksync_web3_rs::providers::Provider;
-use zksync_web3_rs::types::{Address, H256, U64};
-use zksync_web3_rs::zks_provider::ZKSProvider;
+use zksync_ethers_rs::providers::Provider;
+use zksync_ethers_rs::types::{Address, H256, U64};
+use zksync_ethers_rs::ZKMiddleware;
 
 #[derive(ClapArgs)]
 pub(crate) struct Args {
@@ -50,17 +50,8 @@ pub(crate) struct Args {
     msg: H256,
 }
 
-pub(crate) async fn run(args: Args, config: ZKSyncConfig) -> eyre::Result<()> {
-    let provider = if let Some(port) = config.l2_port {
-        Provider::try_from(format!(
-            "http://{host}:{port}",
-            host = config.host,
-            port = port
-        ))?
-    } else {
-        Provider::try_from(config.host.to_owned())?
-    }
-    .interval(std::time::Duration::from_millis(10));
+pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let provider = Provider::try_from(cfg.network.l2_rpc_url)?;
     let proof = if args.log_proof {
         provider
             .get_l2_to_l1_log_proof(args.transaction, args.log_index)

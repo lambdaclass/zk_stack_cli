@@ -1,136 +1,187 @@
-# zkSync Era CLI
+# ZKsync CLI
 
-CLI tool for fast development on zkSync Era, built using `zksync-web3-rs` SDK.
+`zks` is a versatile command-line interface (CLI) tool that serves as both an interface for interacting with a ZKsync chain and a powerful tool for managing it. By wrapping the ZKsync JSON-RPC API, `zks` offers a more intuitive and efficient experience, whether you're working with smart contracts or managing assets.
+
+With `zks`, you can seamlessly perform a variety of tasks on the ZKsync chain, including:
+
+- **Depositing tokens** from Layer 1 (L1) to ZKsync.
+- **Withdrawing tokens** from ZKsync back to L1.
+- **Transferring tokens** between Layer 2 (L2) accounts.
+- **Compiling, deploying, and interacting with contracts** directly on ZKsync.
+
+Whether you're a developer focused on deploying and interacting with contracts or a user managing your tokens, `zks` empowers you to handle both the interaction and management aspects of the ZKsync ecosystem with ease.
 
 ## Table of Contents
 
-- [CLI](#cli)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [`zksync_era_cli deploy`](#zksync_era_cli-deploy)
-    - [`zksync_era_cli call`](#zksync_era_cli-call)
-    - [`zksync_era_cli get-contract`](#zksync_era_cli-get-contract)
-    - [`zksync_era_cli get-transaction`](#zksync_era_cli-get-transaction)
-    - [`zksync_era_cli balance`](#zksync_era_cli-balance)
-    - [`zksync_era_cli pay`](#zksync_era_cli-pay)
-    - [`zksync_era_cli compile`](#zksync_era_cli-compile)
-      - [Status (for full compatibility)](#status-for-full-compatibility)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Features](#features)
+  - [ZKsync JSON-RPC API](#zksync-json-rpc-api)
+  - [ZKsync SDK](#zksync-sdk)
 
-## CLI
-### Installation
+## Installation
 
 ```
-git clone git@github.com:lambdaclass/zksync_era_cli.git
-cd zksync_era_cli
+git clone git@github.com:lambdaclass/zksync_cli.git
+cd zksync_cli
 make cli
 ```
 
-### Usage
+## Usage
 
-Running `zksync-era-cli` outputs the following:
+Running `zks` outputs the following:
 
 ```
-Usage: zksync-era-cli [OPTIONS] <COMMAND>
+Usage: zks <COMMAND>
 
 Commands:
-  deploy
-  call
-  get-contract
-  get-transaction
-  help             Print this message or the help of the given subcommand(s)
+  wallet    Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks.
+  chain     Chain interaction commands. These make use of the JSON-RPC API.
+  prover    Prover commands. TODO.
+  contract  Contract interaction commands.
+  help      Print this message or the help of the given subcommand(s)
 
 Options:
-      --host <HOST>  [default: 65.21.140.36]
-  -p, --port <PORT>  [default: 8545]
-  -h, --help         Print help
-  -V, --version      Print version
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
-#### `zksync_era_cli deploy`
-
-Deploys the contract located in `CONTRACT_PATH/src` signing the transaction with `PRIVATE_KEY`.
+### Wallet
 
 ```
-zksync-era-cli deploy --contract <CONTRACT_PATH> --private-key <PRIVATE_KEY>
+Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks.
+
+Usage: zks wallet <COMMAND>
+
+Commands:
+  balance            Get the balance of the wallet.
+  deposit            Deposit funds into the wallet.
+  finalize-withdraw  Finalize a pending withdrawal.
+  transfer           Transfer funds to another wallet.
+  withdraw           Withdraw funds from the wallet.
+  address            Get the wallet address.
+  private-key        Get the wallet private key.
+  help               Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
 ```
 
-#### `zksync_era_cli call`
-
-Calls `FUNCTION_SIGNATURE` of `CONTRACT_ADDRESS` with args `FUNCTION_ARGS`. If you want o call a `public view` contract function then you don't need to provide your `PRIVATE_KEY`. You must provide the latter only if you want to call a contract function that performs a state change.
+### Chain
 
 ```
-zksync-era-cli call --contract <CONTRACT_ADDRESS> --function <FUNCTION_SIGNATURE> --args <FUNCTION_ARGS> --private-key <PRIVATE_KEY>
+Chain interaction commands. These make use of the JSON-RPC API.
+
+Usage: zks chain <COMMAND>
+
+Commands:
+  get-code               Get the deployed bytecode of a contract
+  get-transaction        Get a transaction by hash
+  bridge-contracts       Retrieves the addresses of canonical bridge contracts for ZKsync Era.
+  get-bytecode-by-hash   Retrieves the bytecode of a transaction by its hash.
+  confirmed-tokens       Lists confirmed tokens. Confirmed in the method name means any token bridged to ZKsync Era via the official bridge.
+  l1-batch-details       Retrieves details for a given L1 batch.
+  l2-to-l1-log-proof
+  main-contract          Retrieves the main contract address.
+  bridgehub-contract     Retrieves the bridge hub contract address.
+  testnet-paymaster      Retrieves the testnet paymaster address, specifically for interactions within the ZKsync Sepolia Testnet environment. Note: This method is only applicable for ZKsync Sepolia Testnet.
+  l1-chain-id            Retrieves the L1 chain ID.
+  l1-base-token-address  Retrieves the L1 base token address.
+  all-account-balances   Gets all account balances for a given address.
+  l1-batch-number        Retrieves the current L1 batch number.
+  block-details          Retrieves details for a given block.
+  transaction-details    Retrieves details for a given transaction.
+  l1-gas-price           Retrieves the current L1 gas price.
+  fee-params             Retrieves the current fee parameters.
+  protocol-version       Gets the protocol version.
+  balance                Get the balance of an account.
+  finalize-deposit-tx    Gets the finalize deposit transaction hash.
+  help                   Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --helpPrint help
 ```
 
-#### `zksync_era_cli get-contract`
-
-Gets `CONTRACT_ADDRESS`'s bytecode.
+### Contract
 
 ```
-zksync-era-cli get-contract --contract <CONTRACT_ADDRESS>
+Contract interaction commands.
+
+Usage: zks contract <COMMAND>
+
+Commands:
+  call    Call view functions on a contract.
+  deploy  Deploy a contract.
+  send    Call non-view functions on a contract.
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
 ```
 
-#### `zksync_era_cli get-transaction`
+### Prover
 
-Get the transaction corresponding to `TRANSACTION_HASH`.
+TODO
 
-```
-zksync-era-cli get-transaction --transaction <TRANSACTION_HASH>
-```
+## Configuration
 
-#### `zksync_era_cli balance`
+The CLI can be configured with a `.toml` file. The default configuration path is `etc/config.toml`. The configuration file should look like this:
 
-Gets the balance of the `ACCOUNT_ADDRESS`.
+```toml
+[network]
+l1_rpc_url=""
+l1_explorer_url=""
+l2_rpc_url=""
+l2_explorer_url=""
 
-```
-zksync-era-cli balance --account <ACCOUNT_ADDRESS>
-```
-
-#### `zksync_era_cli pay`
-
-Pays `AMOUNT` from `SENDER_ADDRESS` to `RECEIVER_ADDRESS` signing the transaction with `SENDER_PRIVATE_KEY`.
-
-```
-zksync-era-cli pay --amount <AMOUNT_TO_TRANSFER> --from <SENDER_ADDRESS> --to <RECEIVER_ADDRESS> --private-key <SENDER_PRIVATE_KEY>
+[wallet]
+address=""
+private_key=""
 ```
 
-#### `zksync_era_cli compile`
+## Features
 
-> This command is a wrapper for the zksolc compiler.
+### ZKsync JSON-RPC API 
 
-Compiles the contract located in `PATH_TO_CONTRACT` using the zksolc compiler.
+| Command | Endpoint | Status |
+| --- | --- | --- |
+| `estimate-fee` | `zks_estimateFee` | 🏗️ |
+| `estimate-gas-l1-to-l2` | `zks_estimateGasL1ToL2` | 🏗️ |
+| `bridgehub-contract` | `zks_getBridgehubContract` | ✔️ |
+| `main-contract` | `zks_getMainContract` | ✔️ |
+| `testnet-paymaster` | `zks_getTestnetPaymaster` | ✔️ |
+| `bridge-contracts` | `zks_getBridgeContracts` | ✔️ |
+| `l1-chain-id` | `zks_getL1ChainId` | ✔️ |
+| `l1-base-token-address` | `zks_getL1BaseTokenAddress` | ✔️ |
+| `confirmed-tokens` | `zks_getConfirmedTokens` | ✔️ |
+| `all-account-balances` | `zks_getAllAccountBalances` | ✔️ |
+| `` | `zks_getL2ToL1MsgProof` | 🏗️ |
+| `` | `zks_getL2ToL1LogProof` | 🏗️ |
+| `l1-batch-number` | `zks_getL1BatchNumber` | ✔️ |
+| `block-details` | `zks_getBlockDetails` | ✔️ |
+| `transaction-details` | `zks_getTransactionDetails` | ✔️ |
+| `raw-blocks-transactions` | `zks_getRawBlocksTransactions` | ❌ |
+| `l1-batch-details` | `zks_getL1BatchDetails` | ✔️ |
+| `bytecode-by-hash` | `zks_getBytecodeByHash` | ✔️ |
+| `l1-block-range` | `zks_getL1BlockRange` | 🏗️ |
+| `l1-gas-price` | `zks_getL1GasPrice` | ✔️ |
+| `fee-params` | `zks_getFeeParams` | ✔️ |
+| `protocol-version` | `zks_getProtocolVersion` | ✔️ |
+| `proof` | `zks_getProof` | 🏗️ |
+| `send-raw-transaction-with-detailed-output` | `zks_sendRawTransactionWithDetailedOutput` | ❌ |
 
-```
-zksync-era-cli compile --solc <PATH_TO_SOLC> --standard-json -- <PATH_TO_CONTRACT>
-```
+### ZKsync SDK
 
-##### Status (for full compatibility)
-
-| Flags                      | Description                                                                                                                                                                                                                                                 | Supported | State |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----- |
-| `--disable-solc-optimizer` | Disable the `solc` optimizer. Use it if your project uses the `MSIZE` instruction, or in other cases. Beware that it will prevent libraries from being inlined                                                                                              | ❌        | ❌    |
-| `--force-evmla`            | Forcibly switch to the EVM legacy assembly pipeline. It is useful for older revisions of `solc` 0.8, where Yul was considered highly experimental and contained more bugs than today                                                                        | ❌        | ❌    |
-| `-h, --help`               | Prints help information                                                                                                                                                                                                                                     | ✅        | ✅    |
-| `--system-mode`            | Enable the system contract compilation mode. In this mode zkEVM extensions are enabled. For example, calls to addresses `0xFFFF` and below are substituted by special zkEVM instructions. In the Yul mode, the `verbatim_*` instruction family is available | ❌        | ❌    |
-| `--llvm-debug-logging`     | Set the debug-logging option in LLVM. Only for testing and debugging                                                                                                                                                                                        | ❌        | ❌    |
-| `--llvm-ir`                | Switch to the LLVM IR mode. Only one input LLVM IR file is allowed. Cannot be used with the combined and standard JSON modes                                                                                                                                | ❌        | ❌    |
-| `--llvm-verify-each`       | Set the verify-each option in LLVM. Only for testing and debugging                                                                                                                                                                                          | ❌        | ❌    |
-| `--asm`                    | Output zkEVM assembly of the contracts                                                                                                                                                                                                                      | ❌        | ❌    |
-| `--bin`                    | Output zkEVM bytecode of the contracts                                                                                                                                                                                                                      | ❌        | ❌    |
-| `--overwrite`              | Overwrite existing files (used together with -o)                                                                                                                                                                                                            | ❌        | ❌    |
-| `--standard-json`          | Switch to standard JSON input/output mode. Read from stdin, write the result to stdout. This is the default used by the hardhat plugin                                                                                                                      | ❌        | 🏗     |
-| `--version`                | Print the version and exit                                                                                                                                                                                                                                  | ❌        | ❌    |
-| `--yul`                    | Switch to the Yul mode. Only one input Yul file is allowed. Cannot be used with the combined and standard JSON modes                                                                                                                                        | ❌        | ❌    |
-
-| Options                                       | Description                                                                                                                                                                                                                      | Supported | State |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ----- |
-| `--allow-paths <allow-paths>`                 | Allow a given path for imports. A list of paths can be supplied by separating them with a comma. Passed to `solc` without changes                                                                                                | ❌        | ❌    |
-| `--base-path <base-path>`                     | Set the given path as the root of the source tree instead of the root of the filesystem. Passed to `solc` without changes                                                                                                        | ❌        | ❌    |
-| `--combined-json <combined-json>`             | Output a single JSON document containing the specified information. Available arguments: `abi`, `hashes`, `metadata`, `devdoc`, `userdoc`, `storage-layout`, `ast`, `asm`, `bin`, `bin-runtime`                                  | ✅        | ✅    |
-| `--debug-output-dir <debug-output-directory>` | Dump all IRs to files in the specified directory. Only for testing and debugging                                                                                                                                                 | ❌        | ❌    |
-| `--include-path <include-paths>...`           | Make an additional source directory available to the default import callback. Can be used multiple times. Can only be used if the base path has a non-empty value. Passed to `solc` without changes                              | ❌        | ❌    |
-| `-l, --libraries <libraries>...`              | Specify addresses of deployable libraries. Syntax: `<libraryName>=<address> [, or whitespace] ...`. Addresses are interpreted as hexadecimal strings prefixed with `0x`                                                          | ❌        |   ❌    |
-| `--metadata-hash <metadata-hash>`             | Set the metadata hash mode. The only supported value is `none` that disables appending the metadata hash. Is enabled by default                                                                                                  | ❌        |   ❌    |
-| `-O, --optimization <optimization>`           | Set the optimization parameter -O\[0 \| 1 \| 2 \| 3 \| s \| z\]. Use `3` for best performance and `z` for minimal size                                                                                                           | ❌        |      ❌ |
-| `-o, --output-dir <output-directory>`         | Create one file per component and contract/file at the specified directory, if given                                                                                                                                             | ❌        |      ❌ |
-| `--solc <solc>`                               | Specify the path to the `solc` executable. By default, the one in `${PATH}` is used. Yul mode: `solc` is used for source code validation, as `zksolc` itself assumes that the input Yul is valid. LLVM IR mode: `solc` is unused | ✅        |  🏗     |
+| Command | Feature | Status |
+| --- | --- | --- |
+| `deploy` | Deploy a contract | 🏗️ |
+| `call` | Call a contract | 🏗️ |
+| `send` | Send a transaction | 🏗️ |
+| `balance` | Get the balance of an account | ✔️ |
+| `transfer` ERC20 | Transfer funds | 🏗️ |
+| `transfer` Base Token | Transfer funds | ✔️ |
+| `compile` | Compile a contract | 🏗️ |
+| `deposit` Base Token | Deposit funds | ✔️ |
+| `deposit` ERC20 | Deposit funds | 🏗️ |
+| `withdraw` | Withdraw funds | 🏗️ |

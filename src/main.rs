@@ -1,13 +1,27 @@
-use zksync_era_cli::cli;
+use zks::{
+    cli::{self},
+    config::load_config,
+};
 
 #[tokio::main]
 async fn main() {
-    env_logger::builder()
-        .filter_module("reqwest::connect", log::LevelFilter::Off)
-        .filter_module("rustls::client", log::LevelFilter::Off)
-        .filter_module("rustls::common_state", log::LevelFilter::Off)
-        .filter_level(log::LevelFilter::Debug)
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::ERROR)
         .init();
 
-    cli::start().await.unwrap();
+    let config = match load_config() {
+        Ok(config) => config,
+        Err(err) => {
+            tracing::error!("{err:?}");
+            std::process::exit(1);
+        }
+    };
+
+    match cli::start(config).await {
+        Ok(_) => {}
+        Err(err) => {
+            tracing::error!("{err:?}");
+            std::process::exit(1);
+        }
+    }
 }
