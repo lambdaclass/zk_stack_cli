@@ -13,8 +13,13 @@ Whether you're a developer focused on deploying and interacting with contracts o
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Installation](#installation)
 - [Usage](#usage)
+  - [Wallet](#wallet)
+  - [Chain](#chain)
+  - [Contract](#contract)
+  - [Prover](#prover)
 - [Configuration](#configuration)
 - [Features](#features)
   - [ZKsync JSON-RPC API](#zksync-json-rpc-api)
@@ -23,12 +28,16 @@ Whether you're a developer focused on deploying and interacting with contracts o
 ## Installation
 
 ```
-git clone git@github.com:lambdaclass/zksync_cli.git
-cd zksync_cli
+git clone git@github.com:lambdaclass/zksync_era_cli.git
+cd zksync_era_cli
 make cli
 ```
 
 ## Usage
+
+> [!NOTE]
+> Before using the tool take a look at the [Configuration](#configuration) section.
+> The configuration file can be changed after the installation process.
 
 Running `zks` outputs the following:
 
