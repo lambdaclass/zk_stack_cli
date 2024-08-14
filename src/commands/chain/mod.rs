@@ -1,6 +1,8 @@
 use crate::config::ZKSyncConfig;
 use clap::Subcommand;
 
+mod balance;
+mod finalize_deposit_transaction;
 mod get_all_account_balances;
 mod get_block_details;
 mod get_bridge_contracts;
@@ -64,6 +66,10 @@ pub(crate) enum Command {
     FeeParams,
     #[clap(about = "Gets the protocol version.")]
     ProtocolVersion(get_protocol_version::Args),
+    #[clap(about = "Get the balance of an account.")]
+    Balance(balance::Args),
+    #[clap(about = "Gets the finalize deposit transaction hash.")]
+    FinalizeDepositTx(finalize_deposit_transaction::Args),
 }
 
 pub(crate) async fn start(command: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
@@ -87,6 +93,8 @@ pub(crate) async fn start(command: Command, cfg: ZKSyncConfig) -> eyre::Result<(
         Command::L1GasPrice => get_l1_gas_price::run(cfg).await?,
         Command::FeeParams => get_fee_params::run(cfg).await?,
         Command::ProtocolVersion(args) => get_protocol_version::run(args, cfg).await?,
+        Command::Balance(args) => balance::run(args, cfg).await?,
+        Command::FinalizeDepositTx(args) => finalize_deposit_transaction::run(args, cfg).await?,
     };
 
     Ok(())
