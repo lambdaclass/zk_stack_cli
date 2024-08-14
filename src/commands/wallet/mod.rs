@@ -2,9 +2,11 @@ use clap::Subcommand;
 
 use crate::config::ZKSyncConfig;
 
+pub(crate) mod address;
 pub(crate) mod balance;
 pub(crate) mod deposit;
 pub(crate) mod finalize_withdraw;
+pub(crate) mod private_key;
 pub(crate) mod transfer;
 pub(crate) mod withdraw;
 
@@ -20,6 +22,10 @@ pub(crate) enum Command {
     Transfer(transfer::Args),
     #[clap(about = "Withdraw funds from the wallet.")]
     Withdraw,
+    #[clap(about = "Get the wallet address.")]
+    Address,
+    #[clap(about = "Get the wallet private key.")]
+    PrivateKey,
 }
 
 pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
@@ -29,6 +35,8 @@ pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
         Command::FinalizeWithdraw(args) => finalize_withdraw::run(args, cfg).await?,
         Command::Transfer(args) => transfer::run(args, cfg).await?,
         Command::Withdraw => todo!("Withdraw"),
+        Command::Address => address::run(cfg).await?,
+        Command::PrivateKey => private_key::run(cfg).await?,
     };
 
     Ok(())
