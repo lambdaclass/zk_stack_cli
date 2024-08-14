@@ -60,6 +60,8 @@ Commands:
   finalize-withdraw  Finalize a pending withdrawal.
   transfer           Transfer funds to another wallet.
   withdraw           Withdraw funds from the wallet.
+  address            Get the wallet address.
+  private-key        Get the wallet private key.
   help               Print this message or the help of the given subcommand(s)
 
 Options:
@@ -76,7 +78,6 @@ Usage: zks chain <COMMAND>
 Commands:
   get-code               Get the deployed bytecode of a contract
   get-transaction        Get a transaction by hash
-  compile                Compile Solidity/Yul contracts
   bridge-contracts       Retrieves the addresses of canonical bridge contracts for ZKsync Era.
   get-bytecode-by-hash   Retrieves the bytecode of a transaction by its hash.
   confirmed-tokens       Lists confirmed tokens. Confirmed in the method name means any token bridged to ZKsync Era via the official bridge.
@@ -94,11 +95,12 @@ Commands:
   l1-gas-price           Retrieves the current L1 gas price.
   fee-params             Retrieves the current fee parameters.
   protocol-version       Gets the protocol version.
+  balance                Get the balance of an account.
+  finalize-deposit-tx    Gets the finalize deposit transaction hash.
   help                   Print this message or the help of the given subcommand(s)
 
 Options:
-  -h, --help     Print help
-  -V, --version  Print version
+  -h, --helpPrint help
 ```
 
 ### Contract
@@ -177,8 +179,9 @@ private_key=""
 | `call` | Call a contract | 🏗️ |
 | `send` | Send a transaction | 🏗️ |
 | `balance` | Get the balance of an account | ✔️ |
-| `transfer` ERC20 | Transfer funds | ✔️ |
-| `transfer` Base Token | Transfer funds | 🏗️ |
+| `transfer` ERC20 | Transfer funds | 🏗️ |
+| `transfer` Base Token | Transfer funds | ✔️ |
 | `compile` | Compile a contract | 🏗️ |
-| `deposit` | Deposit funds | 🏗️ |
+| `deposit` Base Token | Deposit funds | ✔️ |
+| `deposit` ERC20 | Deposit funds | 🏗️ |
 | `withdraw` | Withdraw funds | 🏗️ |
