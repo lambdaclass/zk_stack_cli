@@ -1,5 +1,9 @@
 [network]
-l1_rpc_url=""
-l1_explorer_url="https://sepolia.etherscan.io"
-l2_rpc_url="http://zksync-devnet-03:3050"
-l2_explorer_url="http://zksync-devnet-03:3010"
+l1_rpc_url="http://127.0.0.1:8545"
+l1_explorer_url=""
+l2_rpc_url="http://127.0.0.1:3050"
+l2_explorer_url=""
+
+[wallet]
+address="0xA13c10C0D5bd6f79041B9835c63f91de35A15883"
+private_key="0x850683b40d4a740aa6e745f889a6fdc8327be76e122f5aba645a5b02d0248db8"
