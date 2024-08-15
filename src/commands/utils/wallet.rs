@@ -1,19 +1,16 @@
 use zksync_ethers_rs::{
+    core::k256::ecdsa::SigningKey,
     middleware::SignerMiddleware,
     providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer},
+    signers::{LocalWallet, Signer, Wallet},
     zk_wallet::ZKWallet,
 };
 
-async fn new_zkwallet<M, S>(
+pub(crate) async fn new_zkwallet<'providers>(
     wallet_pk: LocalWallet,
-    l1_provider: &Provider<Http>,
-    l2_provider: &Provider<Http>,
-) -> eyre::Result<ZKWallet<M, S>>
-where
-    M: Middleware,
-    S: Signer,
-{
+    l1_provider: &'providers Provider<Http>,
+    l2_provider: &'providers Provider<Http>,
+) -> eyre::Result<ZKWallet<&'providers Provider<Http>, Wallet<SigningKey>>> {
     let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
     let wallet = wallet_pk.with_chain_id(l1_chain_id);
     let l1_signer = SignerMiddleware::new(l1_provider, wallet.clone());
