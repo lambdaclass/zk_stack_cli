@@ -4,7 +4,7 @@ use clap::Args as ClapArgs;
 use eyre::ContextCompat;
 use zksync_ethers_rs::{providers::Provider, types::Address, ZKMiddleware};
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "of")]
     of: Address,

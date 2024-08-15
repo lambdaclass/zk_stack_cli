@@ -1,7 +1,4 @@
-use zks::{
-    cli::{self},
-    config::load_config,
-};
+use zks::cli;
 
 #[tokio::main]
 async fn main() {
@@ -9,15 +6,7 @@ async fn main() {
         .with_max_level(tracing::Level::ERROR)
         .init();
 
-    let config = match load_config() {
-        Ok(config) => config,
-        Err(err) => {
-            tracing::error!("{err:?}");
-            std::process::exit(1);
-        }
-    };
-
-    match cli::start(config).await {
+    match cli::start().await {
         Ok(_) => {}
         Err(err) => {
             tracing::error!("{err:?}");

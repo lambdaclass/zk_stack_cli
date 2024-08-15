@@ -1,6 +1,6 @@
 use crate::{
-    commands::{chain, contract, wallet},
-    config::ZKSyncConfig,
+    commands::{chain, config, contract, wallet},
+    config::load_selected_config,
 };
 use clap::{command, Parser, Subcommand};
 
@@ -13,7 +13,7 @@ struct ZKSyncCLI {
     command: ZKSyncCommand,
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, PartialEq)]
 enum ZKSyncCommand {
     #[clap(
         subcommand,
@@ -29,16 +29,22 @@ enum ZKSyncCommand {
     Prover,
     #[clap(subcommand, about = "Contract interaction commands.")]
     Contract(contract::Command),
+    #[clap(subcommand, about = "CLI config commands.")]
+    Config(config::Command),
 }
 
-pub async fn start(cfg: ZKSyncConfig) -> eyre::Result<()> {
+pub async fn start() -> eyre::Result<()> {
     let ZKSyncCLI { command } = ZKSyncCLI::parse();
+    if let ZKSyncCommand::Config(cmd) = command {
+        return config::start(cmd).await;
+    }
+    let cfg = load_selected_config().await?;
     match command {
         ZKSyncCommand::Wallet(cmd) => wallet::start(cmd, cfg).await?,
         ZKSyncCommand::Chain(cmd) => chain::start(cmd, cfg).await?,
         ZKSyncCommand::Prover => todo!(),
         ZKSyncCommand::Contract(cmd) => contract::start(cmd, cfg).await?,
+        ZKSyncCommand::Config(_) => unreachable!(),
     };
-
     Ok(())
 }

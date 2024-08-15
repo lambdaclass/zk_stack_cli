@@ -5,7 +5,7 @@ use zksync_ethers_rs::abi::Hash;
 use zksync_ethers_rs::deposit;
 use zksync_ethers_rs::providers::Provider;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "hash")]
     l1_deposit_tx_hash: Hash,
@@ -26,10 +26,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .network
             .l2_explorer_url
             .context("L2 Explorer URL missing in config")?;
-        println!(
-            "Deposit finalization: {}/tx/{deposit_finalization_hash:#?}",
-            url
-        );
+        println!("Deposit finalization: {url}/tx/{deposit_finalization_hash:#?}");
     } else {
         println!("Deposit finalization hash: {deposit_finalization_hash:#?}");
     }

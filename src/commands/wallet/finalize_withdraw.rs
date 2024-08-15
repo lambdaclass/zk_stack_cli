@@ -7,7 +7,7 @@ use zksync_ethers_rs::{
     signers::LocalWallet, types::Address,
 };
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "hash")]
     pub l2_withdraw_tx_hash: Hash,

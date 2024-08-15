@@ -2,7 +2,7 @@ use clap::Args as ClapArgs;
 
 use crate::config::ZKSyncConfig;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "contract")]
     pub contract_address: String,

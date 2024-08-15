@@ -4,7 +4,7 @@ use eyre::ContextCompat;
 use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::ZKMiddleware;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long, default_value_t = false)]
     explorer_url: bool,

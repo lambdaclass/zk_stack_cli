@@ -16,11 +16,17 @@ Whether you're a developer focused on deploying and interacting with contracts o
 - [Table of Contents](#table-of-contents)
 - [Installation](#installation)
 - [Usage](#usage)
+  - [Config](#config)
+    - [Create](#zks-config-create)
+    - [Edit](#zks-config-edit)
+    - [Set](#zks-config-set)
+    - [Display](#zks-config-display)
+    - [List](#zks-config-list)
+    - [Delete](#zks-config-delete)
   - [Wallet](#wallet)
   - [Chain](#chain)
   - [Contract](#contract)
   - [Prover](#prover)
-- [Configuration](#configuration)
 - [Features](#features)
   - [ZKsync JSON-RPC API](#zksync-json-rpc-api)
   - [ZKsync SDK](#zksync-sdk)
@@ -35,10 +41,6 @@ make cli
 
 ## Usage
 
-> [!NOTE]
-> Before using the tool take a look at the [Configuration](#configuration) section.
-> The configuration file can be changed after the installation process.
-
 Running `zks` outputs the following:
 
 ```
@@ -49,11 +51,143 @@ Commands:
   chain     Chain interaction commands. These make use of the JSON-RPC API.
   prover    Prover commands. TODO.
   contract  Contract interaction commands.
+  config    CLI config commands.
   help      Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
+```
+
+### Config
+
+The configuration is strictly necessary to interact with the CLI without issues. **All the commands but the `config` require a configuration to be set**. The configuration is stored in `.toml` files in the user's config directory (`~/.config/zks-cli/<you_config_name>.toml`) and looks like this:
+
+```toml
+[network]
+l1_rpc_url=""
+l1_explorer_url=""
+l2_rpc_url=""
+l2_explorer_url=""
+
+[wallet]
+address=""
+private_key=""
+```
+
+This command is in charge of managing the configuration the CLI will use for all the other commands. Running `zks config` shows you the available commands:
+
+```
+CLI config commands.
+
+Usage: zks config <COMMAND>
+
+Commands:
+  edit     Edit an existing config.
+  create   Create a new config.
+  set      Set the config to use.
+  display  Display a config.
+  list     List all configs.
+  delete   Delete a config.
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+You can create multiple configs as "profiles" to be able to use the tool with for example various servers, or wallets without having to use different commands with different flags or have to manually edit one config file each time.
+
+#### `zks config create`
+
+A command used to create new configurations interactively.
+
+```
+Create a new config.
+
+Usage: zks config create --name <CONFIG_NAME>
+
+Options:
+      --name <CONFIG_NAME>
+  -h, --help                Print help
+```
+
+#### `zks config edit`
+
+Used for editing existing configurations. You can do this with flags to edit specific values or you can edit it interactively.
+
+```
+Edit an existing config.
+
+Usage: zks config edit [OPTIONS]
+
+Options:
+      --name <CONFIG_NAME>
+      --l1-rpc-url <L1_RPC_URL>
+      --l2-rpc-url <L2_RPC_URL>
+      --l2-explorer-url <L2_EXPLORER_URL>
+      --l1-explorer-url <L1_EXPLORER_URL>
+      --private-key <PRIVATE_KEY>
+      --address <ADDRESS>
+  -e, --interactively
+  -h, --help                               Print help
+```
+
+#### `zks config set`
+
+Once you've created one or multiple configs it is time to set which one you're going to use. For this, you can use the `zks config set` command which lets you choose interactively, which config among the created ones you want to set; or you can set it by name.
+
+```
+Set the config to use.
+
+Usage: zks config set [OPTIONS] --name <CONFIG_NAME>
+
+Options:
+      --name <CONFIG_NAME>
+  -s, --interactively
+  -h, --help                Print help
+```
+
+#### `zks config display`
+
+If you want to see what configuration is set in one specific config profile, use `zks config display` to display a config file by name or choose it interactively among the existing config files.
+
+```
+Display a config.
+
+Usage: zks config display [OPTIONS] --name <CONFIG_NAME>
+
+Options:
+      --name <CONFIG_NAME>
+  -s, --interactively
+  -h, --help                Print help
+```
+
+#### `zks config list`
+
+Lists all the existing configurations.
+
+```
+List all configs.
+
+Usage: zks config list
+
+Options:
+  -h, --help  Print help
+```
+
+#### `zks config delete`
+
+Deletes an existing config. You can either delete by name or choose interactively among the existing configs.
+
+```
+Delete a config.
+
+Usage: zks config delete [OPTIONS]
+
+Options:
+      --name <CONFIG_NAME>
+  -d, --interactively
+  -h, --help                Print help
 ```
 
 ### Wallet
@@ -132,22 +266,6 @@ Options:
 ### Prover
 
 TODO
-
-## Configuration
-
-The CLI can be configured with a `.toml` file. The default configuration path is `etc/config.toml`. The configuration file should look like this:
-
-```toml
-[network]
-l1_rpc_url=""
-l1_explorer_url=""
-l2_rpc_url=""
-l2_explorer_url=""
-
-[wallet]
-address=""
-private_key=""
-```
 
 ## Features
 

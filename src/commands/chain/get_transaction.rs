@@ -6,7 +6,7 @@ use zksync_ethers_rs::{
     types::H256,
 };
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(short, long, name = "TRANSACTION_HASH")]
     pub transaction: H256,

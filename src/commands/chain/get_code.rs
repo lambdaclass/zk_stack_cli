@@ -5,7 +5,7 @@ use zksync_ethers_rs::{
     types::Address,
 };
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "address")]
     pub contract: Address,

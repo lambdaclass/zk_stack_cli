@@ -3,7 +3,7 @@ use clap::Args as ClapArgs;
 use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::ZKMiddleware;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long, name = "FROM")]
     from: u32,
