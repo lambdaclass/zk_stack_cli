@@ -27,7 +27,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
         Provider::try_from(cfg.network.l2_rpc_url)?
     };
     let wallet_address = cfg.wallet.context("Wallet config missing")?.address;
-    let network = args.l1.then_some("L1").unwrap_or("L2");
+    let network = if args.l1 { "L1" } else { "L2" };
     if let Some(token_address) = args.token_address {
         let erc20 = ERC20::new(token_address, Arc::new(provider));
         let balance = erc20.balance_of(wallet_address).await?;

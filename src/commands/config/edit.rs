@@ -114,10 +114,7 @@ fn edit_existing_config_interactively(existing_config: ZKSyncConfig) -> eyre::Re
                     .unwrap_or(DEFAULT_L1_RPC_URL.into()),
             )
             .ok(),
-            l2_rpc_url: prompt(
-                L2_RPC_URL_PROMPT_MSG,
-                existing_config.network.l2_rpc_url.into(),
-            )?,
+            l2_rpc_url: prompt(L2_RPC_URL_PROMPT_MSG, existing_config.network.l2_rpc_url)?,
             l2_explorer_url: prompt(
                 L2_EXPLORER_URL_PROMPT_MSG,
                 existing_config
@@ -174,14 +171,14 @@ fn edit_existing_config_non_interactively(
                 .l1_explorer_url
                 .or(existing_config.network.l1_explorer_url),
         },
-        wallet: existing_config.wallet.and_then(|existing_wallet_config| {
-            Some(WalletConfig {
+        wallet: existing_config
+            .wallet
+            .map(|existing_wallet_config| WalletConfig {
                 private_key: args
                     .private_key
                     .unwrap_or(existing_wallet_config.private_key),
                 address: args.address.unwrap_or(existing_wallet_config.address),
-            })
-        }),
+            }),
     };
     Ok(config)
 }

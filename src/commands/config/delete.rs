@@ -24,7 +24,7 @@ pub(crate) struct Args {
 
 pub(crate) async fn run(args: Args) -> eyre::Result<()> {
     let config_path = if args.delete_interactively {
-        config_path_interactive_selection(CONFIG_SELECTION_TO_DELETE_PROMPT_MSG.into())?
+        config_path_interactive_selection(CONFIG_SELECTION_TO_DELETE_PROMPT_MSG)?
     } else {
         config_path(&args.config_name.context("Config name missing")?)?
     };

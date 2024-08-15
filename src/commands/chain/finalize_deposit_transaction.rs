@@ -26,10 +26,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .network
             .l2_explorer_url
             .context("L2 Explorer URL missing in config")?;
-        println!(
-            "Deposit finalization: {}/tx/{deposit_finalization_hash:#?}",
-            url
-        );
+        println!("Deposit finalization: {url}/tx/{deposit_finalization_hash:#?}");
     } else {
         println!("Deposit finalization hash: {deposit_finalization_hash:#?}");
     }

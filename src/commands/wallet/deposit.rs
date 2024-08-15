@@ -45,12 +45,11 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
 
     let zk_wallet = ZKWallet::new(l1_signer, l2_signer);
 
-    let amount = U256::from(args.amount);
     let deposit_hash = match (args.to, args.token_address) {
-        (None, None) => zk_wallet.deposit_base_token(amount).await?,
-        (None, Some(token)) => zk_wallet.deposit_erc20(amount, token).await?,
-        (Some(to), None) => zk_wallet.deposit_base_token_to(amount, to).await?,
-        (Some(to), Some(token)) => zk_wallet.deposit_erc20_to(amount, token, to).await?,
+        (None, None) => zk_wallet.deposit_base_token(args.amount).await?,
+        (None, Some(token)) => zk_wallet.deposit_erc20(args.amount, token).await?,
+        (Some(to), None) => zk_wallet.deposit_base_token_to(args.amount, to).await?,
+        (Some(to), Some(token)) => zk_wallet.deposit_erc20_to(args.amount, token, to).await?,
     };
 
     if args.explorer_url {

@@ -27,7 +27,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     } else {
         Provider::try_from(cfg.network.l2_rpc_url)?
     };
-    let network = args.l1.then_some("L1").unwrap_or("L2");
+    let network = if args.l1 { "L1" } else { "L2" };
     if let Some(token_address) = args.token_address {
         let erc20 = ERC20::new(token_address, Arc::new(provider));
         let balance: U256 = erc20.balance_of(args.of).call().await?;

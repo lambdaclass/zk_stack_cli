@@ -3,6 +3,7 @@ use crate::{
     config::{NetworkConfig, WalletConfig, ZKSyncConfig},
 };
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
+use eyre::ContextCompat;
 use std::{path::PathBuf, str::FromStr};
 use zksync_ethers_rs::types::H160;
 
@@ -46,7 +47,7 @@ pub fn configs_dir_path() -> eyre::Result<std::path::PathBuf> {
 }
 
 pub fn config_path(config_name: &str) -> eyre::Result<std::path::PathBuf> {
-    Ok(configs_dir_path()?.join(&format!("{}.toml", config_name)))
+    Ok(configs_dir_path()?.join(&format!("{config_name}.toml")))
 }
 
 pub fn prompt<T>(prompt: &str, default: T) -> eyre::Result<T>
@@ -80,7 +81,7 @@ pub fn config_file_names() -> eyre::Result<Vec<String>> {
                     entry
                         .file_name()
                         .into_string()
-                        .map_err(|_| eyre::eyre!("Invalid file name"))
+                        .map_err(|e| eyre::eyre!("Invalid file name: {:?}", e.into_string()))
                 })
                 .map(|file_name| file_name.replace(".toml", ""))
         })
@@ -98,7 +99,7 @@ pub fn config_path_interactive_selection(prompt: &str) -> eyre::Result<PathBuf> 
         .with_prompt(prompt)
         .items(&configs)
         .interact()?;
-    config_path(&configs[selection])
+    config_path(configs.get(selection).context("No config selected")?)
 }
 
 pub fn prompt_zksync_config() -> eyre::Result<ZKSyncConfig> {
@@ -122,10 +123,10 @@ pub fn prompt_zksync_config() -> eyre::Result<ZKSyncConfig> {
 pub async fn confirm_config_creation(config_name: String) -> eyre::Result<()> {
     let create_confirmation = confirm(CONFIG_CREATE_PROMPT_MSG)?;
     if create_confirmation {
-        return create::run(create::Args { config_name }).await;
+        create::run(create::Args { config_name }).await
     } else {
         println!("Aborted");
-        return Ok(());
+        Ok(())
     }
 }
 

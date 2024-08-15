@@ -35,6 +35,6 @@ pub(crate) async fn run(args: Args) -> eyre::Result<()> {
     };
     let selected_config = std::fs::read_to_string(config_path_to_select)?;
     std::fs::write(selected_config_path()?, &selected_config)?;
-    println!("Config \"{}\" set", selected_config);
+    println!("Config \"{selected_config}\" set");
     Ok(())
 }
