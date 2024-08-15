@@ -1,5 +1,5 @@
 use crate::{
-    commands::{chain, contract, wallet},
+    commands::{chain, contract, test, wallet},
     config::ZKSyncConfig,
 };
 use clap::{command, Parser, Subcommand};
@@ -29,6 +29,8 @@ enum ZKSyncCommand {
     Prover,
     #[clap(subcommand, about = "Contract interaction commands.")]
     Contract(contract::Command),
+    #[clap(subcommand, about = "Test commands, LoadTests, Benchmarks, etc")]
+    Test(test::Command),
 }
 
 pub async fn start(cfg: ZKSyncConfig) -> eyre::Result<()> {
@@ -38,6 +40,7 @@ pub async fn start(cfg: ZKSyncConfig) -> eyre::Result<()> {
         ZKSyncCommand::Chain(cmd) => chain::start(cmd, cfg).await?,
         ZKSyncCommand::Prover => todo!(),
         ZKSyncCommand::Contract(cmd) => contract::start(cmd, cfg).await?,
+        ZKSyncCommand::Test(cmd) => test::start(cmd, cfg).await?,
     };
 
     Ok(())
