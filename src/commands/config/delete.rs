@@ -3,30 +3,18 @@ use crate::commands::config::common::{
     CONFIG_SELECTION_TO_DELETE_PROMPT_MSG,
 };
 use clap::Args as ClapArgs;
-use eyre::ContextCompat;
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(
-        long = "name",
-        conflicts_with = "delete_interactively",
-        required_unless_present = "delete_interactively"
-    )]
+    #[clap(long = "name")]
     pub config_name: Option<String>,
-    #[clap(
-        short,
-        long = "interactively",
-        conflicts_with = "config_name",
-        required_unless_present = "config_name"
-    )]
-    pub delete_interactively: bool,
 }
 
 pub(crate) async fn run(args: Args) -> eyre::Result<()> {
-    let config_path = if args.delete_interactively {
-        config_path_interactive_selection(CONFIG_SELECTION_TO_DELETE_PROMPT_MSG)?
+    let config_path = if let Some(config_name) = args.config_name {
+        config_path(&config_name)?
     } else {
-        config_path(&args.config_name.context("Config name missing")?)?
+        config_path_interactive_selection(CONFIG_SELECTION_TO_DELETE_PROMPT_MSG)?
     };
     let delete_confirmation = confirm(CONFIG_DELETE_PROMPT_MSG)?;
     if !delete_confirmation {

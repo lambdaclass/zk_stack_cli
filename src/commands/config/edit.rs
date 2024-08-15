@@ -9,7 +9,7 @@ use crate::{
             DEFAULT_PRIVATE_KEY, L1_EXPLORER_URL_PROMPT_MSG, L1_RPC_URL_PROMPT_MSG,
             L2_EXPLORER_URL_PROMPT_MSG, L2_RPC_URL_PROMPT_MSG, PRIVATE_KEY_PROMPT_MSG,
         },
-        set,
+        edit, set,
     },
     config::{NetworkConfig, WalletConfig, ZKSyncConfig},
 };
@@ -19,7 +19,7 @@ use zksync_ethers_rs::types::Address;
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long = "name", required_unless_present = "edit_interactively")]
+    #[clap(long = "name")]
     pub config_name: Option<String>,
     #[clap(
         long,
@@ -63,55 +63,62 @@ pub(crate) struct Args {
         required = false
     )]
     pub address: Option<Address>,
-    #[clap(short, long = "interactively", required = false, conflicts_with_all = &["l1_rpc_url", "l2_rpc_url", "l2_explorer_url", "l1_explorer_url", "private_key", "address"], required_unless_present = "config_name")]
-    pub edit_interactively: bool,
 }
 
 pub(crate) async fn run(args: Args) -> eyre::Result<()> {
-    let (new_config, config_path, set_new_config) =
-        match (&args.config_name, &args.edit_interactively) {
-            (None, true) => {
-                let config_path = config_path_interactive_selection(CONFIG_EDIT_PROMPT_MSG)?;
-                let existing_config: ZKSyncConfig =
-                    toml::from_str(&std::fs::read_to_string(config_path.clone())?)?;
-                let set_new_config = config_to_edit_is_set(&existing_config)?;
-                let new_config = edit_existing_config_interactively(existing_config)?;
-
-                (new_config, config_path, set_new_config)
-            }
-            (Some(config_name), true) => {
-                let config_path = config_path(config_name)?;
-                if !config_path.exists() {
-                    return confirm_config_creation(config_name.clone()).await;
-                }
-                let existing_config: ZKSyncConfig =
-                    toml::from_str(&std::fs::read_to_string(config_path.clone())?)?;
-                let set_new_config = config_to_edit_is_set(&existing_config)?;
-                let new_config = edit_existing_config_interactively(existing_config)?;
-
-                (new_config, config_path, set_new_config)
-            }
-            (Some(config_name), false) => {
-                let config_path = config_path(config_name)?;
-                if !config_path.exists() {
-                    return confirm_config_creation(config_name.clone()).await;
-                }
-                let existing_config: ZKSyncConfig =
-                    toml::from_str(&std::fs::read_to_string(config_path.clone())?)?;
-                let set_new_config = config_to_edit_is_set(&existing_config)?;
-                let new_config = edit_existing_config_non_interactively(existing_config, args)?;
-
-                (new_config, config_path, set_new_config)
-            }
-            _ => unreachable!(),
+    let (new_config, config_path, set_new_config) = if let Some(ref config_name) = args.config_name
+    {
+        let config_path = config_path(config_name)?;
+        if !config_path.exists() {
+            return confirm_config_creation(config_name.clone()).await;
+        }
+        let (new_config, set_new_config) = if args.l1_explorer_url.is_none()
+            && args.l1_rpc_url.is_none()
+            && args.l2_explorer_url.is_none()
+            && args.l2_rpc_url.is_none()
+            && args.private_key.is_none()
+            && args.address.is_none()
+        {
+            edit_config_by_name_interactively(&config_path)?
+        } else {
+            edit_config_by_name_with_args(&config_path, args)?
         };
-
+        (new_config, config_path, set_new_config)
+    } else {
+        edit_config_interactively()?
+    };
     let toml_config = toml::to_string_pretty(&new_config)?;
     std::fs::write(&config_path, &toml_config)?;
     set_new_config_if_needed(set_new_config, config_path.clone()).await?;
     println!("Config updated at: {}", config_path.display());
     println!("\n{toml_config}");
     Ok(())
+}
+
+fn edit_config_by_name_interactively(config_path: &PathBuf) -> eyre::Result<(ZKSyncConfig, bool)> {
+    let existing_config: ZKSyncConfig = toml::from_str(&std::fs::read_to_string(config_path)?)?;
+    let set_new_config = config_to_edit_is_set(&existing_config)?;
+    let new_config = edit_existing_config_interactively(existing_config)?;
+    Ok((new_config, set_new_config))
+}
+
+fn edit_config_by_name_with_args(
+    config_path: &PathBuf,
+    args: Args,
+) -> eyre::Result<(ZKSyncConfig, bool)> {
+    let existing_config: ZKSyncConfig = toml::from_str(&std::fs::read_to_string(config_path)?)?;
+    let set_new_config = config_to_edit_is_set(&existing_config)?;
+    let new_config = edit_existing_config_non_interactively(existing_config, args)?;
+    Ok((new_config, set_new_config))
+}
+
+fn edit_config_interactively() -> eyre::Result<(ZKSyncConfig, PathBuf, bool)> {
+    let config_path = config_path_interactive_selection(CONFIG_EDIT_PROMPT_MSG)?;
+    let existing_config: ZKSyncConfig =
+        toml::from_str(&std::fs::read_to_string(config_path.clone())?)?;
+    let set_new_config = config_to_edit_is_set(&existing_config)?;
+    let new_config = edit_existing_config_interactively(existing_config)?;
+    Ok((new_config, config_path, set_new_config))
 }
 
 fn config_to_edit_is_set(existing_config: &ZKSyncConfig) -> eyre::Result<bool> {
@@ -135,7 +142,6 @@ async fn set_new_config_if_needed(set_new_config: bool, config_path: PathBuf) ->
                     .into_string()
                     .map_err(|_| eyre::eyre!("Invalid file name"))?,
             ),
-            set_config_interactively: false,
         })
         .await?;
     }
