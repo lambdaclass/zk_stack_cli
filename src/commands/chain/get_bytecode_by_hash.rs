@@ -4,7 +4,7 @@ use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::types::{Bytes, H256};
 use zksync_ethers_rs::ZKMiddleware;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long, name = "CONTRACT_BYTECODE_HASH")]
     hash: H256,

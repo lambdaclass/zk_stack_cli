@@ -3,7 +3,7 @@ use clap::Args as ClapArgs;
 use eyre::ContextCompat;
 use zksync_ethers_rs::{providers::Provider, types::H256, ZKMiddleware};
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "hash", name = "TRANSACTION_HASH")]
     pub transaction_hash: H256,

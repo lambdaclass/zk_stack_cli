@@ -10,7 +10,7 @@ pub(crate) mod private_key;
 pub(crate) mod transfer;
 pub(crate) mod withdraw;
 
-#[derive(Subcommand)]
+#[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "Get the balance of the wallet.")]
     Balance(balance::Args),

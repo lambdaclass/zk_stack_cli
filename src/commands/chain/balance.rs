@@ -7,7 +7,7 @@ use zksync_ethers_rs::contracts::erc20::ERC20;
 use zksync_ethers_rs::providers::{Middleware, Provider};
 use zksync_ethers_rs::types::{Address, U256};
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "of")]
     of: Address,

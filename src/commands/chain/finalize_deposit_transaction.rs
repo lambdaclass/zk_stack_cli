@@ -5,7 +5,7 @@ use zksync_ethers_rs::abi::Hash;
 use zksync_ethers_rs::deposit;
 use zksync_ethers_rs::providers::Provider;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "hash")]
     l1_deposit_tx_hash: Hash,

@@ -2,7 +2,7 @@ use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use zksync_ethers_rs::{providers::Provider, types::Address, ZKMiddleware};
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "address")]
     pub account_address: Address,

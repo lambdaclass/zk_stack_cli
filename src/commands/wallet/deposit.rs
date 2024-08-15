@@ -9,7 +9,7 @@ use zksync_ethers_rs::{
     zk_wallet::ZKWallet,
 };
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "amount", value_parser=U256::from_dec_str)]
     pub amount: U256,
