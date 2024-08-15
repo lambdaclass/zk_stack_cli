@@ -47,7 +47,7 @@ pub fn configs_dir_path() -> eyre::Result<std::path::PathBuf> {
 }
 
 pub fn config_path(config_name: &str) -> eyre::Result<std::path::PathBuf> {
-    Ok(configs_dir_path()?.join(&format!("{config_name}.toml")))
+    Ok(configs_dir_path()?.join(format!("{config_name}.toml")))
 }
 
 pub fn prompt<T>(prompt: &str, default: T) -> eyre::Result<T>
