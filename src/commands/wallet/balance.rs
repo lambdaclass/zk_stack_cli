@@ -32,8 +32,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     let wallet_address = cfg.wallet.context("Wallet config missing")?.address;
 
     let network = match (args.l1, args.l2) {
-        (false, false) => "L2",
-        (false, true) => "L2",
+        (false, false) | (false, true) => "L2",
         (true, false) => "L1",
         (true, true) => "BOTH",
     };
