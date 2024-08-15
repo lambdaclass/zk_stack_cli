@@ -4,7 +4,7 @@ use crate::config::ZKSyncConfig;
 
 pub(crate) mod loadtest;
 
-#[derive(Subcommand)]
+#[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "LoadTest the zkStack Chain.")]
     Loadtest(loadtest::Args),

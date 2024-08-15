@@ -3,13 +3,14 @@ use crate::commands::utils::wallet::*;
 use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
+use zksync_ethers_rs::core::utils::parse_ether;
 use std::str::FromStr;
 use zksync_ethers_rs::core::rand::thread_rng;
 use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::signers::LocalWallet;
 use zksync_ethers_rs::signers::Signer;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "placeholder", required = false)]
     pub placeholder: bool,

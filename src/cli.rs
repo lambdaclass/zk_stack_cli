@@ -31,7 +31,7 @@ enum ZKSyncCommand {
     Contract(contract::Command),
     #[clap(subcommand, about = "CLI config commands.")]
     Config(config::Command),
-    #[clap(subcommand, about = "Test commands, LoadTests, Benchmarks, etc")]
+    #[clap(subcommand, about = "Test commands, LoadTests, Benchmarks, etc.")]
     Test(test::Command),
 }
 
