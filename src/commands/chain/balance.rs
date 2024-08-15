@@ -23,7 +23,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .context("L1 RPC URL missing in config")?,
     )?;
     let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-    let wallet_address = cfg.wallet.context("Wallet config missing")?.address;
+    let wallet_address = args.of;
     let base_token_address = l2_provider.get_base_token_l1_address().await?;
 
     if args.l2 || !args.l1 {
