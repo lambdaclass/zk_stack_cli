@@ -39,7 +39,7 @@ let_underscore_must_use = "allow"
 
 
 [dependencies]
-zksync-ethers-rs = { git = "https://github.com/lambdaclass/zksync-web3-rs", branch = "zksync-ethers-rs-v1`" }
+zksync-ethers-rs = { git = "https://github.com/lambdaclass/zksync-web3-rs", branch = "zksync-ethers-rs-v1" }
 tokio = "1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing = "0.1"
