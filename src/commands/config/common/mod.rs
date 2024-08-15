@@ -97,8 +97,7 @@ pub fn config_path_interactive_selection(prompt: &str) -> eyre::Result<PathBuf> 
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt(prompt)
         .items(&configs)
-        .interact()
-        .unwrap();
+        .interact()?;
     config_path(&configs[selection])
 }
 
