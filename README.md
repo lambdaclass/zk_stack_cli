@@ -34,8 +34,8 @@ Whether you're a developer focused on deploying and interacting with contracts o
 ## Installation
 
 ```
-git clone git@github.com:lambdaclass/zksync_cli.git
-cd zksync_cli
+git clone git@github.com:lambdaclass/zksync_era_cli.git
+cd zksync_era_cli
 make cli
 ```
 
