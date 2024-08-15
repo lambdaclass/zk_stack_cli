@@ -42,7 +42,7 @@ pub async fn load_selected_config() -> eyre::Result<ZKSyncConfig> {
     if !config_path.exists() {
         println!("No config set, please select a config to set");
         set::run(set::Args {
-            config_name: SELECTED_CONFIG_FILE_NAME.into(),
+            config_name: Some(SELECTED_CONFIG_FILE_NAME.into()),
             set_config_interactively: true,
         })
         .await?;

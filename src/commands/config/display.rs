@@ -6,9 +6,18 @@ use clap::Args as ClapArgs;
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long = "name", required_unless_present = "select_config_interactively")]
-    pub config_name: String,
-    #[clap(short, long = "interactively", required_unless_present = "config_name")]
+    #[clap(
+        long = "name",
+        conflicts_with = "select_config_interactively",
+        required_unless_present = "select_config_interactively"
+    )]
+    pub config_name: Option<String>,
+    #[clap(
+        short,
+        long = "interactively",
+        conflicts_with = "config_name",
+        required_unless_present = "config_name"
+    )]
     pub select_config_interactively: bool,
 }
 
@@ -16,10 +25,10 @@ pub(crate) async fn run(args: Args) -> eyre::Result<()> {
     let config_to_display_path = if args.select_config_interactively {
         config_path_interactive_selection(CONFIG_TO_DISPLAY_PROMPT_MSG)?
     } else {
-        config_path(&args.config_name)?
+        config_path(&args.config_name.clone().unwrap())?
     };
     if !config_to_display_path.exists() {
-        return confirm_config_creation(args.config_name).await;
+        return confirm_config_creation(args.config_name.unwrap()).await;
     }
     println!("Config at: {}", config_to_display_path.display());
     println!();

@@ -25,6 +25,7 @@ pub const CONFIG_CREATE_PROMPT_MSG: &str = "This config does not exist. Do you w
 pub const CONFIG_EDIT_PROMPT_MSG: &str = "What config do you want to edit?";
 pub const CONFIG_SET_PROMPT_MSG: &str = "What config do you want to set?";
 pub const CONFIG_DELETE_PROMPT_MSG: &str = "Are you sure you want to delete this config?";
+pub const CONFIG_SELECTION_TO_DELETE_PROMPT_MSG: &str = "What config do you want to delete?";
 pub const CONFIG_TO_DISPLAY_PROMPT_MSG: &str = "What config do you want to see?";
 pub const L1_RPC_URL_PROMPT_MSG: &str = "L1 RPC URL";
 pub const L2_RPC_URL_PROMPT_MSG: &str = "L2 RPC URL";

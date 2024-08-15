@@ -1,5 +1,6 @@
 use crate::commands::config::common::{
     config_path, config_path_interactive_selection, confirm, CONFIG_DELETE_PROMPT_MSG,
+    CONFIG_SELECTION_TO_DELETE_PROMPT_MSG,
 };
 use clap::Args as ClapArgs;
 
@@ -22,7 +23,7 @@ pub(crate) struct Args {
 
 pub(crate) async fn run(args: Args) -> eyre::Result<()> {
     let config_path = if args.delete_interactively {
-        config_path_interactive_selection(CONFIG_DELETE_PROMPT_MSG)?
+        config_path_interactive_selection(CONFIG_SELECTION_TO_DELETE_PROMPT_MSG.into())?
     } else {
         config_path(&args.config_name.unwrap())?
     };
