@@ -5,7 +5,7 @@ use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::types::{Address, H256, U64};
 use zksync_ethers_rs::ZKMiddleware;
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long, name = "TRANSACTION_HASH")]
     transaction: H256,

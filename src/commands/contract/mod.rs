@@ -6,7 +6,7 @@ pub(crate) mod call;
 pub(crate) mod deploy;
 pub(crate) mod send;
 
-#[derive(Subcommand)]
+#[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "Call view functions on a contract.")]
     Call(call::Args),

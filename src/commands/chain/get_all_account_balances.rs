@@ -5,7 +5,7 @@ use zksync_ethers_rs::{
     core::utils::format_ether, providers::Provider, types::Address, ZKMiddleware,
 };
 
-#[derive(ClapArgs)]
+#[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "address")]
     pub account_address: Address,

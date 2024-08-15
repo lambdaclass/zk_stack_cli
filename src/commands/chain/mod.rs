@@ -23,7 +23,7 @@ mod get_transaction;
 mod testnet_paymaster;
 mod transaction_details;
 
-#[derive(Subcommand)]
+#[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "Get the deployed bytecode of a contract")]
     GetCode(get_code::Args),
