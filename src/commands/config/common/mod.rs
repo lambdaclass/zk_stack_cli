@@ -10,7 +10,7 @@ use zksync_ethers_rs::types::H160;
 pub const SELECTED_CONFIG_FILE_NAME: &str = ".selected";
 
 pub const DEFAULT_L1_RPC_URL: &str = "http://localhost:8545";
-pub const DEFAULT_L2_RPC_URL: &str = "http://localhost:3030";
+pub const DEFAULT_L2_RPC_URL: &str = "http://localhost:3050";
 pub const DEFAULT_L2_EXPLORER_URL: &str = "http://localhost:3010";
 pub const DEFAULT_L1_EXPLORER_URL: &str = "";
 pub const DEFAULT_PRIVATE_KEY: &str =
