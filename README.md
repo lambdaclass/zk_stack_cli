@@ -64,7 +64,7 @@ address=""
 private_key=""
 ```
 
-The CLI offers a command to play around with the configuration:
+This command is in charge of managing the configuration the CLI will use for all the other commands. Running `zks config` shows you the available commands:
 
 ```
 CLI config commands.
@@ -82,6 +82,101 @@ Commands:
 
 Options:
   -h, --help  Print help
+```
+
+You can create multiple configs as "profiles" to be able to use the tool with for example various servers, or wallets without having to use different commands with different flags or have to manually edit one config file each time.
+
+#### `zks config create`
+
+A command used to create new configurations interactively.
+
+```
+Create a new config.
+
+Usage: zks config create --name <CONFIG_NAME>
+
+Options:
+      --name <CONFIG_NAME>
+  -h, --help                Print help
+```
+
+#### `zks config edit`
+
+Used for editing existing configurations. You can do this with flags to edit specific values or you can edit it interactively.
+
+```
+Edit an existing config.
+
+Usage: zks config edit [OPTIONS]
+
+Options:
+      --name <CONFIG_NAME>
+      --l1-rpc-url <L1_RPC_URL>
+      --l2-rpc-url <L2_RPC_URL>
+      --l2-explorer-url <L2_EXPLORER_URL>
+      --l1-explorer-url <L1_EXPLORER_URL>
+      --private-key <PRIVATE_KEY>
+      --address <ADDRESS>
+  -e, --interactively
+  -h, --help                               Print help
+```
+
+#### `zks config set`
+
+Once you've created one or multiple configs it is time to set which one you're going to use. For this, you can use the `zks config set` command which lets you choose interactively, which config among the created ones you want to set; or you can set it by name.
+
+```
+Set the config to use.
+
+Usage: zks config set [OPTIONS] --name <CONFIG_NAME>
+
+Options:
+      --name <CONFIG_NAME>
+  -s, --interactively
+  -h, --help                Print help
+```
+
+#### `zks config display`
+
+If you want to see what configuration is set in one specific config profile, use `zks config display` to display a config file by name or choose it interactively among the existing config files.
+
+```
+Display a config.
+
+Usage: zks config display [OPTIONS] --name <CONFIG_NAME>
+
+Options:
+      --name <CONFIG_NAME>
+  -s, --interactively
+  -h, --help                Print help
+```
+
+#### `zks config list`
+
+Lists all the existing configurations.
+
+```
+List all configs.
+
+Usage: zks config list
+
+Options:
+  -h, --help  Print help
+```
+
+#### `zks config delete`
+
+Deletes an existing config. You can either delete by name or choose interactively among the existing configs.
+
+```
+Delete a config.
+
+Usage: zks config delete [OPTIONS]
+
+Options:
+      --name <CONFIG_NAME>
+  -d, --interactively
+  -h, --help                Print help
 ```
 
 ### Wallet
