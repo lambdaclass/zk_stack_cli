@@ -13,9 +13,20 @@ Whether you're a developer focused on deploying and interacting with contracts o
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Configuration](#configuration)
+  - [Config](#config)
+    - [Create](#zks-config-create)
+    - [Edit](#zks-config-edit)
+    - [Set](#zks-config-set)
+    - [Display](#zks-config-display)
+    - [List](#zks-config-list)
+    - [Delete](#zks-config-delete)
+  - [Wallet](#wallet)
+  - [Chain](#chain)
+  - [Contract](#contract)
+  - [Prover](#prover)
 - [Features](#features)
   - [ZKsync JSON-RPC API](#zksync-json-rpc-api)
   - [ZKsync SDK](#zksync-sdk)
