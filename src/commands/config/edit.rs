@@ -9,7 +9,7 @@ use crate::{
             DEFAULT_PRIVATE_KEY, L1_EXPLORER_URL_PROMPT_MSG, L1_RPC_URL_PROMPT_MSG,
             L2_EXPLORER_URL_PROMPT_MSG, L2_RPC_URL_PROMPT_MSG, PRIVATE_KEY_PROMPT_MSG,
         },
-        edit, set,
+        set,
     },
     config::{NetworkConfig, WalletConfig, ZKSyncConfig},
 };

@@ -3,7 +3,6 @@ use crate::commands::config::common::{
     CONFIG_TO_DISPLAY_PROMPT_MSG,
 };
 use clap::Args as ClapArgs;
-use eyre::ContextCompat;
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
