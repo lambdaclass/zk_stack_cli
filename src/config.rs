@@ -6,13 +6,13 @@ use eyre::Context;
 use serde::{Deserialize, Serialize};
 use zksync_ethers_rs::types::Address;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
 pub struct ZKSyncConfig {
     pub network: NetworkConfig,
     pub wallet: Option<WalletConfig>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
 pub struct NetworkConfig {
     pub l1_rpc_url: Option<String>,
     pub l1_explorer_url: Option<String>,
@@ -20,7 +20,7 @@ pub struct NetworkConfig {
     pub l2_explorer_url: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, PartialEq)]
 pub struct WalletConfig {
     pub address: Address,
     pub private_key: String,
