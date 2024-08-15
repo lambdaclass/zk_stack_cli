@@ -40,11 +40,48 @@ Commands:
   chain     Chain interaction commands. These make use of the JSON-RPC API.
   prover    Prover commands. TODO.
   contract  Contract interaction commands.
+  config    CLI config commands.
   help      Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
+```
+
+### Config
+
+The configuration is strictly necessary to interact with the CLI without issues. **All the commands but the `config` require a configuration to be set**. The configuration is stored in `.toml` files in the user's config directory (`~/.config/zks-cli/<you_config_name>.toml`) and looks like this:
+
+```toml
+[network]
+l1_rpc_url=""
+l1_explorer_url=""
+l2_rpc_url=""
+l2_explorer_url=""
+
+[wallet]
+address=""
+private_key=""
+```
+
+The CLI offers a command to play around with the configuration:
+
+```
+CLI config commands.
+
+Usage: zks config <COMMAND>
+
+Commands:
+  edit     Edit an existing config.
+  create   Create a new config.
+  set      Set the config to use.
+  display  Display a config.
+  list     List all configs.
+  delete   Delete a config.
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
 ```
 
 ### Wallet
@@ -123,22 +160,6 @@ Options:
 ### Prover
 
 TODO
-
-## Configuration
-
-The CLI can be configured with a `.toml` file. The default configuration path is `etc/config.toml`. The configuration file should look like this:
-
-```toml
-[network]
-l1_rpc_url=""
-l1_explorer_url=""
-l2_rpc_url=""
-l2_explorer_url=""
-
-[wallet]
-address=""
-private_key=""
-```
 
 ## Features
 
