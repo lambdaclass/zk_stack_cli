@@ -5821,7 +5821,7 @@ dependencies = [
 [[package]]
 name = "zksync-ethers-rs"
 version = "0.1.1"
-source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=fd-get-l2-token-addr#d1396c62ff8259c54b5696a2713ad914af0daf75"
+source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#25883f678cccd8308b51801cf56ed2d0da26cec8"
 dependencies = [
  "async-trait",
  "clap",
