@@ -8,7 +8,7 @@ use zksync_ethers_rs::{
     core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
     providers::{Middleware, Provider},
     signers::{LocalWallet, Signer, Wallet},
-    ZKMiddleware,
+    wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
 #[derive(ClapArgs, PartialEq)]
@@ -57,18 +57,23 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
         let w = new_zkwallet(local_wallet, &l1_provider, &l2_provider).await?;
         wallets.push(w);
     }
-    let local_wallet = LocalWallet::new(&mut thread_rng());
-    let w2 = new_zkwallet(local_wallet, &l1_provider, &l2_provider).await?;
 
     let base_token_address = l2_provider.get_base_token_l1_address().await?;
     let float_number_of_wallets: f32 = args.number_of_wallets.into();
-    let amount_for_each: f32 = args.amount.div(float_number_of_wallets);
+    let amount_to_deposit_for_each: f32 = args.amount.div(float_number_of_wallets);
+    let amount_to_transfer_for_each: f32 = amount_to_deposit_for_each.div(2.0);
+    // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
+    let amount_to_withdraw_for_each: f32 = amount_to_transfer_for_each.div(2.0);
+
     println!("Base Token Address: {base_token_address:?}");
 
     for w in &wallets {
         display_balance(None, w, false).await?;
         let deposit_hash = zk_wallet
-            .deposit_base_token_to(parse_ether(amount_for_each.to_string())?, w.l2_address())
+            .deposit_base_token_to(
+                parse_ether(amount_to_deposit_for_each.to_string())?,
+                w.l2_address(),
+            )
             .await?;
         println!("Deposit hash: {deposit_hash:?}");
         display_balance(None, w, false).await?;
@@ -76,12 +81,46 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
 
     for w in &wallets {
         display_balance(None, w, false).await?;
-        display_balance(None, &w2, false).await?;
-        w.transfer_base_token(parse_ether("0.0005")?, w2.l1_address())
+        display_balance(None, &zk_wallet, false).await?;
+        let transfer_hash = w
+            .transfer_base_token(
+                parse_ether(amount_to_transfer_for_each.to_string())?,
+                zk_wallet.l1_address(),
+            )
             .await?;
+        println!("Transfer hash: {transfer_hash:?}");
         display_balance(None, w, false).await?;
-        display_balance(None, &w2, false).await?;
+        display_balance(None, &zk_wallet, false).await?;
     }
+
+    for w in &wallets {
+        display_balance(None, w, false).await?;
+        display_balance(None, &zk_wallet, false).await?;
+        let withdraw_hash = zk_wallet
+            .withdraw_base_token(parse_ether(amount_to_withdraw_for_each.to_string())?)
+            .await?;
+        println!("Withdraw hash: {withdraw_hash:?}");
+        display_balance(None, w, false).await?;
+        display_balance(None, &zk_wallet, false).await?;
+        let base_token_address = Some(l2_provider.get_base_token_l1_address().await?);
+        display_balance(base_token_address, &zk_wallet, true).await?;
+        println!("finalize withdrawal");
+        zk_wallet.finalize_withdraw(withdraw_hash).await?;
+        display_balance(base_token_address, &zk_wallet, true).await?;
+    }
+
+    display_balance(None, &zk_wallet, false).await?;
+    let withdraw_hash = zk_wallet
+        .withdraw_base_token(parse_ether(amount_to_withdraw_for_each.to_string())?)
+        .await?;
+    println!("Withdraw hash: {withdraw_hash:?}");
+    display_balance(None, &zk_wallet, false).await?;
+    let base_token_address = Some(l2_provider.get_base_token_l1_address().await?);
+    display_balance(base_token_address, &zk_wallet, true).await?;
+    println!("finalize withdrawal");
+    wait_for_finalize_withdrawal(withdraw_hash, &l2_provider).await;
+    zk_wallet.finalize_withdraw(withdraw_hash).await?;
+    display_balance(base_token_address, &zk_wallet, true).await?;
 
     Ok(())
 }
