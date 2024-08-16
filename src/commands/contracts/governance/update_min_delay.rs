@@ -7,7 +7,7 @@ use zksync_ethers_rs::{
     abi::Tokenize,
     contracts::governance::{Call, Governance, Operation},
     providers::Middleware,
-    types::{Address, U256},
+    types::U256,
 };
 
 #[derive(ClapArgs, PartialEq)]
@@ -38,7 +38,7 @@ pub(crate) async fn run(
         .encode_input(&args.new_min_delay.into_tokens())?;
     let update_delay_call = Call {
         target: governance.address(),
-        value: 0.into(),
+        value: U256::zero(),
         data: update_delay_calldata.into(),
     };
     let update_delay_operation = Operation {

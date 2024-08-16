@@ -13,7 +13,7 @@ pub(crate) async fn run(
     governance: Governance<impl Middleware + 'static>,
 ) -> eyre::Result<()> {
     let transaction_receipt = governance
-        .cancel(args.operation_id.try_into()?)
+        .cancel(args.operation_id.into())
         .send()
         .await?
         .await?

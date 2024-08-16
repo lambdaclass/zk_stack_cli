@@ -29,7 +29,7 @@ pub(crate) fn try_l1_provider_from_config(cfg: &ZKSyncConfig) -> eyre::Result<Pr
 pub(crate) async fn try_governance_from_config(
     cfg: &ZKSyncConfig,
 ) -> eyre::Result<Governance<SignerMiddleware<impl Middleware, impl Signer>>> {
-    let l1_provider = try_l1_provider_from_config(&cfg)?;
+    let l1_provider = try_l1_provider_from_config(cfg)?;
     let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
     let wallet = cfg
         .governance

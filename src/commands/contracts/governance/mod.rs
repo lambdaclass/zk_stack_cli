@@ -79,7 +79,7 @@ pub(crate) fn parse_operation(raw_operation: &str) -> eyre::Result<Operation> {
         .context("No \"calls\" in operation")?
         .as_array()
         .context("\"calls\" is not an array")?
-        .into_iter()
+        .iter()
         .map(|raw_call| {
             let target = raw_call.get("target").context("No target in call")?;
             let value = raw_call

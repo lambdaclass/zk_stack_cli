@@ -38,7 +38,7 @@ pub(crate) async fn run(
         .encode_input(&args.new_security_council.into_tokens())?;
     let update_security_council_call = Call {
         target: governance.address(),
-        value: 0.into(),
+        value: U256::zero(),
         data: update_security_council_calldata.into(),
     };
     let update_security_council_operation = Operation {

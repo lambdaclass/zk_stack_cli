@@ -16,6 +16,6 @@ pub(crate) async fn run(
     governance: Governance<impl Middleware + 'static>,
 ) -> eyre::Result<()> {
     let hashed_operation = governance.hash_operation(args.operation).call().await?;
-    println!("Operation hash: {:?}", hashed_operation);
+    println!("Operation hash: {hashed_operation:?}");
     Ok(())
 }
