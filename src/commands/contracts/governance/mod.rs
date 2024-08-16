@@ -63,7 +63,6 @@ pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
 }
 
 pub(crate) fn parse_operation(raw_operation: &str) -> eyre::Result<Operation> {
-    println!("raw_operation: {:?}", raw_operation);
     let raw_operation = serde_json::Value::from_str(raw_operation).context("Invalid JSON")?;
     let calls = raw_operation
         .get("calls")
