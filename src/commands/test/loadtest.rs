@@ -1,19 +1,15 @@
-use crate::commands::utils::balance::{display_balance, display_l2_balance};
-use crate::commands::utils::wallet;
+use crate::commands::utils::balance::display_balance;
 use crate::commands::utils::wallet::*;
 use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
 use std::ops::Div;
-use zksync_ethers_rs::core::k256::ecdsa::SigningKey;
-use zksync_ethers_rs::core::rand::thread_rng;
-use zksync_ethers_rs::core::utils::parse_ether;
-use zksync_ethers_rs::providers::Middleware;
-use zksync_ethers_rs::providers::Provider;
-use zksync_ethers_rs::signers::LocalWallet;
-use zksync_ethers_rs::signers::Signer;
-use zksync_ethers_rs::signers::Wallet;
-use zksync_ethers_rs::ZKMiddleware;
+use zksync_ethers_rs::{
+    core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
+    providers::{Middleware, Provider},
+    signers::{LocalWallet, Signer, Wallet},
+    ZKMiddleware,
+};
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
@@ -33,13 +29,17 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .context("L1 RPC URL missing in config")?,
     )?;
     let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
+
     let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
+    let l2_chain_id = l2_provider.get_chainid().await?.as_u64();
 
     let wallet = wallet_config
         .private_key
         .parse::<Wallet<SigningKey>>()?
-        .with_chain_id(l1_chain_id);
-    let zk_wallet = wallet::new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
+        .with_chain_id(l1_chain_id)
+        .with_chain_id(l2_chain_id); // is this ok?
+
+    let zk_wallet = new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
 
     let mut wallets = Vec::new();
 
