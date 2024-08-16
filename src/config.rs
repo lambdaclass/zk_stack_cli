@@ -7,6 +7,7 @@ use zksync_ethers_rs::types::Address;
 pub struct ZKSyncConfig {
     pub network: NetworkConfig,
     pub wallet: Option<WalletConfig>,
+    pub governance: GovernanceConfig,
 }
 
 #[derive(Deserialize, Serialize, PartialEq)]
@@ -21,6 +22,12 @@ pub struct NetworkConfig {
 pub struct WalletConfig {
     pub address: Address,
     pub private_key: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq)]
+pub struct GovernanceConfig {
+    pub address: Address,
+    pub owner_private_key: String,
 }
 
 pub async fn try_load_selected_config() -> eyre::Result<Option<ZKSyncConfig>> {

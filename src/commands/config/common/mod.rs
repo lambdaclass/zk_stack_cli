@@ -1,6 +1,6 @@
 use crate::{
     commands::config::create,
-    config::{NetworkConfig, WalletConfig, ZKSyncConfig},
+    config::{GovernanceConfig, NetworkConfig, WalletConfig, ZKSyncConfig},
 };
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use eyre::ContextCompat;
@@ -20,6 +20,11 @@ pub const DEFAULT_ADDRESS: H160 = H160([
     0x36, 0x61, 0x5C, 0xf3, 0x49, 0xd7, 0xf6, 0x34, 0x48, 0x91, 0xb1, 0xe7, 0xca, 0x7c, 0x72, 0x88,
     0x3f, 0x5d, 0xc0, 0x48,
 ]);
+// 0x5E6D086F5eC079ADFF4FB3774CDf3e8D6a34F7E9
+pub const DEFAULT_CONTRACT_ADDRESS: H160 = H160([
+    0x5E, 0x6D, 0x08, 0x6F, 0x5e, 0xC0, 0x79, 0xAD, 0xFF, 0x4F, 0xB3, 0x77, 0x4C, 0xDf, 0x3e, 0x8D,
+    0x6a, 0x34, 0xF7, 0xE9,
+]);
 
 pub const CONFIG_OVERRIDE_PROMPT_MSG: &str = "Config already exists. Do you want to overwrite it?";
 pub const CONFIG_CREATE_PROMPT_MSG: &str = "This config does not exist. Do you want to create it?";
@@ -34,6 +39,8 @@ pub const L2_EXPLORER_URL_PROMPT_MSG: &str = "L2 Explorer URL";
 pub const L1_EXPLORER_URL_PROMPT_MSG: &str = "L1 Explorer URL";
 pub const PRIVATE_KEY_PROMPT_MSG: &str = "Private key";
 pub const ADDRESS_PROMPT_MSG: &str = "Address";
+pub const CONTRACTS_GOVERNANCE_PROMPT_MSG: &str = "Governance contract address";
+pub const CONTRACTS_GOVERNANCE_PRIVATE_KEY_PROMPT_MSG: &str = "Governance owner private key";
 
 pub fn configs_dir_path() -> eyre::Result<std::path::PathBuf> {
     let configs_dir_path = dirs::config_dir()
@@ -116,6 +123,13 @@ pub fn prompt_zksync_config() -> eyre::Result<ZKSyncConfig> {
             private_key: prompt(PRIVATE_KEY_PROMPT_MSG, DEFAULT_PRIVATE_KEY.into())?,
             address: prompt(ADDRESS_PROMPT_MSG, DEFAULT_ADDRESS)?,
         }),
+        governance: GovernanceConfig {
+            address: prompt(CONTRACTS_GOVERNANCE_PROMPT_MSG, DEFAULT_CONTRACT_ADDRESS)?,
+            owner_private_key: prompt(
+                CONTRACTS_GOVERNANCE_PRIVATE_KEY_PROMPT_MSG,
+                DEFAULT_PRIVATE_KEY.into(),
+            )?,
+        },
     };
     Ok(prompted_config)
 }
