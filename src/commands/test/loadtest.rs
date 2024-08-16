@@ -1,15 +1,18 @@
-use crate::commands::utils::balance::display_l2_balance;
+use crate::commands::utils::balance::{display_balance, display_l2_balance};
 use crate::commands::utils::wallet;
 use crate::commands::utils::wallet::*;
 use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
-use std::str::FromStr;
+use std::ops::Div;
+use zksync_ethers_rs::core::k256::ecdsa::SigningKey;
 use zksync_ethers_rs::core::rand::thread_rng;
 use zksync_ethers_rs::core::utils::parse_ether;
+use zksync_ethers_rs::providers::Middleware;
 use zksync_ethers_rs::providers::Provider;
 use zksync_ethers_rs::signers::LocalWallet;
 use zksync_ethers_rs::signers::Signer;
+use zksync_ethers_rs::signers::Wallet;
 use zksync_ethers_rs::ZKMiddleware;
 
 #[derive(ClapArgs, PartialEq)]
@@ -17,24 +20,26 @@ pub(crate) struct Args {
     #[clap(long = "placeholder", required = false)]
     pub placeholder: bool,
     #[clap(long = "wallets", required = true)]
-    pub number_of_wallets: u32,
+    pub number_of_wallets: u16,
+    #[clap(long = "amount", required = true)]
+    pub amount: f32,
 }
 
 pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let wallet_config = cfg.wallet.context("Wallet config missing")?;
     let l1_provider = Provider::try_from(
         cfg.network
             .l1_rpc_url
             .context("L1 RPC URL missing in config")?,
     )?;
     let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-    let zk_wallet = wallet::new_zkwallet(
-        LocalWallet::from_str(
-            "0x850683b40d4a740aa6e745f889a6fdc8327be76e122f5aba645a5b02d0248db8",
-        )?,
-        &l1_provider,
-        &l2_provider,
-    )
-    .await?;
+    let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
+
+    let wallet = wallet_config
+        .private_key
+        .parse::<Wallet<SigningKey>>()?
+        .with_chain_id(l1_chain_id);
+    let zk_wallet = wallet::new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
 
     let mut wallets = Vec::new();
 
@@ -52,35 +57,31 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
         let w = new_zkwallet(local_wallet, &l1_provider, &l2_provider).await?;
         wallets.push(w);
     }
-    
+    let local_wallet = LocalWallet::new(&mut thread_rng());
+    let w2 = new_zkwallet(local_wallet, &l1_provider, &l2_provider).await?;
+
     let base_token_address = l2_provider.get_base_token_l1_address().await?;
-    
-    for w in wallets {
-        display_l2_balance(
-            None,
-            &l1_provider,
-            &l2_provider,
-            w.l2_address(),
-            base_token_address,
-            false,
-        )
-        .await?;
+    let float_number_of_wallets: f32 = args.number_of_wallets.into();
+    let amount_for_each: f32 = args.amount.div(float_number_of_wallets);
+    println!("Base Token Address: {base_token_address:?}");
+
+    for w in &wallets {
+        display_balance(None, w, false).await?;
         let deposit_hash = zk_wallet
-            .deposit_base_token_to(parse_ether("0.001")?, w.l2_address())
+            .deposit_base_token_to(parse_ether(amount_for_each.to_string())?, w.l2_address())
             .await?;
         println!("Deposit hash: {deposit_hash:?}");
-        display_l2_balance(
-            None,
-            &l1_provider,
-            &l2_provider,
-            w.l2_address(),
-            base_token_address,
-            false,
-        )
-        .await?;
+        display_balance(None, w, false).await?;
     }
 
-    println!("{}", zk_wallet.l1_address());
+    for w in &wallets {
+        display_balance(None, w, false).await?;
+        display_balance(None, &w2, false).await?;
+        w.transfer_base_token(parse_ether("0.0005")?, w2.l1_address())
+            .await?;
+        display_balance(None, w, false).await?;
+        display_balance(None, &w2, false).await?;
+    }
 
     Ok(())
 }
