@@ -8,7 +8,7 @@ use zksync_ethers_rs::{
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long, conflicts_with_all = &["shadow", "operation_id"], value_parser = parse_operation, index = 0)]
+    #[clap(long, conflicts_with_all = &["shadow", "operation_id"], value_parser = parse_operation)]
     pub operation: Operation,
     #[clap(short = 'i', long, required = false)]
     pub instant: bool,

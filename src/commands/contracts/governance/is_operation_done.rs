@@ -3,7 +3,7 @@ use zksync_ethers_rs::{abi::Hash, contracts::governance::Governance, providers::
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(short = 'o', long, index = 0)]
+    #[clap(short = 'o', long)]
     pub operation_id: Hash,
 }
 
