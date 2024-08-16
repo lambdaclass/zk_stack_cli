@@ -15,6 +15,8 @@ pub(crate) mod is_operation_pending;
 pub(crate) mod is_operation_ready;
 pub(crate) mod operation_state;
 pub(crate) mod propose;
+pub(crate) mod update_min_delay;
+pub(crate) mod update_security_council;
 
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
@@ -44,6 +46,10 @@ pub(crate) enum Command {
     Execute(execute::Args),
     #[clap(about = "Get the hash of an operation.")]
     HashOperation(hash_operation::Args),
+    #[clap(about = "Changes the minimum timelock duration for future operations.")]
+    UpdateMinDelay(update_min_delay::Args),
+    #[clap(about = "Updates the address of the security council.")]
+    UpdateSecurityCouncil(update_security_council::Args),
 }
 
 pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
@@ -58,6 +64,10 @@ pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
         Command::Cancel(args) => cancel::run(args, governance).await?,
         Command::Execute(args) => execute::run(args, governance, cfg).await?,
         Command::HashOperation(args) => hash_operation::run(args, governance).await?,
+        Command::UpdateMinDelay(args) => update_min_delay::run(args, governance, cfg).await?,
+        Command::UpdateSecurityCouncil(args) => {
+            update_security_council::run(args, governance, cfg).await?
+        }
     };
     Ok(())
 }
