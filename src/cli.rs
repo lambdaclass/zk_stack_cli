@@ -1,5 +1,5 @@
 use crate::{
-    commands::{chain, config, contract, wallet},
+    commands::{chain, config, contract, contracts, wallet},
     config::load_selected_config,
 };
 use clap::{command, Parser, Subcommand};
@@ -31,6 +31,11 @@ enum ZKSyncCommand {
     Contract(contract::Command),
     #[clap(subcommand, about = "CLI config commands.")]
     Config(config::Command),
+    #[clap(
+        subcommand,
+        about = "L1 Contracts interaction commands. For the chain owner."
+    )]
+    Contracts(contracts::Command),
 }
 
 pub async fn start() -> eyre::Result<()> {
@@ -44,6 +49,7 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::Chain(cmd) => chain::start(cmd, cfg).await?,
         ZKSyncCommand::Prover => todo!(),
         ZKSyncCommand::Contract(cmd) => contract::start(cmd, cfg).await?,
+        ZKSyncCommand::Contracts(cmd) => contracts::start(cmd, cfg).await?,
         ZKSyncCommand::Config(_) => unreachable!(),
     };
     Ok(())
