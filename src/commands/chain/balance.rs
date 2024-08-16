@@ -6,7 +6,7 @@ use zksync_ethers_rs::{providers::Provider, types::Address, ZKMiddleware};
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long = "of")]
+    #[clap(long = "of", required = true)]
     of: Address,
     #[clap(long = "token")]
     token_address: Option<Address>,
@@ -27,6 +27,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     let base_token_address = l2_provider.get_base_token_l1_address().await?;
 
     if args.l2 || !args.l1 {
+        println!("Base Token Address: {base_token_address:?}");
         display_l2_balance(
             args.token_address,
             &l1_provider,

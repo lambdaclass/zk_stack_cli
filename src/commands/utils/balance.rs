@@ -26,7 +26,6 @@ pub(crate) async fn print_l2_base_token_balance(
     l2_provider: &Provider<Http>,
     l1_provider: &Provider<Http>,
 ) -> eyre::Result<()> {
-    println!("Base Token Address: {base_token_address:?}");
     let balance = l2_provider.get_balance(wallet_address, None).await?;
     if base_token_address != L2_ETH_TOKEN_ADDRESS {
         let (_, token_decimals, token_symbol) =
