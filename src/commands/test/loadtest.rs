@@ -2,19 +2,19 @@ use crate::commands::utils::balance::display_balance;
 use crate::commands::utils::wallet::*;
 use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
+use colored::*;
 use eyre::ContextCompat;
 use std::ops::Div;
 use zksync_ethers_rs::{
     core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
     providers::{Middleware, Provider},
     signers::{LocalWallet, Signer, Wallet},
+    types::U256,
     wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long = "placeholder", required = false)]
-    pub placeholder: bool,
     #[clap(long = "wallets", required = true)]
     pub number_of_wallets: u16,
     #[clap(long = "amount", required = true)]
@@ -43,8 +43,6 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
 
     let mut wallets = Vec::new();
 
-    println!("{}", args.placeholder);
-
     for i in 1..=args.number_of_wallets {
         let local_wallet = LocalWallet::new(&mut thread_rng());
         let pk_bytes = local_wallet.signer().to_bytes();
@@ -59,59 +57,95 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     }
 
     let base_token_address = l2_provider.get_base_token_l1_address().await?;
-    let float_number_of_wallets: f32 = args.number_of_wallets.into();
-    let amount_to_deposit_for_each: f32 = args.amount.div(float_number_of_wallets);
-    let amount_to_transfer_for_each: f32 = amount_to_deposit_for_each.div(2.0);
+
     // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
-    let amount_to_withdraw_for_each: f32 = amount_to_transfer_for_each.div(2.0);
+    // an extra 20% is used to avoid gas problems
+    let amount_of_bt_to_deposit: f32 = args.amount * 1.2;
+    let float_wallets: f32 = args.number_of_wallets.into();
+    let amount_of_bt_to_transfer_for_each: f32 = args.amount / float_wallets;
+    let amount_of_bt_to_withdraw: f32 = args.amount;
 
-    println!("Base Token Address: {base_token_address:?}");
+    // Begin Display L1 Balance and BaseToken Addr
+    println!("{}", "#".repeat(64));
+    println!(
+        "{}: {base_token_address:?}",
+        "Base Token Address".bold().green().on_black()
+    );
+    display_balance(None, &zk_wallet, true).await?;
+    display_balance(Some(base_token_address), &zk_wallet, true).await?;
+    println!("{}", "#".repeat(64));
+    // End Display L1 Balance and BaseToken Addr
 
+    // Begin Deposit from rich wallet to rich wallet
+    //println!("{}", "#".repeat(64));
+    //println!(
+    //    "{} Deposit from {} wallet to {} wallet.",
+    //    "[L1->L2]".bold().bright_cyan().on_black(),
+    //    "rich".bold().red().on_black(),
+    //    "rich".bold().red().on_black()
+    //);
+    //display_balance(None, &zk_wallet, false).await?;
+    //zk_wallet
+    //    .deposit_base_token(parse_ether(amount_of_bt_to_deposit.to_string())?)
+    //    .await?;
+    //display_balance(None, &zk_wallet, false).await?;
+    //println!("{}", "#".repeat(64));
+    // End Deposit from rich wallet to rich wallet
+
+    // Begin Transfer from rich wallet to each wallet
+    println!("{}", "#".repeat(64));
+    println!(
+        "{} Transfer from {} wallet to {} wallet.",
+        "[L2->L2]".bold().bright_cyan().on_black(),
+        "rich".bold().red().on_black(),
+        "each".bold().blue().on_black()
+    );
     for w in &wallets {
         display_balance(None, w, false).await?;
-        let deposit_hash = zk_wallet
-            .deposit_base_token_to(
-                parse_ether(amount_to_deposit_for_each.to_string())?,
-                w.l2_address(),
+        let transfer_hash = zk_wallet
+            .transfer_base_token(
+                parse_ether("1")?,
+                w.l1_address(),
             )
             .await?;
-        println!("Deposit hash: {deposit_hash:?}");
+        println!("Transfer hash: {transfer_hash:?}");
         display_balance(None, w, false).await?;
     }
+    println!("{}", "#".repeat(64));
+    // End Transfer from rich wallet to each wallet
 
+    // Begin Transfer from each wallet to rich wallet
+    println!("{}", "#".repeat(64));
+    println!(
+        "{} Transfer from {} wallet to {} wallet.",
+        "[L1->L2]".bold().bright_cyan().on_black(),
+        "each".bold().blue().on_black(),
+        "rich".bold().red().on_black()
+    );
     for w in &wallets {
         display_balance(None, w, false).await?;
         display_balance(None, &zk_wallet, false).await?;
+        let balance = w.l2_provider().get_balance(w.l2_address(), None).await?;
         let transfer_hash = w
-            .transfer_base_token(
-                parse_ether(amount_to_transfer_for_each.to_string())?,
-                zk_wallet.l1_address(),
-            )
+            .transfer_base_token(balance, zk_wallet.l1_address())
             .await?;
         println!("Transfer hash: {transfer_hash:?}");
         display_balance(None, w, false).await?;
         display_balance(None, &zk_wallet, false).await?;
     }
+    println!("{}", "#".repeat(64));
+    // End Transfer from each wallet to rich wallet
 
-    for w in &wallets {
-        display_balance(None, w, false).await?;
-        display_balance(None, &zk_wallet, false).await?;
-        let withdraw_hash = zk_wallet
-            .withdraw_base_token(parse_ether(amount_to_withdraw_for_each.to_string())?)
-            .await?;
-        println!("Withdraw hash: {withdraw_hash:?}");
-        display_balance(None, w, false).await?;
-        display_balance(None, &zk_wallet, false).await?;
-        let base_token_address = Some(l2_provider.get_base_token_l1_address().await?);
-        display_balance(base_token_address, &zk_wallet, true).await?;
-        println!("finalize withdrawal");
-        zk_wallet.finalize_withdraw(withdraw_hash).await?;
-        display_balance(base_token_address, &zk_wallet, true).await?;
-    }
-
+    // Begin Withdrawal
+    println!("{}", "#".repeat(64));
+    println!(
+        "{} Withdraw basetoken from {} wallet.",
+        "[L2->L1]".bold().bright_cyan().on_black(),
+        "rich".bold().red().on_black(),
+    );
     display_balance(None, &zk_wallet, false).await?;
     let withdraw_hash = zk_wallet
-        .withdraw_base_token(parse_ether(amount_to_withdraw_for_each.to_string())?)
+        .withdraw_base_token(parse_ether(amount_of_bt_to_withdraw.to_string())?)
         .await?;
     println!("Withdraw hash: {withdraw_hash:?}");
     display_balance(None, &zk_wallet, false).await?;
@@ -121,6 +155,8 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     wait_for_finalize_withdrawal(withdraw_hash, &l2_provider).await;
     zk_wallet.finalize_withdraw(withdraw_hash).await?;
     display_balance(base_token_address, &zk_wallet, true).await?;
+    println!("{}", "#".repeat(64));
+    // End Withdrawal
 
     Ok(())
 }
