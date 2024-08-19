@@ -23,42 +23,36 @@ pub(crate) struct Args {
     pub config_name: Option<String>,
     #[clap(
         long,
-        conflicts_with = "interactively",
         requires = "config_name",
         required = false
     )]
     pub l1_rpc_url: Option<String>,
     #[clap(
         long,
-        conflicts_with = "interactively",
         requires = "config_name",
         required = false
     )]
     pub l2_rpc_url: Option<String>,
     #[clap(
         long,
-        conflicts_with = "interactively",
         requires = "config_name",
         required = false
     )]
     pub l2_explorer_url: Option<String>,
     #[clap(
         long,
-        conflicts_with = "interactively",
         requires = "config_name",
         required = false
     )]
     pub l1_explorer_url: Option<String>,
     #[clap(
         long,
-        conflicts_with = "interactively",
         requires = "config_name",
         required = false
     )]
     pub private_key: Option<String>,
     #[clap(
         long,
-        conflicts_with = "interactively",
         requires = "config_name",
         required = false
     )]
