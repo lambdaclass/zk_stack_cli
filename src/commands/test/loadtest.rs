@@ -18,11 +18,20 @@ use zksync_ethers_rs::{
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long = "wallets", required = true)]
+    #[clap(long = "wallets", short = 'w', required = true)]
     pub number_of_wallets: u16,
-    #[clap(long = "amount", required = true)]
+    #[clap(
+        long = "amount",
+        short = 'a',
+        required = true,
+        help = "Amount of BaseToken to deposit, 20% more will be deposited.\nThat extra 20% will remain in the main wallet,\nthe rest will be redistributed to random wallets"
+    )]
     pub amount: f32,
-    #[clap(long = "reruns", short = 'r')]
+    #[clap(
+        long = "reruns",
+        short = 'r',
+        help = "If set to 0 it will run indefinitely, If not set defaults to 1 run."
+    )]
     pub reruns_wanted: Option<u8>,
 }
 
@@ -83,11 +92,10 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     println!("{}", "#".repeat(64));
     // End Display L1 Balance and BaseToken Addr
 
-    let reruns_wanted = if let Some(r) = args.reruns_wanted {
-        r
-    } else {
-        1
-    };
+    let mut reruns = 0;
+    let mut current_reruns: u32 = 1;
+    let reruns_wanted = args.reruns_wanted.unwrap_or(1);
+    let reruns_to_complete = if reruns_wanted == 0 { 1 } else { reruns_wanted };
 
     println!(
         "Number of reruns {}",
@@ -97,13 +105,12 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             reruns_wanted.to_string().red()
         }
     );
-    let mut reruns = 0;
 
-    while reruns < reruns_wanted {
+    while reruns < reruns_to_complete {
         println!(
             "{} N: {}",
             "Run".red().on_black(),
-            (reruns + 1).to_string().yellow().on_black()
+            (current_reruns).to_string().yellow().on_black()
         );
         // Begin Deposit from rich wallet to rich wallet
         let l2_balance = zk_wallet
@@ -208,6 +215,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
         if reruns_wanted != 0 {
             reruns += 1;
         }
+        current_reruns += 1;
     }
 
     Ok(())
