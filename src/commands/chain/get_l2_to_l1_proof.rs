@@ -14,7 +14,7 @@ pub(crate) struct Args {
     #[clap(
         long,
         action,
-        conflicts_with = "msg_proof, block, sender, msg",
+        conflicts_with_all = ["MESSAGE_PROOF", "MESSAGE_BLOCK", "MESSAGE_SENDER", "msg"],
         group = "log",
         name = "LOG_PROOF"
     )]
@@ -22,28 +22,28 @@ pub(crate) struct Args {
     #[clap(
         long,
         action,
-        conflicts_with = "log_proof, l2_to_l1_log_index",
+        conflicts_with_all = ["LOG_PROOF", "L2_TO_L1_LOG_INDEX"],
         group = "msg",
         name = "MESSAGE_PROOF"
     )]
     msg_proof: bool,
     #[clap(
         long,
-        conflicts_with = "log_proof, l2_to_l1_log_index",
+        conflicts_with_all = ["LOG_PROOF", "L2_TO_L1_LOG_INDEX"],
         group = "msg",
         name = "MESSAGE_BLOCK"
     )]
     block: U64,
     #[clap(
         long,
-        conflicts_with = "log_proof, l2_to_l1_log_index",
+        conflicts_with_all = ["LOG_PROOF", "L2_TO_L1_LOG_INDEX"],
         group = "msg",
         name = "MESSAGE_SENDER"
     )]
     sender: Address,
     #[clap(
         long,
-        conflicts_with = "log_proof, l2_to_l1_log_index",
+        conflicts_with_all = ["LOG_PROOF", "L2_TO_L1_LOG_INDEX"],
         group = "msg",
         name = "MESSAGE"
     )]
