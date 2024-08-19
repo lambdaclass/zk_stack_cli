@@ -1,5 +1,5 @@
 use std::fs::{File, OpenOptions};
-use std::io::{self, Write};
+use std::io::{self, BufRead, Write};
 
 use clap::{Args as ClapArgs, ValueEnum};
 use clap::{CommandFactory, Subcommand};
@@ -54,6 +54,26 @@ fn generate_bash_script(shell_arg: Option<Shell>) -> eyre::Result<()> {
     Ok(())
 }
 
+fn shellrc_command_exists(shellrc_path: &std::path::Path, shell: Shell) -> eyre::Result<bool> {
+    let expected_string = if shell == Shell::Elvish {
+        "-source $HOME/.zks-completion"
+    } else {
+        ". $HOME/.zks-completion"
+    };
+
+    let file = File::open(shellrc_path)?;
+    let reader = io::BufReader::new(file);
+    let lines = reader.lines();
+    for line in lines {
+        let line = line?;
+        if line == expected_string {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 fn install_bash_script(shell_arg: Option<Shell>) -> eyre::Result<()> {
     let shell = get_shell(shell_arg)?;
 
@@ -67,15 +87,16 @@ fn install_bash_script(shell_arg: Option<Shell>) -> eyre::Result<()> {
     let shellrc_path = dirs::home_dir()
         .ok_or(eyre::eyre!("Cannot find home directory."))?
         .join(get_shellrc_path(shell)?);
-    let mut file = OpenOptions::new().append(true).open(shellrc_path)?;
-    if shell == Shell::Elvish {
-        file.write_all(b"\n-source $HOME/.zks-completion\n")?;
-    } else if shell == Shell::PowerShell {
-        file.write_all(format!("\n. {}\n", file_path.as_path().display()).as_bytes())?;
-    } else {
-        file.write_all(b"\n. $HOME/.zks-completion\n")?;
+
+    if !shellrc_command_exists(&shellrc_path, shell)? {
+        let mut file = OpenOptions::new().append(true).open(shellrc_path)?;
+        if shell == Shell::Elvish {
+            file.write_all(b"\n-source $HOME/.zks-completion\n")?;
+        } else {
+            file.write_all(b"\n. $HOME/.zks-completion\n")?;
+        }
+        file.flush()?;
     }
-    file.flush()?;
 
     println!("Autocomplete script installed. To apply changes, restart your shell.");
     Ok(())
