@@ -51,7 +51,9 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .transfer_erc20(args.amount, token_address, args.to, None)
             .await?
     } else {
-        zk_wallet.transfer_base_token(args.amount, args.to, None).await?
+        zk_wallet
+            .transfer_base_token(args.amount, args.to, None)
+            .await?
     };
 
     if args.explorer_url {
