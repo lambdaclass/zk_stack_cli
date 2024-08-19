@@ -9,7 +9,7 @@ use zksync_ethers_rs::{
     core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
     providers::{Http, Middleware, Provider},
     signers::{LocalWallet, Signer, Wallet},
-    transfer::Overrides,
+    types::L2TxOverrides,
     types::{Eip1559TransactionRequest, U256},
     wait_for_finalize_withdrawal,
     zk_wallet::ZKWallet,
@@ -153,7 +153,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
                 &zk_wallet,
                 w,
                 parsed_amount_of_bt_to_transfer_for_each,
-                Some(Overrides::new().with_nonce(nonce)),
+                Some(L2TxOverrides::new().nonce(nonce)),
             );
             futures.push(transfer_future);
             nonce = nonce.saturating_add(U256::one());
@@ -225,7 +225,7 @@ async fn future_transfer_base_token(
     from_wallet: &ZKWallet<&Provider<Http>, Wallet<SigningKey>>,
     to_wallet: &ZKWallet<&Provider<Http>, Wallet<SigningKey>>,
     parsed_amount: U256,
-    overrides: Option<Overrides>,
+    overrides: Option<L2TxOverrides>,
 ) -> eyre::Result<()> {
     display_balance(None, to_wallet, false).await?;
 
