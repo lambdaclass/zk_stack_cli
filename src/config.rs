@@ -8,6 +8,7 @@ pub struct ZKSyncConfig {
     pub network: NetworkConfig,
     pub wallet: Option<WalletConfig>,
     pub governance: GovernanceConfig,
+    pub bridgehub: BridgehubConfig,
 }
 
 #[derive(Deserialize, Serialize, PartialEq, Clone)]
@@ -28,6 +29,12 @@ pub struct WalletConfig {
 pub struct GovernanceConfig {
     pub address: Address,
     pub owner_private_key: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Clone)]
+pub struct BridgehubConfig {
+    pub admin_private_key: Option<String>,
+    pub owner_private_key: Option<String>,
 }
 
 pub async fn try_load_selected_config() -> eyre::Result<Option<ZKSyncConfig>> {

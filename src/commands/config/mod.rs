@@ -9,6 +9,7 @@ pub(crate) mod set;
 
 pub(crate) mod common;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "Edit an existing config.")]

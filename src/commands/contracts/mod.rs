@@ -27,7 +27,7 @@ pub(crate) enum Command {
 
 pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
     match cmd {
-        Command::BridgeHub(_cmd) => todo!(),
+        Command::BridgeHub(cmd) => bridgehub::start(cmd, cfg).await?,
         Command::Governance(cmd) => governance::start(cmd, cfg).await?,
         Command::Hyperchain(_cmd) => todo!(),
         Command::L1SharedBridge(_cmd) => todo!(),

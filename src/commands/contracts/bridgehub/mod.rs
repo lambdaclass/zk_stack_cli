@@ -1,43 +1,42 @@
+use crate::{commands::utils::try_bridgehub_from_config, config::ZKSyncConfig};
 use clap::Subcommand;
+
+pub(crate) mod accept_admin;
+pub(crate) mod admin;
+pub(crate) mod base_token;
+pub(crate) mod get_hyperchain;
+pub(crate) mod set_pending_admin;
+pub(crate) mod state_transition_manager;
 
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
-    #[clap(about = "See if the StateTransitionManager is registered.")]
-    StateTransitionManagerIsRegistered,
-    #[clap(about = "See if some arbitrary base token is registered.")]
-    TokenIsRegistered,
     #[clap(about = "Get the StateTransitionManager contract address of a chain.")]
-    StateTransitionManager,
+    StateTransitionManager(state_transition_manager::Args),
     #[clap(about = "Get the base token contract of a chain.")]
-    BaseToken,
+    BaseToken(base_token::Args),
     #[clap(about = "Get the bridge contract admin address.")]
     Admin,
     #[clap(
         about = "Set a new admin of the Bridgehub. Only the Bridgehub owner or the current admin can do this."
     )]
-    SetPendingAdmin,
+    SetPendingAdmin(set_pending_admin::Args),
     #[clap(about = "Accept the admin of the Bridgehub. Only the pending admin can do this.")]
-    AcceptAdmin,
+    AcceptAdmin(accept_admin::Args),
     #[clap(about = "Get the Hyperchain contract address of a chain.")]
-    GetHyperchain,
-    #[clap(
-        about = "Registers a new StateTransitionManager contract. Only the Bridgehub owner can do this."
-    )]
-    AddStateTransitionManager,
-    #[clap(
-        about = "Unregister a StateTransitionManager contract. Only the Bridgehub owner can do this."
-    )]
-    RemoveStateTransitionManager,
-    #[clap(about = "Registers a new token. Only the Bridgehub owner can do this.")]
-    AddToken,
-    #[clap(about = "Sets the shared bridge. Only the Bridgehub owner can do this.")]
-    SetSharedBridge,
-    #[clap(
-        about = "Pauses the Bridgehub. Only the Bridgehub owner can do this. This \"disables\" the L1->L2 communication and the creation of new chains."
-    )]
-    Pause,
-    #[clap(
-        about = "Unpauses the Bridgehub. Only the Bridgehub owner can do this. This \"re-enables\" the L1->L2 communication and the creation of new chains."
-    )]
-    Unpause,
+    GetHyperchain(get_hyperchain::Args),
+}
+
+pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    let bridgehub = try_bridgehub_from_config(&cfg).await?;
+    match cmd {
+        Command::StateTransitionManager(args) => {
+            state_transition_manager::run(args, bridgehub).await?
+        }
+        Command::BaseToken(args) => base_token::run(args, bridgehub).await?,
+        Command::Admin => admin::run(bridgehub).await?,
+        Command::SetPendingAdmin(args) => set_pending_admin::run(args, bridgehub, cfg).await?,
+        Command::AcceptAdmin(args) => accept_admin::run(args, bridgehub, cfg).await?,
+        Command::GetHyperchain(args) => get_hyperchain::run(args, bridgehub).await?,
+    };
+    Ok(())
 }
