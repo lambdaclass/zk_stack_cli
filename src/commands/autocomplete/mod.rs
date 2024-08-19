@@ -8,8 +8,8 @@ use crate::cli::ZKSyncCLI;
 
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long = "shell", default_value = "bash")]
-    pub shell: Shell,
+    #[clap(short = 's', long = "shell", help = "Default: $SHELL")]
+    pub shell: Option<Shell>,
 }
 
 #[derive(Subcommand, PartialEq)]
@@ -18,12 +18,13 @@ pub(crate) enum Command {
     Generate(Args),
 }
 
-fn generate_bash_script(shell: Shell) {
+fn generate_bash_script(shell: Option<Shell>) {
+    let shell = shell.unwrap_or(Shell::from_env().unwrap());
     generate(shell, &mut ZKSyncCLI::command(), "zks", &mut io::stdout());
 }
 
 pub(crate) fn start(cmd: Command) {
     match cmd {
-        Command::Generate(args) => generate_bash_script(args.shell)
+        Command::Generate(args) => generate_bash_script(args.shell),
     };
 }
