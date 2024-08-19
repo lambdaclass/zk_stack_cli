@@ -11,7 +11,7 @@ pub(crate) mod state_transition_manager;
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(subcommand, about = "Bridgehub contract interaction commands.")]
-    BridgeHub(bridgehub::Command),
+    Bridgehub(bridgehub::Command),
     #[clap(subcommand, about = "Governance contract interaction commands.")]
     Governance(governance::Command),
     #[clap(subcommand, about = "Hyperchain contract interaction commands.")]
@@ -27,7 +27,7 @@ pub(crate) enum Command {
 
 pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
     match cmd {
-        Command::BridgeHub(cmd) => bridgehub::start(cmd, cfg).await?,
+        Command::Bridgehub(cmd) => bridgehub::start(cmd, cfg).await?,
         Command::Governance(cmd) => governance::start(cmd, cfg).await?,
         Command::Hyperchain(_cmd) => todo!(),
         Command::L1SharedBridge(_cmd) => todo!(),
