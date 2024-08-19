@@ -1,5 +1,6 @@
 cli: 
 	cargo install --path .
+	zks autocomplete install
 
 build-cli:
 	cargo build --release
