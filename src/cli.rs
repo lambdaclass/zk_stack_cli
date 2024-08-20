@@ -52,7 +52,7 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::Chain(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Prover => todo!(),
         ZKSyncCommand::Contract(cmd) => cmd.run(cfg)?,
-        ZKSyncCommand::Contracts(cmd) => contracts::start(cmd, cfg).await?,
+        ZKSyncCommand::Contracts(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Autocomplete(cmd) => cmd.run()?,
         ZKSyncCommand::Config(_) => unreachable!(),
     };

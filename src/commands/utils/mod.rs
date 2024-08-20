@@ -28,21 +28,20 @@ pub(crate) fn try_l1_provider_from_config(cfg: &ZKSyncConfig) -> eyre::Result<Pr
 }
 
 pub(crate) async fn try_l1_signer_from_config(
-    private_key: &str,
+    wallet: LocalWallet,
     cfg: &ZKSyncConfig,
 ) -> eyre::Result<SignerMiddleware<impl Middleware, impl Signer>> {
     let l1_provider = try_l1_provider_from_config(cfg)?;
     let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
-    let wallet = private_key
-        .parse::<LocalWallet>()?
-        .with_chain_id(l1_chain_id);
+    let wallet = wallet.with_chain_id(l1_chain_id);
     Ok(SignerMiddleware::new(l1_provider, wallet))
 }
 
 pub(crate) async fn try_governance_from_config(
     cfg: &ZKSyncConfig,
 ) -> eyre::Result<Governance<SignerMiddleware<impl Middleware, impl Signer>>> {
-    let l1_signer = try_l1_signer_from_config(&cfg.governance.owner_private_key, cfg).await?;
+    let l1_signer =
+        try_l1_signer_from_config(cfg.governance.owner_private_key.parse()?, cfg).await?;
     Ok(Governance::new(cfg.governance.address, Arc::new(l1_signer)))
 }
 
@@ -54,7 +53,7 @@ pub(crate) async fn try_bridgehub_from_config(
         .owner_private_key
         .as_deref()
         .context("Bridgehub owner private key not found in config")?;
-    let l1_signer = try_l1_signer_from_config(bridgehub_owner, cfg).await?;
+    let l1_signer = try_l1_signer_from_config(bridgehub_owner.parse()?, cfg).await?;
     let bridgehub_address = try_l2_provider_from_config(cfg)?
         .get_bridgehub_contract()
         .await?;
