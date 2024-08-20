@@ -1,5 +1,5 @@
 use crate::{
-    commands::utils::{try_l1_signer_from_config, try_l2_provider_from_config},
+    utils::{try_l1_signer_from_config, try_l2_provider_from_config},
     config::ZKSyncConfig,
 };
 use eyre::ContextCompat;

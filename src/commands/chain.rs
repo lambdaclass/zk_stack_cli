@@ -1,9 +1,9 @@
 use crate::{
-    commands::utils::{
+    config::ZKSyncConfig,
+    utils::{
         balance::{display_l1_balance, display_l2_balance},
         try_l2_provider_from_config,
     },
-    config::ZKSyncConfig,
 };
 use clap::Subcommand;
 use eyre::ContextCompat;
