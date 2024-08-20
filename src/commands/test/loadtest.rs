@@ -44,14 +44,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     )?;
     let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
 
-    let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
-    let l2_chain_id = l2_provider.get_chainid().await?.as_u64();
-
-    let wallet = wallet_config
-        .private_key
-        .parse::<Wallet<SigningKey>>()?
-        .with_chain_id(l1_chain_id)
-        .with_chain_id(l2_chain_id);
+    let wallet = wallet_config.private_key.parse::<Wallet<SigningKey>>()?;
 
     let zk_wallet = new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
 
