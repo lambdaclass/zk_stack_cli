@@ -23,25 +23,24 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .context("L1 RPC URL missing in config")?,
     )?;
     let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-    let wallet_address = cfg.wallet.context("Wallet config missing")?.address;
     let base_token_address = l2_provider.get_base_token_l1_address().await?;
 
     let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
     let l2_chain_id = l2_provider.get_chainid().await?.as_u64();
 
-    let wallet = cfg
-        .wallet
-        .context("Wallet config missing")?
+    let wallet_config = cfg.wallet.context("Wallet config missing")?;
+    let wallet = wallet_config
         .private_key
         .parse::<Wallet<SigningKey>>()?
-        .with_chain_id(l1_chain_id)
-        .with_chain_id(l2_chain_id);
+        .with_chain_id(l1_chain_id);
 
     let l1_signer = SignerMiddleware::new(l1_provider, wallet.clone());
+    let wallet = wallet.with_chain_id(l2_chain_id);
     let l2_signer = SignerMiddleware::new(l2_provider, wallet);
 
     let zk_wallet = ZKWallet::new(l1_signer, l2_signer);
 
-    erc20_mint(base_token_address, zk_wallet, parse_ether("10")?, false).await?;
+    let ret = erc20_mint(base_token_address, zk_wallet, parse_ether("10")?, true).await?;
+    println!("ret {ret:?}");
     Ok(())
 }

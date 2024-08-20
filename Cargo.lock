@@ -5823,6 +5823,7 @@ dependencies = [
  "clap_complete",
  "dialoguer",
  "dirs",
+ "ethers",
  "eyre",
  "hex",
  "log",
