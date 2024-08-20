@@ -1,6 +1,4 @@
 #![allow(clippy::indexing_slicing)]
-use std::sync::Arc;
-
 use crate::{
     commands::utils::{
         balance::{display_l1_balance, get_erc20_balance_decimals_symbol},
@@ -15,9 +13,8 @@ use spinoff::{spinners, Color, Spinner};
 use zksync_ethers_rs::{
     contract::abigen,
     core::{k256::ecdsa::SigningKey, utils::parse_ether},
-    middleware::SignerMiddleware,
-    providers::{Middleware, Provider},
-    signers::{Signer, Wallet},
+    providers::Provider,
+    signers::Wallet,
     types::{Address, U256},
     zk_wallet::ZKWallet,
     ZKMiddleware,
@@ -52,7 +49,7 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
             .await?;
 
     let address = zk_wallet.l1_address();
-    let future_receipt = erc20_l1_mint(token_address, zk_wallet, parse_ether(&args.amount)?);
+    let future_receipt = erc20_l1_mint(token_address, &zk_wallet, parse_ether(&args.amount)?);
     display_l1_balance(Some(token_address), &l1_provider, address).await?;
     let msg = format!("Minting {} {token_symbol}", args.amount);
     let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
