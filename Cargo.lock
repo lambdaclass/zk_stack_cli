@@ -5792,7 +5792,7 @@ dependencies = [
 [[package]]
 name = "zk_evm_abstractions"
 version = "0.1.0"
-source = "git+https://github.com/matter-labs/era-zk_evm_abstractions.git#32dd320953841aa78579d9da08abbc70bcaed175"
+source = "git+https://github.com/matter-labs/era-zk_evm_abstractions.git#05610cd6230db315e70099b4848b31a31c16b508"
 dependencies = [
  "anyhow",
  "num_enum 0.6.1",
@@ -5839,7 +5839,7 @@ dependencies = [
 [[package]]
 name = "zksync-ethers-rs"
 version = "0.1.1"
-source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#25883f678cccd8308b51801cf56ed2d0da26cec8"
+source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#68a63c96967750caff99752ab72fc568e07fb8f9"
 dependencies = [
  "async-trait",
  "clap",

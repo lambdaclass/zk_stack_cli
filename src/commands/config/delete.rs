@@ -1,6 +1,6 @@
 use crate::commands::config::common::{
-    config_path, config_path_interactive_selection, confirm, CONFIG_DELETE_PROMPT_MSG,
-    CONFIG_SELECTION_TO_DELETE_PROMPT_MSG,
+    config_path, config_path_interactive_selection, confirm,
+    messages::{CONFIG_DELETE_PROMPT_MSG, CONFIG_SELECTION_TO_DELETE_PROMPT_MSG},
 };
 use clap::Args as ClapArgs;
 
