@@ -4,7 +4,7 @@ use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use colored::*;
 use eyre::ContextCompat;
-use std::ops::{Div, Sub};
+use std::ops::Div;
 use zksync_ethers_rs::{
     core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
     providers::{Http, Middleware, Provider},
@@ -216,8 +216,8 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
 }
 
 async fn future_transfer_base_token(
-    from_wallet: &ZKWallet<&Provider<Http>, Wallet<SigningKey>>,
-    to_wallet: &ZKWallet<&Provider<Http>, Wallet<SigningKey>>,
+    from_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
+    to_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
     parsed_amount: U256,
     overrides: Option<L2TxOverrides>,
 ) -> eyre::Result<()> {
@@ -235,8 +235,8 @@ async fn future_transfer_base_token(
 }
 
 async fn future_transfer_base_token_back(
-    from_wallet: &ZKWallet<&Provider<Http>, Wallet<SigningKey>>,
-    to_wallet: &ZKWallet<&Provider<Http>, Wallet<SigningKey>>,
+    from_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
+    to_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
 ) -> eyre::Result<()> {
     display_balance(None, from_wallet, false).await?;
     display_balance(None, to_wallet, false).await?;

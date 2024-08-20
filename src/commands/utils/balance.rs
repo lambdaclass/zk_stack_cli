@@ -99,7 +99,7 @@ pub(crate) async fn display_l2_balance(
 
 pub(crate) async fn display_balance(
     token: Option<Address>,
-    wallet: &ZKWallet<&Provider<Http>, Wallet<SigningKey>>,
+    wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
     from_l1: bool,
 ) -> eyre::Result<()> {
     let l1_provider = wallet.l1_provider();

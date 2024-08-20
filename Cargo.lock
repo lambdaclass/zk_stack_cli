@@ -5903,7 +5903,7 @@ dependencies = [
 [[package]]
 name = "zksync-ethers-rs"
 version = "0.1.1"
-source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#68a63c96967750caff99752ab72fc568e07fb8f9"
+source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#6a81b46aa192a4d8ccf436e5ec7092ff5461a8db"
 dependencies = [
  "async-trait",
  "clap",
