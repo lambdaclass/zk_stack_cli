@@ -4,13 +4,14 @@ use crate::config::ZKSyncConfig;
 use clap::Args as ClapArgs;
 use colored::*;
 use eyre::ContextCompat;
-use std::ops::Sub;
+use std::ops::{Div, Sub};
 use zksync_ethers_rs::{
     core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
     providers::{Http, Middleware, Provider},
     signers::{LocalWallet, Signer, Wallet},
-    types::L2TxOverrides,
-    types::{Eip1559TransactionRequest, U256},
+    types::{
+        transaction::eip2718::TypedTransaction, Eip1559TransactionRequest, L2TxOverrides, U256,
+    },
     wait_for_finalize_withdrawal,
     zk_wallet::ZKWallet,
     ZKMiddleware,
@@ -243,14 +244,23 @@ async fn future_transfer_base_token_back(
         .l2_provider()
         .get_balance(from_wallet.l2_address(), None)
         .await?;
-    let transfer_tx = Eip1559TransactionRequest::new()
-        .from(from_wallet.l2_address())
-        .to(to_wallet.l2_address())
-        .value(balance);
-    let fees = from_wallet.l2_provider().estimate_fee(transfer_tx).await?;
+    let transfer_tx = TypedTransaction::Eip1559(
+        Eip1559TransactionRequest::new()
+            .from(from_wallet.l2_address())
+            .to(to_wallet.l2_address())
+            .value(balance),
+    );
+    let gas_estimate = from_wallet
+        .l2_provider()
+        .estimate_gas(&transfer_tx, None)
+        .await?
+        .div(100_u32)
+        .saturating_mul(U256::from(105_u32)); // 5% of headroom
+    let gas_price = from_wallet.l2_provider().get_gas_price().await?;
+    let gas = gas_estimate.saturating_mul(gas_price);
     let transfer_hash = from_wallet
         .transfer_base_token(
-            balance.sub(fees.max_total_fee()),
+            balance.saturating_sub(gas),
             to_wallet.l1_address(),
             // The nonce is not changed since all the transfers are from different wallets
             None,
