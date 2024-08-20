@@ -130,7 +130,9 @@ pub async fn confirm_config_creation(config_name: String) -> eyre::Result<()> {
     let create_confirmation = confirm(CONFIG_CREATE_PROMPT_MSG)?;
     if create_confirmation {
         Box::pin(async {
-            commands::config::start(commands::config::Command::Create { config_name }).await
+            commands::config::Command::Create { config_name }
+                .run()
+                .await
         })
         .await
     } else {
@@ -187,7 +189,7 @@ pub async fn set_new_config_if_needed(
 ) -> eyre::Result<()> {
     if set_new_config {
         Box::pin(async {
-            commands::config::start(commands::config::Command::Set {
+            commands::config::Command::Set {
                 config_name: Some(
                     config_path
                         .file_stem()
@@ -196,7 +198,8 @@ pub async fn set_new_config_if_needed(
                         .into_string()
                         .map_err(|e| eyre::eyre!("Invalid file name: {:?}", e.into_string()))?,
                 ),
-            })
+            }
+            .run()
             .await
         })
         .await?

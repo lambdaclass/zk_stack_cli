@@ -44,7 +44,7 @@ enum ZKSyncCommand {
 pub async fn start() -> eyre::Result<()> {
     let ZKSyncCLI { command } = ZKSyncCLI::parse();
     if let ZKSyncCommand::Config(cmd) = command {
-        return config::start(cmd).await;
+        return cmd.run().await;
     }
     let cfg = load_selected_config().await?;
     match command {
