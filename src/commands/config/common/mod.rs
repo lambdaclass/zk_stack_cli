@@ -1,5 +1,5 @@
 use crate::{
-    commands::config::create,
+    commands,
     config::{BridgehubConfig, GovernanceConfig, NetworkConfig, WalletConfig, ZKSyncConfig},
 };
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
@@ -128,7 +128,10 @@ pub fn prompt_zksync_config() -> eyre::Result<ZKSyncConfig> {
 pub async fn confirm_config_creation(config_name: String) -> eyre::Result<()> {
     let create_confirmation = confirm(CONFIG_CREATE_PROMPT_MSG)?;
     if create_confirmation {
-        create::run(create::Args { config_name }).await
+        Box::pin(async {
+            commands::config::start(commands::config::Command::Create { config_name }).await
+        })
+        .await
     } else {
         println!("Aborted");
         Ok(())

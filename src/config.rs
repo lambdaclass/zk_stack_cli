@@ -1,4 +1,4 @@
-use crate::commands::config::{common::selected_config_path, set};
+use crate::commands::{self, config::common::selected_config_path};
 use eyre::Context;
 use serde::{Deserialize, Serialize};
 use zksync_ethers_rs::types::Address;
@@ -52,7 +52,7 @@ pub async fn load_selected_config() -> eyre::Result<ZKSyncConfig> {
     let config_path = selected_config_path()?;
     if !config_path.exists() {
         println!("No config set, please select a config to set");
-        set::run(set::Args { config_name: None }).await?;
+        commands::config::start(commands::config::Command::Set { config_name: None }).await?;
     }
     let config = std::fs::read_to_string(config_path).context("Failed to read config file")?;
     toml::from_str(&config).context("Failed to parse config file")
