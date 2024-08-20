@@ -1,14 +1,14 @@
 use crate::{
-    commands::{chain, config, contract, contracts, wallet},
+    commands::{autocomplete, chain, config, contract, contracts, wallet},
     config::load_selected_config,
 };
-use clap::{command, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 
 pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Parser)]
-#[command(name="zk", author, version=VERSION_STRING, about, long_about = None)]
-struct ZKSyncCLI {
+#[command(name="zks", author, version=VERSION_STRING, about, long_about = None)]
+pub struct ZKSyncCLI {
     #[command(subcommand)]
     command: ZKSyncCommand,
 }
@@ -37,6 +37,8 @@ enum ZKSyncCommand {
         visible_alias = "l1"
     )]
     Contracts(contracts::Command),
+    #[clap(subcommand, about = "Generate shell completion scripts.")]
+    Autocomplete(autocomplete::Command),
 }
 
 pub async fn start() -> eyre::Result<()> {
@@ -52,6 +54,7 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::Contract(cmd) => contract::start(cmd, cfg).await?,
         ZKSyncCommand::Contracts(cmd) => contracts::start(cmd, cfg).await?,
         ZKSyncCommand::Config(_) => unreachable!(),
+        ZKSyncCommand::Autocomplete(cmd) => autocomplete::start(cmd)?,
     };
     Ok(())
 }
