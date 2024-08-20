@@ -1,24 +1,30 @@
+use crate::cli::ZKSyncCLI;
+use clap::{CommandFactory, Subcommand, ValueEnum};
+use clap_complete::{aot::Shell, generate};
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, Write};
-
-use clap::{Args as ClapArgs, ValueEnum};
-use clap::{CommandFactory, Subcommand};
-use clap_complete::{aot::Shell, generate};
-
-use crate::cli::ZKSyncCLI;
-
-#[derive(ClapArgs, PartialEq)]
-pub(crate) struct Args {
-    #[clap(short = 's', long = "shell", help = "Default: $SHELL")]
-    pub shell: Option<Shell>,
-}
 
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "Generate autocomplete shell script.")]
-    Generate(Args),
+    Generate {
+        #[clap(short = 's', long = "shell", help = "Default: $SHELL")]
+        shell: Option<Shell>,
+    },
     #[clap(about = "Generate and install autocomplete shell script.")]
-    Install(Args),
+    Install {
+        #[clap(short = 's', long = "shell", help = "Default: $SHELL")]
+        shell: Option<Shell>,
+    },
+}
+
+impl Command {
+    pub fn run(self) -> eyre::Result<()> {
+        match self {
+            Command::Generate { shell } => generate_bash_script(shell),
+            Command::Install { shell } => install_bash_script(shell),
+        }
+    }
 }
 
 fn get_shellrc_path(shell: Shell) -> eyre::Result<String> {
@@ -100,11 +106,4 @@ fn install_bash_script(shell_arg: Option<Shell>) -> eyre::Result<()> {
 
     println!("Autocomplete script installed. To apply changes, restart your shell.");
     Ok(())
-}
-
-pub(crate) fn start(cmd: Command) -> eyre::Result<()> {
-    match cmd {
-        Command::Generate(args) => generate_bash_script(args.shell),
-        Command::Install(args) => install_bash_script(args.shell),
-    }
 }

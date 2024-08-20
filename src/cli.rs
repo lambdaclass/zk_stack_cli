@@ -46,18 +46,18 @@ enum ZKSyncCommand {
 pub async fn start() -> eyre::Result<()> {
     let ZKSyncCLI { command } = ZKSyncCLI::parse();
     if let ZKSyncCommand::Config(cmd) = command {
-        return config::start(cmd).await;
+        return cmd.run().await;
     }
     let cfg = load_selected_config().await?;
     match command {
-        ZKSyncCommand::Wallet(cmd) => wallet::start(cmd, cfg).await?,
-        ZKSyncCommand::Chain(cmd) => chain::start(cmd, cfg).await?,
+        ZKSyncCommand::Wallet(cmd) => cmd.run(cfg).await?,
+        ZKSyncCommand::Chain(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Prover => todo!(),
-        ZKSyncCommand::Contract(cmd) => contract::start(cmd, cfg).await?,
-        ZKSyncCommand::Contracts(cmd) => contracts::start(cmd, cfg).await?,
+        ZKSyncCommand::Contract(cmd) => cmd.run(cfg)?,
+        ZKSyncCommand::Contracts(cmd) => cmd.run(cfg).await?,
+        ZKSyncCommand::Autocomplete(cmd) => cmd.run()?,
         ZKSyncCommand::Config(_) => unreachable!(),
-        ZKSyncCommand::Test(cmd) => test::start(cmd, cfg).await?,
-        ZKSyncCommand::Autocomplete(cmd) => autocomplete::start(cmd)?,
+        ZKSyncCommand::Test(cmd) => cmd.run().await?,
     };
     Ok(())
 }

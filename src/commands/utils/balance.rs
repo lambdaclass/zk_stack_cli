@@ -47,16 +47,16 @@ pub(crate) async fn print_l2_base_token_balance(
 }
 
 pub(crate) async fn display_l1_balance(
+    of: Address,
     args_token_address: Option<Address>,
     l1_provider: &Provider<Http>,
-    wallet_address: Address,
 ) -> eyre::Result<()> {
     if let Some(token_address) = args_token_address {
         let (parsed_balance, _, token_symbol) =
-            get_erc20_balance_decimals_symbol(token_address, wallet_address, l1_provider).await?;
-        println!("[L1] ({wallet_address:?}) Balance: {parsed_balance} {token_symbol}");
+            get_erc20_balance_decimals_symbol(token_address, of, l1_provider).await?;
+        println!("[L1] Balance: {parsed_balance} {token_symbol}");
     } else {
-        let balance = l1_provider.get_balance(wallet_address, None).await?;
+        let balance = l1_provider.get_balance(of, None).await?;
         let parsed_balance = format_ether(balance);
         println!("[L1] ({wallet_address:?}) Balance: {parsed_balance} ETH");
     }
@@ -64,10 +64,10 @@ pub(crate) async fn display_l1_balance(
 }
 
 pub(crate) async fn display_l2_balance(
+    of: Address,
     args_token_address: Option<Address>,
     l1_provider: &Provider<Http>,
     l2_provider: &Provider<Http>,
-    wallet_address: Address,
     base_token_address: Address,
     args_l1: bool,
 ) -> eyre::Result<()> {
@@ -77,22 +77,14 @@ pub(crate) async fn display_l2_balance(
             false => token_address,
         };
         if token_address == base_token_address {
-            print_l2_base_token_balance(
-                base_token_address,
-                wallet_address,
-                l2_provider,
-                l1_provider,
-            )
-            .await?;
+            print_l2_base_token_balance(base_token_address, of, l2_provider, l1_provider).await?;
         } else {
             let (parsed_balance, _, token_symbol) =
-                get_erc20_balance_decimals_symbol(l2_token_address, wallet_address, l2_provider)
-                    .await?;
-            println!("[L2] ({wallet_address:?}) Balance: {parsed_balance} {token_symbol}");
+                get_erc20_balance_decimals_symbol(l2_token_address, of, l2_provider).await?;
+            println!("[L2] Balance: {parsed_balance} {token_symbol}");
         }
     } else {
-        print_l2_base_token_balance(base_token_address, wallet_address, l2_provider, l1_provider)
-            .await?;
+        print_l2_base_token_balance(base_token_address, of, l2_provider, l1_provider).await?;
     }
     Ok(())
 }

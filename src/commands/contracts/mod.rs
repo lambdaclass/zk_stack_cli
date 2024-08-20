@@ -4,9 +4,6 @@ use crate::config::ZKSyncConfig;
 
 pub(crate) mod bridgehub;
 pub(crate) mod governance;
-pub(crate) mod hyperchain;
-pub(crate) mod l1_shared_bridge;
-pub(crate) mod state_transition_manager;
 
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
@@ -27,29 +24,31 @@ pub(crate) enum Command {
         about = "Hyperchain contract interaction commands.",
         visible_alias = "h"
     )]
-    Hyperchain(hyperchain::Command),
+    Hyperchain,
     #[clap(
         subcommand,
         about = "L1SharedBridge contract interaction commands.",
         visible_alias = "l1sb"
     )]
-    L1SharedBridge(l1_shared_bridge::Command),
+    L1SharedBridge,
     #[clap(
         subcommand,
         about = "StateTransitionManager contract interaction commands.",
         visible_alias = "stm"
     )]
-    StateTransitionManager(state_transition_manager::Command),
+    StateTransitionManager,
 }
 
-pub(crate) async fn start(cmd: Command, cfg: ZKSyncConfig) -> eyre::Result<()> {
-    match cmd {
-        Command::Bridgehub(cmd) => bridgehub::start(cmd, cfg).await?,
-        Command::Governance(cmd) => governance::start(cmd, cfg).await?,
-        Command::Hyperchain(_cmd) => todo!(),
-        Command::L1SharedBridge(_cmd) => todo!(),
-        Command::StateTransitionManager(_cmd) => todo!(),
-    };
+impl Command {
+    pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
+        match self {
+            Command::Bridgehub(cmd) => cmd.run(cfg).await?,
+            Command::Governance(cmd) => cmd.run(cfg).await?,
+            Command::Hyperchain => todo!(),
+            Command::L1SharedBridge => todo!(),
+            Command::StateTransitionManager => todo!(),
+        };
 
-    Ok(())
+        Ok(())
+    }
 }
