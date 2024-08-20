@@ -58,7 +58,7 @@ pub(crate) async fn display_l1_balance(
     } else {
         let balance = l1_provider.get_balance(of, None).await?;
         let parsed_balance = format_ether(balance);
-        println!("[L1] ({wallet_address:?}) Balance: {parsed_balance} ETH");
+        println!("[L1] Balance: {parsed_balance} ETH");
     }
     Ok(())
 }
@@ -100,16 +100,16 @@ pub(crate) async fn display_balance(
         let l2_provider = wallet.l2_provider();
         let base_token_address = l2_provider.get_base_token_l1_address().await?;
         display_l2_balance(
-            token,
-            l1_provider,
-            l2_provider,
             wallet_address,
+            token,
+            &l1_provider,
+            &l2_provider,
             base_token_address,
             false,
         )
         .await?;
     } else {
-        display_l1_balance(token, l1_provider, wallet_address).await?;
+        display_l1_balance(wallet_address, token, &l1_provider).await?;
     };
     Ok(())
 }
