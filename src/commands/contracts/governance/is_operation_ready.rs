@@ -1,9 +1,8 @@
-use clap::Args as ClapArgs;
+use clap::Parser;
 use zksync_ethers_rs::{abi::Hash, contracts::governance::Governance, providers::Middleware};
 
-#[derive(ClapArgs, PartialEq)]
+#[derive(Parser, PartialEq)]
 pub(crate) struct Args {
-    #[clap(short = 'o', long)]
     pub operation_id: Hash,
 }
 

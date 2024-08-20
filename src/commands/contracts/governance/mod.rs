@@ -1,8 +1,11 @@
-use std::str::FromStr;
-
 use clap::Subcommand;
 use eyre::{Context, ContextCompat};
-use zksync_ethers_rs::contracts::governance::{Call, Operation};
+use std::str::FromStr;
+use zksync_ethers_rs::{
+    contracts::governance::{Call, Governance, Operation},
+    providers::Middleware,
+    types::{Bytes, U256},
+};
 
 use crate::{commands::utils::try_governance_from_config, config::ZKSyncConfig};
 
@@ -46,9 +49,15 @@ pub(crate) enum Command {
     Execute(execute::Args),
     #[clap(about = "Get the hash of an operation.")]
     HashOperation(hash_operation::Args),
-    #[clap(about = "Changes the minimum timelock duration for future operations.")]
+    #[clap(
+        about = "Changes the minimum timelock duration for future operations.",
+        visible_alias = "ud"
+    )]
     UpdateMinDelay(update_min_delay::Args),
-    #[clap(about = "Updates the address of the security council.")]
+    #[clap(
+        about = "Updates the address of the security council.",
+        visible_alias = "usc"
+    )]
     UpdateSecurityCouncil(update_security_council::Args),
 }
 
@@ -104,4 +113,110 @@ pub(crate) fn parse_operation(raw_operation: &str) -> eyre::Result<Operation> {
         salt,
     };
     Ok(parsed_operation)
+}
+
+pub(crate) async fn run_upgrade(
+    calldata: Bytes,
+    is_shadow_upgrade: bool,
+    execute_upgrade: bool,
+    delay: U256,
+    explorer_url: bool,
+    governance: Governance<impl Middleware + 'static>,
+    cfg: ZKSyncConfig,
+) -> eyre::Result<()> {
+    let call = Call {
+        target: governance.address(),
+        value: U256::zero(),
+        data: calldata,
+    };
+    let operation = Operation {
+        calls: vec![call],
+        predecessor: [0_u8; 32],
+        salt: [0_u8; 32],
+    };
+    let operation_hash = governance.hash_operation(operation.clone()).call().await?;
+
+    // Propose the new security council update
+    if is_shadow_upgrade {
+        propose_shadow_upgrade(
+            governance.clone(),
+            operation_hash,
+            delay,
+            explorer_url,
+            cfg.clone(),
+        )
+        .await?;
+    } else {
+        propose_transparent_upgrade(
+            governance.clone(),
+            operation.clone(),
+            delay,
+            explorer_url,
+            cfg.clone(),
+        )
+        .await?;
+    }
+
+    // Execute the new security council update if wanted
+    if execute_upgrade {
+        execute::run(
+            execute::Args {
+                operation,
+                // TODO: make instant execution an option. This would require
+                // the current security council private key to be passed in, as
+                // the current security council is the only one that can execute
+                // the operation instantly.
+                instant: false,
+                explorer_url,
+            },
+            governance,
+            cfg,
+        )
+        .await?
+    }
+    Ok(())
+}
+
+async fn propose_shadow_upgrade(
+    governance: Governance<impl Middleware + 'static>,
+    operation_hash: [u8; 32],
+    delay: U256,
+    explorer_url: bool,
+    cfg: ZKSyncConfig,
+) -> eyre::Result<()> {
+    propose::run(
+        propose::Args {
+            shadow: true,
+            operation_id: Some(operation_hash.into()),
+            delay,
+            transparent: false,
+            operation: None,
+            explorer_url,
+        },
+        governance,
+        cfg,
+    )
+    .await
+}
+
+async fn propose_transparent_upgrade(
+    governance: Governance<impl Middleware + 'static>,
+    operation: Operation,
+    delay: U256,
+    explorer_url: bool,
+    cfg: ZKSyncConfig,
+) -> eyre::Result<()> {
+    propose::run(
+        propose::Args {
+            shadow: false,
+            operation_id: None,
+            delay,
+            transparent: true,
+            operation: Some(operation),
+            explorer_url,
+        },
+        governance,
+        cfg,
+    )
+    .await
 }

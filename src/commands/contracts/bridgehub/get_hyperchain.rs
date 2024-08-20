@@ -1,13 +1,13 @@
-use clap::Args as ClapArgs;
+use clap::Parser;
 use zksync_ethers_rs::{
     contracts::bridgehub::Bridgehub,
     providers::Middleware,
     types::{Address, U256},
 };
 
-#[derive(ClapArgs, PartialEq)]
+#[derive(Parser, PartialEq)]
 pub(crate) struct Args {
-    #[clap(short, long, value_parser = U256::from_dec_str)]
+    #[clap(value_parser = U256::from_dec_str)]
     pub chain_id: U256,
 }
 

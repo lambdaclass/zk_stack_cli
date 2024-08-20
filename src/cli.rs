@@ -33,7 +33,8 @@ enum ZKSyncCommand {
     Config(config::Command),
     #[clap(
         subcommand,
-        about = "L1 Contracts interaction commands. For the chain owner."
+        about = "L1 Contracts interaction commands. For the chain owner.",
+        visible_alias = "l1"
     )]
     Contracts(contracts::Command),
 }

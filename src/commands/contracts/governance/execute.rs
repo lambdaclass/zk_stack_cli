@@ -1,18 +1,18 @@
 use crate::{commands::contracts::governance::parse_operation, config::ZKSyncConfig};
-use clap::Args as ClapArgs;
+use clap::Parser;
 use eyre::ContextCompat;
 use zksync_ethers_rs::{
     contracts::governance::{Governance, Operation},
     providers::Middleware,
 };
 
-#[derive(ClapArgs, PartialEq)]
+#[derive(Parser, PartialEq)]
 pub(crate) struct Args {
-    #[clap(long, conflicts_with_all = &["shadow", "operation_id"], value_parser = parse_operation)]
+    #[clap(value_parser = parse_operation)]
     pub operation: Operation,
-    #[clap(short = 'i', long, required = false)]
+    #[arg(short = 'i', long, required = false)]
     pub instant: bool,
-    #[clap(long, required = false)]
+    #[arg(short = 'e', long, required = false)]
     pub explorer_url: bool,
 }
 

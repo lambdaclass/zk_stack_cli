@@ -10,19 +10,32 @@ pub(crate) mod state_transition_manager;
 
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
-    #[clap(about = "Get the StateTransitionManager contract address of a chain.")]
+    #[clap(
+        about = "Get the StateTransitionManager contract address of a chain.",
+        visible_alias = "stm"
+    )]
     StateTransitionManager(state_transition_manager::Args),
-    #[clap(about = "Get the base token contract of a chain.")]
+    #[clap(
+        about = "Get the base token contract of a chain.",
+        visible_alias = "bt"
+    )]
     BaseToken(base_token::Args),
     #[clap(about = "Get the bridge contract admin address.")]
     Admin,
     #[clap(
-        about = "Set a new admin of the Bridgehub. Only the Bridgehub owner or the current admin can do this."
+        about = "Set a new admin of the Bridgehub. Only the Bridgehub owner or the current admin can do this.",
+        visible_alias = "spa"
     )]
     SetPendingAdmin(set_pending_admin::Args),
-    #[clap(about = "Accept the admin of the Bridgehub. Only the pending admin can do this.")]
+    #[clap(
+        about = "Accept the admin of the Bridgehub. Only the pending admin can do this.",
+        visible_alias = "aa"
+    )]
     AcceptAdmin(accept_admin::Args),
-    #[clap(about = "Get the Hyperchain contract address of a chain.")]
+    #[clap(
+        about = "Get the Hyperchain contract address of a chain.",
+        visible_aliases = ["h", "hyperchain"]
+    )]
     GetHyperchain(get_hyperchain::Args),
 }
 

@@ -1,15 +1,12 @@
 use crate::{commands::utils::try_l1_signer_from_config, config::ZKSyncConfig};
-use clap::Args as ClapArgs;
+use clap::Parser;
 use eyre::ContextCompat;
 use std::sync::Arc;
 use zksync_ethers_rs::{contracts::bridgehub::Bridgehub, providers::Middleware, types::Address};
 
-#[derive(ClapArgs, PartialEq)]
+#[derive(Parser, PartialEq)]
 pub(crate) struct Args {
-    #[clap(short, long = "Address")]
     pub new_pending_admin: Address,
-    #[clap(short, long)]
-    pub pending_admin_private_key: String,
 }
 
 pub(crate) async fn run(
