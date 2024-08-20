@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    commands::utils::{try_bridgehub_from_config, try_l1_signer_from_config},
+    commands::utils::{contracts::try_bridgehub_from_config, try_l1_signer_from_config},
     config::ZKSyncConfig,
 };
 use clap::Subcommand;

@@ -1,4 +1,4 @@
-use crate::commands::{self, config::common::selected_config_path};
+use crate::commands::{self, utils::config::selected_config_path};
 use eyre::Context;
 use serde::{Deserialize, Serialize};
 use zksync_ethers_rs::types::Address;
