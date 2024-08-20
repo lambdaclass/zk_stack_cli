@@ -110,7 +110,7 @@ async fn set_new_config_if_needed(set_new_config: bool, config_path: PathBuf) ->
                     .context("There's no file name")?
                     .to_os_string()
                     .into_string()
-                    .map_err(|_| eyre::eyre!("Invalid file name"))?,
+                    .map_err(|error| eyre::eyre!("Invalid file name: {error:?}"))?,
             ),
         })
         .await?;
