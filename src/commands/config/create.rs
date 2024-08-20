@@ -1,5 +1,5 @@
 use crate::commands::config::common::{
-    config_path, confirm, prompt_zksync_config, CONFIG_OVERRIDE_PROMPT_MSG,
+    config_path, confirm, messages::CONFIG_OVERRIDE_PROMPT_MSG, prompt_zksync_config,
 };
 use clap::Args as ClapArgs;
 

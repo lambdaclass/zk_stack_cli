@@ -1,6 +1,6 @@
 use crate::commands::config::common::{
     config_path, config_path_interactive_selection, confirm_config_creation,
-    CONFIG_TO_DISPLAY_PROMPT_MSG,
+    messages::CONFIG_TO_DISPLAY_PROMPT_MSG,
 };
 use clap::Args as ClapArgs;
 

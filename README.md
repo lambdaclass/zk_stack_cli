@@ -47,12 +47,13 @@ Running `zks` outputs the following:
 Usage: zks <COMMAND>
 
 Commands:
-  wallet    Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks.
-  chain     Chain interaction commands. These make use of the JSON-RPC API.
-  prover    Prover commands. TODO.
-  contract  Contract interaction commands.
-  config    CLI config commands.
-  help      Print this message or the help of the given subcommand(s)
+  wallet     Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks.
+  chain      Chain interaction commands. These make use of the JSON-RPC API.
+  prover     Prover commands. TODO.
+  contract   Contract interaction commands.
+  config     CLI config commands.
+  contracts  L1 Contracts interaction commands. For the chain owner. [aliases: l1]
+  help       Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
@@ -262,6 +263,82 @@ Commands:
 Options:
   -h, --help  Print help
 ```
+
+### Contracts
+
+```
+L1 Contracts interaction commands. For the chain owner.
+
+Usage: zks contracts <COMMAND>
+
+Commands:
+  bridgehub                 Bridgehub contract interaction commands. [aliases: bh]
+  governance                Governance contract interaction commands. [aliases: g]
+  hyperchain                Hyperchain contract interaction commands. [aliases: h]
+  l1-shared-bridge          L1SharedBridge contract interaction commands. [aliases: l1sb]
+  state-transition-manager  StateTransitionManager contract interaction commands. [aliases: stm]
+  help                      Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+#### Bridgehub
+
+```
+Bridgehub contract interaction commands.
+
+Usage: zks contracts bridgehub <COMMAND>
+
+Commands:
+  state-transition-manager  Get the StateTransitionManager contract address of a chain. [aliases: stm]
+  base-token                Get the base token contract of a chain. [aliases: bt]
+  admin                     Get the bridge contract admin address.
+  set-pending-admin         Set a new admin of the Bridgehub. Only the Bridgehub owner or the current admin can do this. [aliases: spa]
+  accept-admin              Accept the admin of the Bridgehub. Only the pending admin can do this. [aliases: aa]
+  get-hyperchain            Get the Hyperchain contract address of a chain. [aliases: h, hyperchain]
+  help                      Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+#### Governance
+
+```
+Governance contract interaction commands.
+
+Usage: zks contracts governance <COMMAND>
+
+Commands:
+  is-operation             Returns whether an id corresponds to a registered operation. This includes Waiting, Ready, and Done operations.
+  is-operation-pending     Returns whether an operation is pending or not. Note that a "pending" operation may also be "ready".
+  is-operation-ready       Returns whether an operation is ready for execution. Note that a "ready" operation is also "pending".
+  is-operation-done        Returns whether an operation is done or not.
+  operation-state          Returns the state of an operation.
+  propose-upgrade          Propose an upgrade, this could be fully transparent providing upgrade data on-chain, or a "shadow" upgrade not publishing data on-chain. Only the current owner can propose a shadow upgrade.
+  cancel                   Cancel a scheduled operation.
+  execute                  Execute a scheduled operation.
+  hash-operation           Get the hash of an operation.
+  update-min-delay         Changes the minimum timelock duration for future operations. [aliases: ud]
+  update-security-council  Updates the address of the security council. [aliases: usc]
+  help                     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+#### Hyperchain
+
+TODO
+
+#### L1 Shared Bridge
+
+TODO
+
+#### State Transition Manager
+
+TODO
 
 ### Prover
 

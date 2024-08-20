@@ -1,20 +1,27 @@
-use std::path::PathBuf;
-
 use crate::{
     commands::config::{
         common::{
-            config_path, config_path_interactive_selection, confirm_config_creation, prompt,
-            selected_config_path, ADDRESS_PROMPT_MSG, CONFIG_EDIT_PROMPT_MSG, DEFAULT_ADDRESS,
-            DEFAULT_L1_EXPLORER_URL, DEFAULT_L1_RPC_URL, DEFAULT_L2_EXPLORER_URL,
-            DEFAULT_PRIVATE_KEY, L1_EXPLORER_URL_PROMPT_MSG, L1_RPC_URL_PROMPT_MSG,
-            L2_EXPLORER_URL_PROMPT_MSG, L2_RPC_URL_PROMPT_MSG, PRIVATE_KEY_PROMPT_MSG,
+            config_path, config_path_interactive_selection, confirm_config_creation,
+            default_values::{
+                DEFAULT_ADDRESS, DEFAULT_L1_EXPLORER_URL, DEFAULT_L1_RPC_URL,
+                DEFAULT_L2_EXPLORER_URL, DEFAULT_PRIVATE_KEY,
+            },
+            messages::{
+                ADDRESS_PROMPT_MSG, CONFIG_EDIT_PROMPT_MSG,
+                CONTRACTS_BRIDGEHUB_ADMIN_PRIVATE_KEY_PROMPT_MSG,
+                CONTRACTS_BRIDGEHUB_OWNER_PRIVATE_KEY_PROMPT_MSG, CONTRACTS_GOVERNANCE_PROMPT_MSG,
+                L1_EXPLORER_URL_PROMPT_MSG, L1_RPC_URL_PROMPT_MSG, L2_EXPLORER_URL_PROMPT_MSG,
+                L2_RPC_URL_PROMPT_MSG, PRIVATE_KEY_PROMPT_MSG,
+            },
+            prompt, selected_config_path,
         },
         set,
     },
-    config::{NetworkConfig, WalletConfig, ZKSyncConfig},
+    config::{BridgehubConfig, GovernanceConfig, NetworkConfig, WalletConfig, ZKSyncConfig},
 };
 use clap::Args as ClapArgs;
 use eyre::ContextCompat;
+use std::path::PathBuf;
 use zksync_ethers_rs::types::Address;
 
 #[derive(ClapArgs, PartialEq)]
@@ -33,6 +40,14 @@ pub(crate) struct Args {
     pub private_key: Option<String>,
     #[clap(long, requires = "config_name", required = false)]
     pub address: Option<Address>,
+    #[clap(long, requires = "config_name", required = false)]
+    pub governance: Option<Address>,
+    #[clap(long, requires = "config_name", required = false)]
+    pub governance_owner: Option<String>,
+    #[clap(long, requires = "config_name", required = false)]
+    pub bridgehub_admin: Option<String>,
+    #[clap(long, requires = "config_name", required = false)]
+    pub bridgehub_owner: Option<String>,
 }
 
 pub(crate) async fn run(args: Args) -> eyre::Result<()> {
@@ -110,7 +125,7 @@ async fn set_new_config_if_needed(set_new_config: bool, config_path: PathBuf) ->
                     .context("There's no file name")?
                     .to_os_string()
                     .into_string()
-                    .map_err(|error| eyre::eyre!("Invalid file name: {error:?}"))?,
+                    .map_err(|e| eyre::eyre!("Invalid file name: {:?}", e.into_string()))?,
             ),
         })
         .await?;
@@ -165,6 +180,34 @@ fn edit_existing_config_interactively(existing_config: ZKSyncConfig) -> eyre::Re
                     .unwrap_or(DEFAULT_ADDRESS),
             )?,
         }),
+        governance: GovernanceConfig {
+            address: prompt(
+                CONTRACTS_GOVERNANCE_PROMPT_MSG,
+                existing_config.governance.address,
+            )?,
+            owner_private_key: prompt(
+                DEFAULT_PRIVATE_KEY,
+                existing_config.governance.owner_private_key,
+            )?,
+        },
+        bridgehub: BridgehubConfig {
+            admin_private_key: prompt(
+                CONTRACTS_BRIDGEHUB_ADMIN_PRIVATE_KEY_PROMPT_MSG,
+                existing_config
+                    .bridgehub
+                    .admin_private_key
+                    .unwrap_or(DEFAULT_PRIVATE_KEY.into()),
+            )
+            .ok(),
+            owner_private_key: prompt(
+                CONTRACTS_BRIDGEHUB_OWNER_PRIVATE_KEY_PROMPT_MSG,
+                existing_config
+                    .bridgehub
+                    .owner_private_key
+                    .unwrap_or(DEFAULT_PRIVATE_KEY.into()),
+            )
+            .ok(),
+        },
     };
     Ok(config)
 }
@@ -194,6 +237,22 @@ fn edit_existing_config_non_interactively(
                     .unwrap_or(existing_wallet_config.private_key),
                 address: args.address.unwrap_or(existing_wallet_config.address),
             }),
+        governance: GovernanceConfig {
+            address: args
+                .governance
+                .unwrap_or(existing_config.governance.address),
+            owner_private_key: args
+                .governance_owner
+                .unwrap_or(existing_config.governance.owner_private_key),
+        },
+        bridgehub: BridgehubConfig {
+            admin_private_key: args
+                .bridgehub_admin
+                .or(existing_config.bridgehub.admin_private_key),
+            owner_private_key: args
+                .bridgehub_owner
+                .or(existing_config.bridgehub.owner_private_key),
+        },
     };
     Ok(config)
 }

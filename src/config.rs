@@ -3,13 +3,15 @@ use eyre::Context;
 use serde::{Deserialize, Serialize};
 use zksync_ethers_rs::types::Address;
 
-#[derive(Deserialize, Serialize, PartialEq)]
+#[derive(Deserialize, Serialize, PartialEq, Clone)]
 pub struct ZKSyncConfig {
     pub network: NetworkConfig,
     pub wallet: Option<WalletConfig>,
+    pub governance: GovernanceConfig,
+    pub bridgehub: BridgehubConfig,
 }
 
-#[derive(Deserialize, Serialize, PartialEq)]
+#[derive(Deserialize, Serialize, PartialEq, Clone)]
 pub struct NetworkConfig {
     pub l1_rpc_url: Option<String>,
     pub l1_explorer_url: Option<String>,
@@ -17,10 +19,22 @@ pub struct NetworkConfig {
     pub l2_explorer_url: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, PartialEq)]
+#[derive(Deserialize, Serialize, PartialEq, Clone)]
 pub struct WalletConfig {
     pub address: Address,
     pub private_key: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Clone)]
+pub struct GovernanceConfig {
+    pub address: Address,
+    pub owner_private_key: String,
+}
+
+#[derive(Deserialize, Serialize, PartialEq, Clone)]
+pub struct BridgehubConfig {
+    pub admin_private_key: Option<String>,
+    pub owner_private_key: Option<String>,
 }
 
 pub async fn try_load_selected_config() -> eyre::Result<Option<ZKSyncConfig>> {
