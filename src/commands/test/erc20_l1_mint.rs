@@ -7,19 +7,17 @@ use crate::{
     config::ZKSyncConfig,
 };
 use clap::Args as ClapArgs;
-use ethers::{providers::Http, types::TransactionReceipt};
 use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
 use zksync_ethers_rs::{
-    contract::abigen,
+    contracts::erc20::MINT_IERC20,
     core::{k256::ecdsa::SigningKey, utils::parse_ether},
-    providers::Provider,
+    providers::{Http, Provider},
     signers::Wallet,
-    types::{Address, U256},
+    types::{Address, TransactionReceipt, U256},
     zk_wallet::ZKWallet,
     ZKMiddleware,
 };
-
 #[derive(ClapArgs, PartialEq)]
 pub(crate) struct Args {
     #[clap(long = "token")]
@@ -59,11 +57,6 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     display_l1_balance(Some(token_address), &l1_provider, address).await?;
     Ok(())
 }
-
-abigen!(
-    MINT_IERC20,
-    "[function mint(address _to, uint256 _amount) public returns (bool)]"
-);
 
 pub(crate) async fn erc20_l1_mint(
     erc20_token_address: Address,

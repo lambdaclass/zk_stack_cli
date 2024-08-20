@@ -5885,7 +5885,6 @@ dependencies = [
  "colored",
  "dialoguer",
  "dirs",
- "ethers",
  "eyre",
  "hex",
  "log",
@@ -5903,7 +5902,7 @@ dependencies = [
 [[package]]
 name = "zksync-ethers-rs"
 version = "0.1.1"
-source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#6a81b46aa192a4d8ccf436e5ec7092ff5461a8db"
+source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#8a9de6b8f15118b9a37e3b10ba0170bed31b59df"
 dependencies = [
  "async-trait",
  "clap",
