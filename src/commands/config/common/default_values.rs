@@ -5,7 +5,7 @@ pub const DEFAULT_L2_RPC_URL: &str = "http://localhost:3050";
 pub const DEFAULT_L2_EXPLORER_URL: &str = "http://localhost:3010";
 pub const DEFAULT_L1_EXPLORER_URL: &str = "";
 pub const DEFAULT_PRIVATE_KEY: &str =
-    "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
+    "0x850683b40d4a740aa6e745f889a6fdc8327be76e122f5aba645a5b02d0248db8";
 // 0x36615Cf349d7F6344891B1e7CA7C72883F5dc049
 pub const DEFAULT_ADDRESS: H160 = H160([
     0x36, 0x61, 0x5C, 0xf3, 0x49, 0xd7, 0xf6, 0x34, 0x48, 0x91, 0xb1, 0xe7, 0xca, 0x7c, 0x72, 0x88,
