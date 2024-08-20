@@ -87,17 +87,17 @@ impl Command {
 
                 if l2 || !l1 {
                     display_l2_balance(
+                        wallet_config.address,
                         token_address,
                         &l1_provider,
                         &l2_provider,
-                        wallet_config.address,
                         base_token_address,
                         l1,
                     )
                     .await?;
                 };
                 if l1 {
-                    display_l1_balance(token_address, &l1_provider, wallet_config.address).await?;
+                    display_l1_balance(wallet_config.address, token_address, &l1_provider).await?;
                 };
             }
             Command::Deposit {

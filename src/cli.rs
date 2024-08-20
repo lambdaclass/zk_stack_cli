@@ -49,7 +49,7 @@ pub async fn start() -> eyre::Result<()> {
     let cfg = load_selected_config().await?;
     match command {
         ZKSyncCommand::Wallet(cmd) => cmd.run(cfg).await?,
-        ZKSyncCommand::Chain(cmd) => chain::start(cmd, cfg).await?,
+        ZKSyncCommand::Chain(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Prover => todo!(),
         ZKSyncCommand::Contract(cmd) => cmd.run(cfg)?,
         ZKSyncCommand::Contracts(cmd) => contracts::start(cmd, cfg).await?,
