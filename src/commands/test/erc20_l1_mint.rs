@@ -1,5 +1,11 @@
+#![allow(clippy::indexing_slicing)]
+use std::sync::Arc;
+
 use crate::{
-    commands::utils::balance::{display_l1_balance, get_erc20_balance_decimals_symbol},
+    commands::utils::{
+        balance::{display_l1_balance, get_erc20_balance_decimals_symbol},
+        wallet::new_zkwallet,
+    },
     config::ZKSyncConfig,
 };
 use clap::Args as ClapArgs;
@@ -36,26 +42,14 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
 
     let token_address = args.token_address.unwrap_or(base_token_address);
 
-    let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
-    let l2_chain_id = l2_provider.get_chainid().await?.as_u64();
-
     let wallet_config = cfg.wallet.context("Wallet config missing")?;
-    let wallet = wallet_config
-        .private_key
-        .parse::<Wallet<SigningKey>>()?
-        .with_chain_id(l1_chain_id);
+    let wallet = wallet_config.private_key.parse::<Wallet<SigningKey>>()?;
 
-    let l1_signer = SignerMiddleware::new(l1_provider.clone(), wallet.clone());
-    let wallet = wallet.with_chain_id(l2_chain_id);
-    let l2_signer = SignerMiddleware::new(l2_provider, wallet);
-    let zk_wallet = ZKWallet::new(l1_signer, l2_signer);
+    let zk_wallet = new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
 
-    let (_, _, token_symbol) = get_erc20_balance_decimals_symbol(
-        token_address,
-        zk_wallet.l1_address(),
-        &zk_wallet.l1_provider(),
-    )
-    .await?;
+    let (_, _, token_symbol) =
+        get_erc20_balance_decimals_symbol(token_address, zk_wallet.l1_address(), &l1_provider)
+            .await?;
 
     let address = zk_wallet.l1_address();
     let future_receipt = erc20_l1_mint(token_address, zk_wallet, parse_ether(&args.amount)?);
@@ -68,14 +62,15 @@ pub(crate) async fn run(args: Args, cfg: ZKSyncConfig) -> eyre::Result<()> {
     display_l1_balance(Some(token_address), &l1_provider, address).await?;
     Ok(())
 }
+
 abigen!(
     MINT_IERC20,
-    r"[function mint(address _to, uint256 _amount) public returns (bool)]"
+    "[function mint(address _to, uint256 _amount) public returns (bool)]"
 );
 
 pub(crate) async fn erc20_l1_mint(
     erc20_token_address: Address,
-    wallet: ZKWallet<Provider<Http>, Wallet<SigningKey>>,
+    wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
     amount: U256,
 ) -> eyre::Result<TransactionReceipt> {
     let erc20_contract = MINT_IERC20::new(erc20_token_address, wallet.l1_signer());
