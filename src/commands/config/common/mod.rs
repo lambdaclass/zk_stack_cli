@@ -1,39 +1,25 @@
 use crate::{
     commands::config::create,
-    config::{NetworkConfig, WalletConfig, ZKSyncConfig},
+    config::{BridgehubConfig, GovernanceConfig, NetworkConfig, WalletConfig, ZKSyncConfig},
 };
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use eyre::ContextCompat;
 use std::{path::PathBuf, str::FromStr};
-use zksync_ethers_rs::types::H160;
+
+pub(crate) mod default_values;
+use default_values::{
+    DEFAULT_ADDRESS, DEFAULT_CONTRACT_ADDRESS, DEFAULT_L1_EXPLORER_URL, DEFAULT_L1_RPC_URL,
+    DEFAULT_L2_EXPLORER_URL, DEFAULT_L2_RPC_URL, DEFAULT_PRIVATE_KEY,
+};
+pub(crate) mod messages;
+use messages::{
+    ADDRESS_PROMPT_MSG, CONFIG_CREATE_PROMPT_MSG, CONTRACTS_BRIDGEHUB_ADMIN_PRIVATE_KEY_PROMPT_MSG,
+    CONTRACTS_BRIDGEHUB_OWNER_PRIVATE_KEY_PROMPT_MSG, CONTRACTS_GOVERNANCE_PRIVATE_KEY_PROMPT_MSG,
+    CONTRACTS_GOVERNANCE_PROMPT_MSG, L1_EXPLORER_URL_PROMPT_MSG, L1_RPC_URL_PROMPT_MSG,
+    L2_EXPLORER_URL_PROMPT_MSG, L2_RPC_URL_PROMPT_MSG, PRIVATE_KEY_PROMPT_MSG,
+};
 
 pub const SELECTED_CONFIG_FILE_NAME: &str = ".selected";
-
-pub const DEFAULT_L1_RPC_URL: &str = "http://localhost:8545";
-pub const DEFAULT_L2_RPC_URL: &str = "http://localhost:3050";
-pub const DEFAULT_L2_EXPLORER_URL: &str = "http://localhost:3010";
-pub const DEFAULT_L1_EXPLORER_URL: &str = "";
-pub const DEFAULT_PRIVATE_KEY: &str =
-    "0x7726827caac94a7f9e1b160f7ea819f172f7b6f9d2a97f992c38edeab82d4110";
-// 0x36615Cf349d7F6344891B1e7CA7C72883F5dc049
-pub const DEFAULT_ADDRESS: H160 = H160([
-    0x36, 0x61, 0x5C, 0xf3, 0x49, 0xd7, 0xf6, 0x34, 0x48, 0x91, 0xb1, 0xe7, 0xca, 0x7c, 0x72, 0x88,
-    0x3f, 0x5d, 0xc0, 0x48,
-]);
-
-pub const CONFIG_OVERRIDE_PROMPT_MSG: &str = "Config already exists. Do you want to overwrite it?";
-pub const CONFIG_CREATE_PROMPT_MSG: &str = "This config does not exist. Do you want to create it?";
-pub const CONFIG_EDIT_PROMPT_MSG: &str = "What config do you want to edit?";
-pub const CONFIG_SET_PROMPT_MSG: &str = "What config do you want to set?";
-pub const CONFIG_DELETE_PROMPT_MSG: &str = "Are you sure you want to delete this config?";
-pub const CONFIG_SELECTION_TO_DELETE_PROMPT_MSG: &str = "What config do you want to delete?";
-pub const CONFIG_TO_DISPLAY_PROMPT_MSG: &str = "What config do you want to see?";
-pub const L1_RPC_URL_PROMPT_MSG: &str = "L1 RPC URL";
-pub const L2_RPC_URL_PROMPT_MSG: &str = "L2 RPC URL";
-pub const L2_EXPLORER_URL_PROMPT_MSG: &str = "L2 Explorer URL";
-pub const L1_EXPLORER_URL_PROMPT_MSG: &str = "L1 Explorer URL";
-pub const PRIVATE_KEY_PROMPT_MSG: &str = "Private key";
-pub const ADDRESS_PROMPT_MSG: &str = "Address";
 
 pub fn configs_dir_path() -> eyre::Result<std::path::PathBuf> {
     let configs_dir_path = dirs::config_dir()
@@ -116,6 +102,25 @@ pub fn prompt_zksync_config() -> eyre::Result<ZKSyncConfig> {
             private_key: prompt(PRIVATE_KEY_PROMPT_MSG, DEFAULT_PRIVATE_KEY.into())?,
             address: prompt(ADDRESS_PROMPT_MSG, DEFAULT_ADDRESS)?,
         }),
+        governance: GovernanceConfig {
+            address: prompt(CONTRACTS_GOVERNANCE_PROMPT_MSG, DEFAULT_CONTRACT_ADDRESS)?,
+            owner_private_key: prompt(
+                CONTRACTS_GOVERNANCE_PRIVATE_KEY_PROMPT_MSG,
+                DEFAULT_PRIVATE_KEY.into(),
+            )?,
+        },
+        bridgehub: BridgehubConfig {
+            admin_private_key: prompt(
+                CONTRACTS_BRIDGEHUB_ADMIN_PRIVATE_KEY_PROMPT_MSG,
+                DEFAULT_PRIVATE_KEY.into(),
+            )
+            .ok(),
+            owner_private_key: prompt(
+                CONTRACTS_BRIDGEHUB_OWNER_PRIVATE_KEY_PROMPT_MSG,
+                DEFAULT_PRIVATE_KEY.into(),
+            )
+            .ok(),
+        },
     };
     Ok(prompted_config)
 }
