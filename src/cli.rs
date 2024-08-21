@@ -37,7 +37,7 @@ enum ZKSyncCommand {
         visible_alias = "l1"
     )]
     Contracts(contracts::Command),
-    #[clap(subcommand, about = "Test commands, LoadTests, Benchmarks, etc.")]
+    #[clap(subcommand, about = "Test commands, LoadTests, Benchmarks, etc.", visible_alias = "t")]
     Test(test::Command),
     #[clap(subcommand, about = "Generate shell completion scripts.")]
     Autocomplete(autocomplete::Command),
