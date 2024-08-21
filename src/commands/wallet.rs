@@ -3,7 +3,7 @@ use crate::utils::balance::display_balance;
 use crate::utils::wallet::get_wallet_l1_l2_providers;
 use clap::Subcommand;
 use eyre::ContextCompat;
-use spinoff::{spinners, Color, Spinner};
+use spinoff::{spinner, spinners, Color, Spinner};
 use zksync_ethers_rs::{
     abi::Hash, core::utils::parse_ether, types::Address, wait_for_finalize_withdrawal, ZKMiddleware,
 };
@@ -83,16 +83,21 @@ impl Command {
             .clone()
             .network
             .l1_explorer_url
+            .filter(|url| !url.is_empty())
             .unwrap_or("https://sepolia.etherscan.io".to_owned());
 
         let l2_explorer_url = cfg
             .clone()
             .network
             .l2_explorer_url
+            .filter(|url| !url.is_empty())
             .unwrap_or("http://localhost:3010".to_owned());
 
         let (zk_wallet, _l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg)?;
         let base_token_address = l2_provider.get_base_token_l1_address().await?;
+
+        let send_frames = spinner!(["💸⮕⮕", " 💸⮕", "  💸"], 240);
+        let recv_frames = spinner!(["  💸", " 💸⬅", "💸⬅⬅"], 240);
 
         match self {
             Command::Balance {
@@ -108,6 +113,8 @@ impl Command {
                 // Assuming all tokens have 18 decimals
                 // TODO revise this
                 let parsed_amount = parse_ether(&amount)?;
+
+                let mut spinner: Spinner = Spinner::new(send_frames, "Depositing", Color::Cyan);
                 let deposit_hash = match (to, token_address) {
                     (None, None) => zk_wallet.deposit_base_token(parsed_amount).await?,
                     (None, Some(token)) => zk_wallet.deposit_erc20(parsed_amount, token).await?,
@@ -117,21 +124,23 @@ impl Command {
                     }
                 };
 
-                println!("Deposit: {l1_explorer_url}/tx/{deposit_hash:?}");
+                let msg = format!("Success: {l1_explorer_url}/tx/{deposit_hash:?}");
+                spinner.success(&msg);
             }
             Command::FinalizeWithdraw {
                 l2_withdrawal_tx_hash,
             } => {
-                let msg = "Waiting for Withdrawal Finalization";
-                let mut spinner = Spinner::new(spinners::Arrow3, msg, Color::Cyan);
-
+                let mut spinner: Spinner = Spinner::new(
+                    recv_frames,
+                    "Waiting for Withdrawal Finalization",
+                    Color::Cyan,
+                );
                 let wait_withdraw =
                     wait_for_finalize_withdrawal(l2_withdrawal_tx_hash, &l2_provider);
                 wait_withdraw.await;
-                spinner.success("Withdrawal finalized!");
                 let withdraw_hash = zk_wallet.finalize_withdraw(l2_withdrawal_tx_hash).await?;
-
-                println!("Withdraw: {l1_explorer_url}/tx/{withdraw_hash:?}");
+                let msg = format!("Success: {l1_explorer_url}/tx/{withdraw_hash:?}");
+                spinner.success(&msg);
             }
             Command::Transfer {
                 amount,
@@ -146,6 +155,8 @@ impl Command {
                 if l1 {
                     todo!("L1 transfers not supported by ZKWallet");
                 } else {
+                    let mut spinner: Spinner =
+                        Spinner::new(send_frames, "Transferring", Color::Cyan);
                     let transfer_hash = if let Some(token_address) = token_address {
                         zk_wallet
                             .transfer_erc20(parsed_amount, token_address, to, None)
@@ -155,7 +166,8 @@ impl Command {
                             .transfer_base_token(parsed_amount, to, None)
                             .await?
                     };
-                    println!("Withdraw: {l2_explorer_url}/tx/{transfer_hash:?}");
+                    let msg = format!("Success: {l2_explorer_url}/tx/{transfer_hash:?}");
+                    spinner.success(&msg);
                 }
             }
             Command::Withdraw {
@@ -166,8 +178,11 @@ impl Command {
                 // TODO revise this
                 let parsed_amount = parse_ether(&amount)?;
 
-                let msg = "Waiting for Withdrawal Finalization";
-                let mut spinner: Spinner = Spinner::new(spinners::Arrow3, msg, Color::Cyan);
+                let mut spinner: Spinner = Spinner::new(
+                    recv_frames,
+                    "Waiting for Withdrawal Finalization",
+                    Color::Cyan,
+                );
                 // TODO revise how to withdraw ETH
                 let l2_withdrawal_tx_hash = if let Some(token) = token_address {
                     if token == base_token_address {
@@ -181,8 +196,9 @@ impl Command {
                 let wait_withdraw =
                     wait_for_finalize_withdrawal(l2_withdrawal_tx_hash, &l2_provider);
                 wait_withdraw.await;
-                zk_wallet.finalize_withdraw(l2_withdrawal_tx_hash).await?;
-                spinner.success("Withdrawal finalized!");
+                let withdraw_hash = zk_wallet.finalize_withdraw(l2_withdrawal_tx_hash).await?;
+                let msg = format!("Success: {l1_explorer_url}/tx/{withdraw_hash:?}");
+                spinner.success(&msg);
             }
             Command::Address => {
                 println!("Wallet address: {:?}", wallet_config.address);
