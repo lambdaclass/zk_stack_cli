@@ -1,18 +1,11 @@
-use crate::utils::wallet::new_zkwallet;
-use crate::{
-    config::ZKSyncConfig,
-    utils::balance::{display_l1_balance, display_l2_balance},
-};
+use crate::config::ZKSyncConfig;
+use crate::utils::balance::display_balance;
+use crate::utils::wallet::get_wallet_l1_l2_providers;
 use clap::Subcommand;
 use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
 use zksync_ethers_rs::{
-    abi::Hash,
-    core::{k256::ecdsa::SigningKey, utils::parse_ether},
-    providers::Provider,
-    signers::Wallet,
-    types::Address,
-    wait_for_finalize_withdrawal, ZKMiddleware,
+    abi::Hash, core::utils::parse_ether, types::Address, wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
 #[derive(Subcommand, PartialEq)]
@@ -80,51 +73,33 @@ pub(crate) enum Command {
 // TODO Handle ETH
 impl Command {
     pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
-        let wallet_config = cfg.wallet.clone().context("Wallet config missing")?;
-        let wallet = wallet_config.private_key.parse::<Wallet<SigningKey>>()?;
-
-        let l1_provider = Provider::try_from(
-            cfg.network
-                .l1_rpc_url
-                .context("L1 RPC URL missing in config")?,
-        )?;
-        let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-
-        let base_token_address = l2_provider.get_base_token_l1_address().await?;
-
-        let zk_wallet = new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
+        let wallet_config = cfg
+            .clone()
+            .wallet
+            .clone()
+            .context("Wallet config missing")?;
 
         let l1_explorer_url = cfg
+            .clone()
             .network
             .l1_explorer_url
             .unwrap_or("https://sepolia.etherscan.io".to_owned());
 
         let l2_explorer_url = cfg
+            .clone()
             .network
             .l2_explorer_url
             .unwrap_or("http://localhost:3010".to_owned());
+
+        let (zk_wallet, _l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg)?;
+        let base_token_address = l2_provider.get_base_token_l1_address().await?;
 
         match self {
             Command::Balance {
                 token_address,
                 l2,
                 l1,
-            } => {
-                if l2 || !l1 {
-                    display_l2_balance(
-                        wallet_config.address,
-                        token_address,
-                        &l1_provider,
-                        &l2_provider,
-                        base_token_address,
-                        l1,
-                    )
-                    .await?;
-                };
-                if l1 {
-                    display_l1_balance(wallet_config.address, token_address, &l1_provider).await?;
-                };
-            }
+            } => display_balance(token_address, &zk_wallet, l1, l2).await?,
             Command::Deposit {
                 amount,
                 token_address,
@@ -180,7 +155,7 @@ impl Command {
                             .transfer_base_token(parsed_amount, to, None)
                             .await?
                     };
-                    println!("Withdraw: {l1_explorer_url}/tx/{transfer_hash:?}");
+                    println!("Withdraw: {l2_explorer_url}/tx/{transfer_hash:?}");
                 }
             }
             Command::Withdraw {
@@ -193,6 +168,7 @@ impl Command {
 
                 let msg = "Waiting for Withdrawal Finalization";
                 let mut spinner: Spinner = Spinner::new(spinners::Arrow3, msg, Color::Cyan);
+                // TODO revise how to withdraw ETH
                 let l2_withdrawal_tx_hash = if let Some(token) = token_address {
                     if token == base_token_address {
                         zk_wallet.withdraw_base_token(parsed_amount).await?
