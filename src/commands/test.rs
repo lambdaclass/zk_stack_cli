@@ -45,7 +45,6 @@ pub(crate) enum Command {
 
 impl Command {
     pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
-        let wallet_config = cfg.wallet.clone().context("Wallet config missing")?;
         match self {
             Command::LoadTest {
                 number_of_wallets,
