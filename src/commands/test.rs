@@ -1,7 +1,5 @@
 use crate::config::ZKSyncConfig;
-use crate::utils::balance::{
-    display_balance, display_l1_balance, get_erc20_balance_decimals_symbol,
-};
+use crate::utils::balance::{display_balance, get_erc20_balance_decimals_symbol};
 use crate::utils::wallet::*;
 use clap::Subcommand;
 use colored::*;
@@ -9,6 +7,7 @@ use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
 use std::ops::Div;
 use zksync_ethers_rs::contracts::erc20::MINT_IERC20;
+use zksync_ethers_rs::core::utils::format_ether;
 use zksync_ethers_rs::{
     core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
     providers::{Http, Middleware, Provider},
@@ -42,25 +41,17 @@ pub(crate) enum Command {
         )]
         reruns_wanted: Option<u8>,
     },
-    #[clap(about = "Mint ERC20 token on L1.")]
-    Erc20L1Mint {
-        #[clap(long = "token")]
-        token_address: Option<Address>,
-        #[clap(long = "amount", short = 'a', default_value = "10")]
-        amount: String,
-    },
 }
 
 impl Command {
     pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
-        let wallet_config = cfg.wallet.clone().context("Wallet config missing")?;
         match self {
             Command::LoadTest {
                 number_of_wallets,
                 amount,
                 reruns_wanted,
             } => {
-                let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg).await?;
+                let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg)?;
                 let mut wallets = Vec::new();
 
                 for i in 1..=number_of_wallets {
@@ -79,7 +70,9 @@ impl Command {
                 let base_token_address = l2_provider.get_base_token_l1_address().await?;
 
                 // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
-                let amount_of_bt_to_deposit: f32 = amount;
+                let parsed_amount_to_deposit = parse_ether(amount)?
+                    .div(10_u32)
+                    .saturating_mul(U256::from(12_u32)); // 20% of headroom
                 let float_wallets: f32 = number_of_wallets.into();
                 let amount_of_bt_to_transfer_for_each: f32 = amount / float_wallets;
                 let amount_of_bt_to_withdraw: f32 = amount;
@@ -94,6 +87,31 @@ impl Command {
                     "Base Token Address".bold().green().on_black()
                 );
                 display_balance(None, &zk_wallet, true).await?;
+                display_balance(Some(base_token_address), &zk_wallet, true).await?;
+
+                let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
+                    base_token_address,
+                    zk_wallet.l1_address(),
+                    &l1_provider,
+                )
+                .await?;
+
+                // Here we are assuming that the base token has 18 decimals
+                if parse_ether(l1_balance)?.le(&parsed_amount_to_deposit) {
+                    let mint_amount = parsed_amount_to_deposit
+                        .div(100_u32)
+                        .saturating_mul(U256::from(120_u32));
+                    let future_receipt = erc20_l1_mint(base_token_address, &zk_wallet, mint_amount);
+                    let msg = format!(
+                        "Not enough tokens... Minting {} {token_symbol}",
+                        format_ether(mint_amount)
+                    );
+                    let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
+                    let receipt = future_receipt.await?;
+                    spinner.success("Tokens Minted!");
+                    println!("Transaction Hash: {:?}", receipt.transaction_hash);
+                }
+
                 display_balance(Some(base_token_address), &zk_wallet, true).await?;
                 println!("{}", "#".repeat(64));
                 // End Display L1 Balance and BaseToken Addr
@@ -123,10 +141,6 @@ impl Command {
                         .l2_provider()
                         .get_balance(zk_wallet.l2_address(), None)
                         .await?;
-                    let parsed_amount_to_deposit =
-                        parse_ether(amount_of_bt_to_deposit.to_string())?
-                            .div(10_u32)
-                            .saturating_mul(U256::from(12_u32)); // 20% of headroom
                     if l2_balance.le(&parsed_amount_to_deposit) {
                         println!("{}", "#".repeat(64));
                         println!(
@@ -226,43 +240,6 @@ impl Command {
                     }
                     current_reruns += 1;
                 }
-                Ok(())
-            }
-            Command::Erc20L1Mint {
-                token_address,
-                amount,
-            } => {
-                let l1_provider = Provider::try_from(
-                    cfg.network
-                        .l1_rpc_url
-                        .context("L1 RPC URL missing in config")?,
-                )?;
-                let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-                let base_token_address = l2_provider.get_base_token_l1_address().await?;
-
-                let token_address = token_address.unwrap_or(base_token_address);
-
-                let wallet = wallet_config.private_key.parse::<Wallet<SigningKey>>()?;
-
-                let zk_wallet = new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
-
-                let (_, _, token_symbol) = get_erc20_balance_decimals_symbol(
-                    token_address,
-                    zk_wallet.l1_address(),
-                    &l1_provider,
-                )
-                .await?;
-
-                let address = zk_wallet.l1_address();
-                let future_receipt =
-                    erc20_l1_mint(token_address, &zk_wallet, parse_ether(&amount)?);
-                display_l1_balance(address, Some(token_address), &l1_provider).await?;
-                let msg = format!("Minting {amount} {token_symbol}");
-                let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
-                let receipt = future_receipt.await?;
-                spinner.success("Tokens Minted!");
-                println!("Transaction Hash: {:?}", receipt.transaction_hash);
-                display_l1_balance(address, Some(token_address), &l1_provider).await?;
                 Ok(())
             }
         }

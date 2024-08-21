@@ -1,4 +1,4 @@
-use super::utils::wallet::new_zkwallet;
+use crate::utils::wallet::new_zkwallet;
 use crate::{
     config::ZKSyncConfig,
     utils::balance::{display_l1_balance, display_l2_balance},
@@ -11,7 +11,7 @@ use zksync_ethers_rs::{
     core::{k256::ecdsa::SigningKey, utils::parse_ether},
     providers::Provider,
     signers::Wallet,
-    types::{Address, U256},
+    types::Address,
     wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
@@ -180,8 +180,7 @@ impl Command {
                             .transfer_base_token(parsed_amount, to, None)
                             .await?
                     };
-                    println!("Withdraw: {l1_explorer_url}/tx/{withdraw_hash:?}");
-
+                    println!("Withdraw: {l1_explorer_url}/tx/{transfer_hash:?}");
                 }
             }
             Command::Withdraw {
