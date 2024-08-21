@@ -5,9 +5,20 @@ use clap::Subcommand;
 use eyre::ContextCompat;
 use spinoff::{spinner, spinners, Color, Spinner};
 use zksync_ethers_rs::{
-    abi::Hash, core::utils::parse_ether, types::Address, wait_for_finalize_withdrawal, ZKMiddleware,
+    abi::Hash,
+    core::utils::{parse_ether, ConversionError},
+    types::{Address, U256},
+    wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct U256Parsed(pub U256);
+impl U256Parsed {
+    // Assuming all tokens have 18 decimals
+    pub fn from_dec_str_and_parse(value: &str) -> Result<Self, ConversionError> {
+        Ok(U256Parsed(parse_ether(value)?))
+    }
+}
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "Get the balance of the wallet.")]
@@ -21,8 +32,8 @@ pub(crate) enum Command {
     },
     #[clap(about = "Deposit funds into some wallet.")]
     Deposit {
-        #[clap(long = "amount")]
-        amount: String,
+        #[clap(long = "amount", value_parser = U256Parsed::from_dec_str_and_parse)]
+        amount: U256Parsed,
         #[clap(
             long = "token",
             help = "Specify the token address, the base token is used as default."
@@ -41,8 +52,8 @@ pub(crate) enum Command {
     },
     #[clap(about = "Transfer funds to another wallet.")]
     Transfer {
-        #[clap(long = "amount")]
-        amount: String,
+        #[clap(long = "amount", value_parser = U256Parsed::from_dec_str_and_parse)]
+        amount: U256Parsed,
         #[clap(long = "token")]
         token_address: Option<Address>,
         #[clap(long = "to")]
@@ -56,8 +67,8 @@ pub(crate) enum Command {
     },
     #[clap(about = "Withdraw funds from the wallet. TODO.")]
     Withdraw {
-        #[clap(long = "amount")]
-        amount: String,
+        #[clap(long = "amount", value_parser = U256Parsed::from_dec_str_and_parse)]
+        amount: U256Parsed,
         #[clap(
             long = "token",
             help = "Specify the token address, the base token is used as default."
@@ -110,17 +121,13 @@ impl Command {
                 token_address,
                 to,
             } => {
-                // Assuming all tokens have 18 decimals
-                // TODO revise this
-                let parsed_amount = parse_ether(&amount)?;
-
                 let mut spinner: Spinner = Spinner::new(send_frames, "Depositing", Color::Cyan);
                 let deposit_hash = match (to, token_address) {
-                    (None, None) => zk_wallet.deposit_base_token(parsed_amount).await?,
-                    (None, Some(token)) => zk_wallet.deposit_erc20(parsed_amount, token).await?,
-                    (Some(to), None) => zk_wallet.deposit_base_token_to(parsed_amount, to).await?,
+                    (None, None) => zk_wallet.deposit_base_token(amount.0).await?,
+                    (None, Some(token)) => zk_wallet.deposit_erc20(amount.0, token).await?,
+                    (Some(to), None) => zk_wallet.deposit_base_token_to(amount.0, to).await?,
                     (Some(to), Some(token)) => {
-                        zk_wallet.deposit_erc20_to(parsed_amount, token, to).await?
+                        zk_wallet.deposit_erc20_to(amount.0, token, to).await?
                     }
                 };
 
@@ -148,10 +155,6 @@ impl Command {
                 to,
                 l1,
             } => {
-                // Assuming all tokens have 18 decimals
-                // TODO revise this
-                let parsed_amount = parse_ether(&amount)?;
-
                 if l1 {
                     todo!("L1 transfers not supported by ZKWallet");
                 } else {
@@ -159,12 +162,10 @@ impl Command {
                         Spinner::new(send_frames, "Transferring", Color::Cyan);
                     let transfer_hash = if let Some(token_address) = token_address {
                         zk_wallet
-                            .transfer_erc20(parsed_amount, token_address, to, None)
+                            .transfer_erc20(amount.0, token_address, to, None)
                             .await?
                     } else {
-                        zk_wallet
-                            .transfer_base_token(parsed_amount, to, None)
-                            .await?
+                        zk_wallet.transfer_base_token(amount.0, to, None).await?
                     };
                     let msg = format!("Success: {l2_explorer_url}/tx/{transfer_hash:?}");
                     spinner.success(&msg);
@@ -174,10 +175,6 @@ impl Command {
                 amount,
                 token_address,
             } => {
-                // Assuming all tokens have 18 decimals
-                // TODO revise this
-                let parsed_amount = parse_ether(&amount)?;
-
                 let mut spinner: Spinner = Spinner::new(
                     recv_frames,
                     "Waiting for Withdrawal Finalization",
@@ -186,12 +183,12 @@ impl Command {
                 // TODO revise how to withdraw ETH
                 let l2_withdrawal_tx_hash = if let Some(token) = token_address {
                     if token == base_token_address {
-                        zk_wallet.withdraw_base_token(parsed_amount).await?
+                        zk_wallet.withdraw_base_token(amount.0).await?
                     } else {
-                        zk_wallet.withdraw_erc20(parsed_amount, token).await?
+                        zk_wallet.withdraw_erc20(amount.0, token).await?
                     }
                 } else {
-                    zk_wallet.withdraw_base_token(parsed_amount).await?
+                    zk_wallet.withdraw_base_token(amount.0).await?
                 };
                 let wait_withdraw =
                     wait_for_finalize_withdrawal(l2_withdrawal_tx_hash, &l2_provider);
