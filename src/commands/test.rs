@@ -1,8 +1,8 @@
-use crate::commands::utils::balance::{
+use crate::config::ZKSyncConfig;
+use crate::utils::balance::{
     display_balance, display_l1_balance, get_erc20_balance_decimals_symbol,
 };
-use crate::commands::utils::wallet::*;
-use crate::config::ZKSyncConfig;
+use crate::utils::wallet::*;
 use clap::Subcommand;
 use colored::*;
 use eyre::ContextCompat;
@@ -60,17 +60,7 @@ impl Command {
                 amount,
                 reruns_wanted,
             } => {
-                let l1_provider = Provider::try_from(
-                    cfg.network
-                        .l1_rpc_url
-                        .context("L1 RPC URL missing in config")?,
-                )?;
-                let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-
-                let wallet = wallet_config.private_key.parse::<Wallet<SigningKey>>()?;
-
-                let zk_wallet = new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
-
+                let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg).await?;
                 let mut wallets = Vec::new();
 
                 for i in 1..=number_of_wallets {
@@ -89,8 +79,7 @@ impl Command {
                 let base_token_address = l2_provider.get_base_token_l1_address().await?;
 
                 // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
-                // an extra 20% is used to avoid gas problems
-                let amount_of_bt_to_deposit: f32 = amount * 1.2;
+                let amount_of_bt_to_deposit: f32 = amount;
                 let float_wallets: f32 = number_of_wallets.into();
                 let amount_of_bt_to_transfer_for_each: f32 = amount / float_wallets;
                 let amount_of_bt_to_withdraw: f32 = amount;
@@ -135,8 +124,10 @@ impl Command {
                         .get_balance(zk_wallet.l2_address(), None)
                         .await?;
                     let parsed_amount_to_deposit =
-                        parse_ether(amount_of_bt_to_deposit.to_string())?;
-                    if l2_balance.lt(&parsed_amount_to_deposit) {
+                        parse_ether(amount_of_bt_to_deposit.to_string())?
+                            .div(10_u32)
+                            .saturating_mul(U256::from(12_u32)); // 20% of headroom
+                    if l2_balance.le(&parsed_amount_to_deposit) {
                         println!("{}", "#".repeat(64));
                         println!(
                             "{} Deposit from {} wallet to {} wallet.",
@@ -317,8 +308,8 @@ async fn future_transfer_base_token_back(
         .l2_provider()
         .estimate_gas(&transfer_tx, None)
         .await?
-        .div(100_u32)
-        .saturating_mul(U256::from(105_u32)); // 5% of headroom
+        .div(10_u32)
+        .saturating_mul(U256::from(11_u32)); // 10% of headroom
     let gas_price = from_wallet.l2_provider().get_gas_price().await?;
     let gas = gas_estimate.saturating_mul(gas_price);
     let transfer_hash = from_wallet

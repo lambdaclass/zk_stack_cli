@@ -17,12 +17,27 @@ Whether you're a developer focused on deploying and interacting with contracts o
 - [Installation](#installation)
 - [Usage](#usage)
   - [Config](#config)
+    - [`zks config create`](#zks-config-create)
+    - [`zks config edit`](#zks-config-edit)
+    - [`zks config set`](#zks-config-set)
+    - [`zks config display`](#zks-config-display)
+    - [`zks config list`](#zks-config-list)
+    - [`zks config delete`](#zks-config-delete)
   - [Wallet](#wallet)
   - [Chain](#chain)
   - [Contract](#contract)
   - [Contracts](#contracts)
+    - [Bridgehub](#bridgehub)
+    - [Governance](#governance)
+    - [Hyperchain](#hyperchain)
+    - [L1 Shared Bridge](#l1-shared-bridge)
+    - [State Transition Manager](#state-transition-manager)
+  - [Utils](#utils)
+    - [Calldata Encode](#calldata-encode)
+    - [Calldata Decode](#calldata-decode)
   - [Prover](#prover)
   - [Test](#test)
+    - [`zks test load-test`](#zks-test-load-test)
 - [Features](#features)
   - [ZKsync JSON-RPC API](#zksync-json-rpc-api)
   - [ZKsync SDK](#zksync-sdk)
@@ -336,6 +351,48 @@ TODO
 
 TODO
 
+### Utils
+
+```
+Utility commands.
+
+Usage: zks utils <COMMAND>
+
+Commands:
+  calldata         [aliases: cd]
+  calldata-decode  [aliases: cdd]
+  help             Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+#### Calldata Encode
+
+```
+Usage: zks utils calldata <SIGNATURE> [ARGS]...
+
+Arguments:
+  <SIGNATURE>
+  [ARGS]...
+
+Options:
+  -h, --help  Print help
+```
+
+#### Calldata Decode
+
+```
+Usage: zks utils calldata-decode <SIGNATURE> <CALLDATA>
+
+Arguments:
+  <SIGNATURE>
+  <CALLDATA>
+
+Options:
+  -h, --help  Print help
+```
+
 ### Prover
 
 TODO
@@ -348,14 +405,15 @@ Test commands, LoadTests, Benchmarks, etc.
 Usage: zks test <COMMAND>
 
 Commands:
-  loadtest  LoadTest the zkStack Chain.
-  help      Print this message or the help of the given subcommand(s)
+  load-test      LoadTest the zkStack Chain.
+  erc20-l1-mint  Mint ERC20 token on L1.
+  help           Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help  Print help
 ```
 
-#### ` zks test loadtest`
+#### `zks test load-test`
 
 It will make use of the wallet set specified in the config file, if we want to run the loadtest in a loop with 10 random wallets and with `4` BaseToken Tokens:
 

@@ -1,4 +1,4 @@
-use crate::commands::{self, utils::config::selected_config_path};
+use crate::{commands, utils::config::selected_config_path};
 use eyre::Context;
 use serde::{Deserialize, Serialize};
 use zksync_ethers_rs::types::Address;
@@ -14,8 +14,10 @@ pub struct ZKSyncConfig {
 #[derive(Deserialize, Serialize, PartialEq, Clone)]
 pub struct NetworkConfig {
     pub l1_rpc_url: Option<String>,
+    pub l1_chain_id: Option<u64>,
     pub l1_explorer_url: Option<String>,
     pub l2_rpc_url: String,
+    pub l2_chain_id: Option<u64>,
     pub l2_explorer_url: Option<String>,
 }
 
