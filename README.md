@@ -336,6 +336,48 @@ TODO
 
 TODO
 
+### Utils
+
+```
+Utility commands.
+
+Usage: zks utils <COMMAND>
+
+Commands:
+  calldata         [aliases: cd]
+  calldata-decode  [aliases: cdd]
+  help             Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+#### Calldata Encode
+
+```
+Usage: zks utils calldata <SIGNATURE> [ARGS]...
+
+Arguments:
+  <SIGNATURE>
+  [ARGS]...
+
+Options:
+  -h, --help  Print help
+```
+
+#### Calldata Decode
+
+```
+Usage: zks utils calldata-decode <SIGNATURE> <CALLDATA>
+
+Arguments:
+  <SIGNATURE>
+  <CALLDATA>
+
+Options:
+  -h, --help  Print help
+```
+
 ### Prover
 
 TODO

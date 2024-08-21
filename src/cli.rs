@@ -1,5 +1,5 @@
 use crate::{
-    commands::{autocomplete, chain, config, contract, contracts, test, wallet},
+    commands::{autocomplete, chain, config, contract, contracts, test, utils, wallet},
     config::load_selected_config,
 };
 use clap::{Parser, Subcommand};
@@ -41,6 +41,8 @@ enum ZKSyncCommand {
     Test(test::Command),
     #[clap(subcommand, about = "Generate shell completion scripts.")]
     Autocomplete(autocomplete::Command),
+    #[clap(subcommand, about = "Utility commands.")]
+    Utils(utils::Command),
 }
 
 pub async fn start() -> eyre::Result<()> {
@@ -56,6 +58,7 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::Contract(cmd) => cmd.run(cfg)?,
         ZKSyncCommand::Contracts(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Autocomplete(cmd) => cmd.run()?,
+        ZKSyncCommand::Utils(cmd) => cmd.run(cfg)?,
         ZKSyncCommand::Config(_) => unreachable!(),
         ZKSyncCommand::Test(cmd) => cmd.run(cfg).await?,
     };

@@ -1,4 +1,4 @@
-use crate::{commands::utils::contracts::try_governance_from_config, config::ZKSyncConfig};
+use crate::{config::ZKSyncConfig, utils::contracts::try_governance_from_config};
 use clap::Subcommand;
 use eyre::{Context, ContextCompat};
 use std::str::FromStr;
