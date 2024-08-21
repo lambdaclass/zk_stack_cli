@@ -8,16 +8,18 @@ use std::{path::PathBuf, str::FromStr};
 
 pub mod default_values;
 use default_values::{
-    DEFAULT_ADDRESS, DEFAULT_CONTRACT_ADDRESS, DEFAULT_L1_EXPLORER_URL, DEFAULT_L1_RPC_URL,
-    DEFAULT_L2_EXPLORER_URL, DEFAULT_L2_RPC_URL, DEFAULT_PRIVATE_KEY,
+    DEFAULT_ADDRESS, DEFAULT_CONTRACT_ADDRESS, DEFAULT_L1_CHAIN_ID, DEFAULT_L1_EXPLORER_URL,
+    DEFAULT_L1_RPC_URL, DEFAULT_L2_CHAIN_ID, DEFAULT_L2_EXPLORER_URL, DEFAULT_L2_RPC_URL,
+    DEFAULT_PRIVATE_KEY,
 };
 pub mod messages;
 use messages::{
     ADDRESS_PROMPT_MSG, CONFIG_CREATE_PROMPT_MSG, CONFIG_EDIT_PROMPT_MSG,
     CONTRACTS_BRIDGEHUB_ADMIN_PRIVATE_KEY_PROMPT_MSG,
     CONTRACTS_BRIDGEHUB_OWNER_PRIVATE_KEY_PROMPT_MSG, CONTRACTS_GOVERNANCE_PRIVATE_KEY_PROMPT_MSG,
-    CONTRACTS_GOVERNANCE_PROMPT_MSG, L1_EXPLORER_URL_PROMPT_MSG, L1_RPC_URL_PROMPT_MSG,
-    L2_EXPLORER_URL_PROMPT_MSG, L2_RPC_URL_PROMPT_MSG, PRIVATE_KEY_PROMPT_MSG,
+    CONTRACTS_GOVERNANCE_PROMPT_MSG, L1_CHAIN_ID_PROMPT_MSG, L1_EXPLORER_URL_PROMPT_MSG,
+    L1_RPC_URL_PROMPT_MSG, L2_CHAIN_ID_PROMPT_MSG, L2_EXPLORER_URL_PROMPT_MSG,
+    L2_RPC_URL_PROMPT_MSG, PRIVATE_KEY_PROMPT_MSG,
 };
 
 pub const SELECTED_CONFIG_FILE_NAME: &str = ".selected";
@@ -93,7 +95,9 @@ pub fn prompt_zksync_config() -> eyre::Result<ZKSyncConfig> {
     let prompted_config = ZKSyncConfig {
         network: NetworkConfig {
             l1_rpc_url: prompt(L1_RPC_URL_PROMPT_MSG, DEFAULT_L1_RPC_URL.into()).ok(),
+            l1_chain_id: prompt(L1_CHAIN_ID_PROMPT_MSG, DEFAULT_L1_CHAIN_ID).ok(),
             l2_rpc_url: prompt(L2_RPC_URL_PROMPT_MSG, DEFAULT_L2_RPC_URL.into())?,
+            l2_chain_id: prompt(L2_CHAIN_ID_PROMPT_MSG, DEFAULT_L2_CHAIN_ID).ok(),
             l2_explorer_url: prompt(L2_EXPLORER_URL_PROMPT_MSG, DEFAULT_L2_EXPLORER_URL.into())
                 .ok(),
             l1_explorer_url: prompt(L1_EXPLORER_URL_PROMPT_MSG, DEFAULT_L1_EXPLORER_URL.into())
@@ -220,7 +224,23 @@ pub fn edit_existing_config_interactively(
                     .unwrap_or(DEFAULT_L1_RPC_URL.into()),
             )
             .ok(),
+            l1_chain_id: prompt(
+                L1_CHAIN_ID_PROMPT_MSG,
+                existing_config
+                    .network
+                    .l1_chain_id
+                    .unwrap_or(DEFAULT_L1_CHAIN_ID),
+            )
+            .ok(),
             l2_rpc_url: prompt(L2_RPC_URL_PROMPT_MSG, existing_config.network.l2_rpc_url)?,
+            l2_chain_id: prompt(
+                L2_CHAIN_ID_PROMPT_MSG,
+                existing_config
+                    .network
+                    .l2_chain_id
+                    .unwrap_or(DEFAULT_L2_CHAIN_ID),
+            )
+            .ok(),
             l2_explorer_url: prompt(
                 L2_EXPLORER_URL_PROMPT_MSG,
                 existing_config
@@ -295,9 +315,11 @@ pub fn edit_existing_config_non_interactively(
     let config = ZKSyncConfig {
         network: NetworkConfig {
             l1_rpc_url: opts.l1_rpc_url.or(existing_config.network.l1_rpc_url),
+            l1_chain_id: opts.l1_chain_id.or(existing_config.network.l1_chain_id),
             l2_rpc_url: opts
                 .l2_rpc_url
                 .unwrap_or(existing_config.network.l2_rpc_url),
+            l2_chain_id: opts.l2_chain_id.or(existing_config.network.l2_chain_id),
             l2_explorer_url: opts
                 .l2_explorer_url
                 .or(existing_config.network.l2_explorer_url),

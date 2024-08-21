@@ -38,7 +38,11 @@ pub struct EditConfigOpts {
     #[arg(long, requires = "config_name", required = false)]
     pub l1_rpc_url: Option<String>,
     #[arg(long, requires = "config_name", required = false)]
+    pub l1_chain_id: Option<u64>,
+    #[arg(long, requires = "config_name", required = false)]
     pub l2_rpc_url: Option<String>,
+    #[arg(long, requires = "config_name", required = false)]
+    pub l2_chain_id: Option<u64>,
     #[arg(long, requires = "config_name", required = false)]
     pub l2_explorer_url: Option<String>,
     #[arg(long, requires = "config_name", required = false)]

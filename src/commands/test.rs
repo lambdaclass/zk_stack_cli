@@ -52,17 +52,7 @@ impl Command {
                 amount,
                 reruns_wanted,
             } => {
-                let l1_provider = Provider::try_from(
-                    cfg.network
-                        .l1_rpc_url
-                        .context("L1 RPC URL missing in config")?,
-                )?;
-                let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-
-                let wallet = wallet_config.private_key.parse::<LocalWallet>()?;
-
-                let zk_wallet = new_zkwallet(wallet, &l1_provider, &l2_provider).await?;
-
+                let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg)?;
                 let mut wallets = Vec::new();
 
                 for i in 1..=number_of_wallets {
