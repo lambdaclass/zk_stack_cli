@@ -266,7 +266,7 @@ impl Command {
                 let future_receipt =
                     erc20_l1_mint(token_address, &zk_wallet, parse_ether(&amount)?);
                 display_l1_balance(address, Some(token_address), &l1_provider).await?;
-                let msg = format!("Minting {} {token_symbol}", amount);
+                let msg = format!("Minting {amount} {token_symbol}");
                 let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
                 let receipt = future_receipt.await?;
                 spinner.success("Tokens Minted!");

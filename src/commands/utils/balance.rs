@@ -102,14 +102,14 @@ pub(crate) async fn display_balance(
         display_l2_balance(
             wallet_address,
             token,
-            &l1_provider,
-            &l2_provider,
+            l1_provider,
+            l2_provider,
             base_token_address,
             false,
         )
         .await?;
     } else {
-        display_l1_balance(wallet_address, token, &l1_provider).await?;
+        display_l1_balance(wallet_address, token, l1_provider).await?;
     };
     Ok(())
 }
