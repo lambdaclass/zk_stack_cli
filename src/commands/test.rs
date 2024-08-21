@@ -317,8 +317,8 @@ async fn future_transfer_base_token_back(
         .l2_provider()
         .estimate_gas(&transfer_tx, None)
         .await?
-        .div(100_u32)
-        .saturating_mul(U256::from(105_u32)); // 5% of headroom
+        .div(10_u32)
+        .saturating_mul(U256::from(11_u32)); // 10% of headroom
     let gas_price = from_wallet.l2_provider().get_gas_price().await?;
     let gas = gas_estimate.saturating_mul(gas_price);
     let transfer_hash = from_wallet
