@@ -38,10 +38,10 @@ pub(crate) async fn print_l2_base_token_balance(
             get_erc20_balance_decimals_symbol(base_token_address, wallet_address, l1_provider)
                 .await?;
         let parsed_balance = format_units(balance, token_decimals)?;
-        println!("[L2] ({wallet_address:?}) Base Token Balance: {parsed_balance} {token_symbol}");
+        println!("[L2] Base Token Balance: {parsed_balance} {token_symbol}");
     } else {
         let parsed_balance = format_ether(balance);
-        println!("[L2] ({wallet_address:?}) Base Token Balance: {parsed_balance} ETH");
+        println!("[L2] Base Token Balance: {parsed_balance} ETH");
     }
     Ok(())
 }
