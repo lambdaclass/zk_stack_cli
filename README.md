@@ -406,7 +406,6 @@ Usage: zks test <COMMAND>
 
 Commands:
   load-test      LoadTest the zkStack Chain.
-  erc20-l1-mint  Mint ERC20 token on L1.
   help           Print this message or the help of the given subcommand(s)
 
 Options:
