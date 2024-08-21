@@ -348,14 +348,15 @@ Test commands, LoadTests, Benchmarks, etc.
 Usage: zks test <COMMAND>
 
 Commands:
-  loadtest  LoadTest the zkStack Chain.
-  help      Print this message or the help of the given subcommand(s)
+  load-test      LoadTest the zkStack Chain.
+  erc20-l1-mint  Mint ERC20 token on L1.
+  help           Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help  Print help
 ```
 
-#### ` zks test loadtest`
+#### ` zks test load-test`
 
 It will make use of the wallet set specified in the config file, if we want to run the loadtest in a loop with 10 random wallets and with `4` BaseToken Tokens:
 
