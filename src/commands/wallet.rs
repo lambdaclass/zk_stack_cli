@@ -30,7 +30,7 @@ pub(crate) enum Command {
         token_address: Option<Address>,
         #[clap(
             long = "to",
-            help = "Specify the wallet in which you want to deposit yout funds."
+            help = "Specify the wallet in which you want to deposit your funds."
         )]
         to: Option<Address>,
     },
