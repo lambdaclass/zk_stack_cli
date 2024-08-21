@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use crate::{
-    commands::utils::{contracts::try_bridgehub_from_config, try_l1_signer_from_config},
     config::ZKSyncConfig,
+    utils::{contracts::try_bridgehub_from_config, try_l1_signer_from_config},
 };
 use clap::Subcommand;
 use eyre::ContextCompat;

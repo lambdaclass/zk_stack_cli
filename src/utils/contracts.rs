@@ -1,6 +1,6 @@
 use crate::{
-    commands::utils::{try_l1_signer_from_config, try_l2_provider_from_config},
     config::ZKSyncConfig,
+    utils::{try_l1_signer_from_config, try_l2_provider_from_config},
 };
 use eyre::ContextCompat;
 use std::sync::Arc;

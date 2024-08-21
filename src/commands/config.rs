@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use zksync_ethers_rs::types::Address;
 
-use crate::commands::utils::config::{
+use crate::utils::config::{
     config_file_names, config_path, config_path_interactive_selection, confirm,
     confirm_config_creation, edit_config_by_name_interactively, edit_config_by_name_with_args,
     edit_config_interactively,

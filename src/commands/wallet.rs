@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use crate::{
-    commands::utils::balance::{display_l1_balance, display_l2_balance},
     config::ZKSyncConfig,
+    utils::balance::{display_l1_balance, display_l2_balance},
 };
 use clap::Subcommand;
 use eyre::ContextCompat;
