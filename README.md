@@ -17,12 +17,27 @@ Whether you're a developer focused on deploying and interacting with contracts o
 - [Installation](#installation)
 - [Usage](#usage)
   - [Config](#config)
+    - [`zks config create`](#zks-config-create)
+    - [`zks config edit`](#zks-config-edit)
+    - [`zks config set`](#zks-config-set)
+    - [`zks config display`](#zks-config-display)
+    - [`zks config list`](#zks-config-list)
+    - [`zks config delete`](#zks-config-delete)
   - [Wallet](#wallet)
   - [Chain](#chain)
   - [Contract](#contract)
   - [Contracts](#contracts)
+    - [Bridgehub](#bridgehub)
+    - [Governance](#governance)
+    - [Hyperchain](#hyperchain)
+    - [L1 Shared Bridge](#l1-shared-bridge)
+    - [State Transition Manager](#state-transition-manager)
+  - [Utils](#utils)
+    - [Calldata Encode](#calldata-encode)
+    - [Calldata Decode](#calldata-decode)
   - [Prover](#prover)
   - [Test](#test)
+    - [`zks test load-test`](#zks-test-load-test)
 - [Features](#features)
   - [ZKsync JSON-RPC API](#zksync-json-rpc-api)
   - [ZKsync SDK](#zksync-sdk)
@@ -398,7 +413,7 @@ Options:
   -h, --help  Print help
 ```
 
-#### ` zks test load-test`
+#### `zks test load-test`
 
 It will make use of the wallet set specified in the config file, if we want to run the loadtest in a loop with 10 random wallets and with `4` BaseToken Tokens:
 
