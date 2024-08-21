@@ -60,7 +60,7 @@ impl Command {
                 amount,
                 reruns_wanted,
             } => {
-                let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg).await?;
+                let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg)?;
                 let mut wallets = Vec::new();
 
                 for i in 1..=number_of_wallets {

@@ -1,14 +1,20 @@
 use crate::config::ZKSyncConfig;
 use eyre::{Context, ContextCompat, Ok};
 use zksync_ethers_rs::{
-    core::k256::ecdsa::SigningKey,
     middleware::SignerMiddleware,
     providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer, Wallet},
+    signers::{LocalWallet, Signer},
     zk_wallet::ZKWallet,
 };
 
-impl TryFrom<ZKSyncConfig> for ZKWallet<Provider<Http>, LocalWallet> {
+type ZKWalletProvider = Provider<Http>;
+type SetupResult = (
+    ZKWallet<ZKWalletProvider, LocalWallet>,
+    ZKWalletProvider,
+    ZKWalletProvider,
+);
+
+impl TryFrom<ZKSyncConfig> for ZKWallet<ZKWalletProvider, LocalWallet> {
     type Error = eyre::Error;
 
     fn try_from(cfg: ZKSyncConfig) -> eyre::Result<Self> {
@@ -50,9 +56,9 @@ impl TryFrom<ZKSyncConfig> for ZKWallet<Provider<Http>, LocalWallet> {
 
 pub(crate) async fn new_zkwallet(
     wallet_pk: LocalWallet,
-    l1_provider: &Provider<Http>,
-    l2_provider: &Provider<Http>,
-) -> eyre::Result<ZKWallet<Provider<Http>, Wallet<SigningKey>>> {
+    l1_provider: &ZKWalletProvider,
+    l2_provider: &ZKWalletProvider,
+) -> eyre::Result<ZKWallet<ZKWalletProvider, LocalWallet>> {
     let l1_chain_id = l1_provider.get_chainid().await?.as_u64();
     let wallet = wallet_pk.with_chain_id(l1_chain_id);
     let l1_signer = SignerMiddleware::new(l1_provider.clone(), wallet.clone());
@@ -65,13 +71,7 @@ pub(crate) async fn new_zkwallet(
     Ok(zk_wallet)
 }
 
-pub async fn get_wallet_l1_l2_providers(
-    cfg: ZKSyncConfig,
-) -> eyre::Result<(
-    ZKWallet<Provider<Http>, LocalWallet>,
-    Provider<Http>,
-    Provider<Http>,
-)> {
+pub fn get_wallet_l1_l2_providers(cfg: ZKSyncConfig) -> eyre::Result<SetupResult> {
     let cloned_cfg = cfg.clone();
     let l1_provider = Provider::try_from(
         cfg.network
