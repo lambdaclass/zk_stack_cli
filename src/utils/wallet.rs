@@ -1,5 +1,5 @@
 use crate::config::ZKSyncConfig;
-use eyre::{ContextCompat, Ok};
+use eyre::ContextCompat;
 use zksync_ethers_rs::{
     middleware::SignerMiddleware,
     providers::{Http, Middleware, Provider},
