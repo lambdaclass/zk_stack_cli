@@ -1,26 +1,18 @@
 use crate::config::ZKSyncConfig;
 use crate::utils::balance::{display_balance, get_erc20_balance_decimals_symbol};
+use crate::utils::test::*;
 use crate::utils::wallet::*;
 use clap::Subcommand;
 use colored::*;
-use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
 use std::ops::Div;
-use zksync_ethers_rs::contracts::erc20::MINT_IERC20;
 use zksync_ethers_rs::core::utils::format_ether;
 use zksync_ethers_rs::{
-    core::{k256::ecdsa::SigningKey, rand::thread_rng, utils::parse_ether},
-    providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer, Wallet},
-    types::{
-        transaction::eip2718::TypedTransaction, Address, Eip1559TransactionRequest, L2TxOverrides,
-        TransactionReceipt, U256,
-    },
-    wait_for_finalize_withdrawal,
-    zk_wallet::ZKWallet,
-    ZKMiddleware,
+    core::utils::parse_ether,
+    providers::Middleware,
+    types::{L2TxOverrides, U256},
+    wait_for_finalize_withdrawal, ZKMiddleware,
 };
-
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "LoadTest the zkStack Chain.")]
@@ -45,30 +37,17 @@ pub(crate) enum Command {
 
 impl Command {
     pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
+        let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg)?;
+        let base_token_address = l2_provider.get_base_token_l1_address().await?;
+
         match self {
             Command::LoadTest {
                 number_of_wallets,
                 amount,
                 reruns_wanted,
             } => {
-                let (zk_wallet, l1_provider, l2_provider) = get_wallet_l1_l2_providers(cfg)?;
-                let mut wallets = Vec::new();
-
-                for i in 1..=number_of_wallets {
-                    let local_wallet = LocalWallet::new(&mut thread_rng());
-                    let pk_bytes = local_wallet.signer().to_bytes();
-                    //let sk: SigningKey = SigningKey::from_bytes(&pk_bytes)?;
-                    let pk = hex::encode(pk_bytes);
-                    println!(
-                        "Wallet [{i:0>3}] addr: {:?} || pk: 0x{pk}",
-                        local_wallet.address(),
-                    );
-                    let w = new_zkwallet(local_wallet, &l1_provider, &l2_provider).await?;
-                    wallets.push(w);
-                }
-
-                let base_token_address = l2_provider.get_base_token_l1_address().await?;
-
+                let wallets =
+                    get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
                 // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
                 let parsed_amount_to_deposit = parse_ether(amount)?
                     .div(10_u32)
@@ -242,77 +221,4 @@ impl Command {
             }
         }
     }
-}
-
-async fn future_transfer_base_token(
-    from_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
-    to_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
-    parsed_amount: U256,
-    overrides: Option<L2TxOverrides>,
-) -> eyre::Result<()> {
-    display_balance(None, to_wallet, false, true).await?;
-
-    let transfer_hash = from_wallet
-        .transfer_base_token(parsed_amount, to_wallet.l2_address(), overrides)
-        .await?;
-
-    println!("Transfer hash: {transfer_hash:?}");
-
-    display_balance(None, to_wallet, false, true).await?;
-
-    Ok(())
-}
-
-async fn future_transfer_base_token_back(
-    from_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
-    to_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
-) -> eyre::Result<()> {
-    display_balance(None, from_wallet, false, true).await?;
-    display_balance(None, to_wallet, false, true).await?;
-    let balance = from_wallet
-        .l2_provider()
-        .get_balance(from_wallet.l2_address(), None)
-        .await?;
-    let transfer_tx = TypedTransaction::Eip1559(
-        Eip1559TransactionRequest::new()
-            .from(from_wallet.l2_address())
-            .to(to_wallet.l2_address())
-            .value(balance),
-    );
-    let gas_estimate = from_wallet
-        .l2_provider()
-        .estimate_gas(&transfer_tx, None)
-        .await?
-        .div(10_u32)
-        .saturating_mul(U256::from(11_u32)); // 10% of headroom
-    let gas_price = from_wallet.l2_provider().get_gas_price().await?;
-    let gas = gas_estimate.saturating_mul(gas_price);
-    let transfer_hash = from_wallet
-        .transfer_base_token(
-            balance.saturating_sub(gas),
-            to_wallet.l1_address(),
-            // The nonce is not changed since all the transfers are from different wallets
-            None,
-        )
-        .await?;
-    println!("Transfer hash: {transfer_hash:?}");
-    display_balance(None, from_wallet, false, true).await?;
-    display_balance(None, to_wallet, false, true).await?;
-    Ok(())
-}
-
-pub(crate) async fn erc20_l1_mint(
-    erc20_token_address: Address,
-    wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
-    amount: U256,
-) -> eyre::Result<TransactionReceipt> {
-    let erc20_contract = MINT_IERC20::new(erc20_token_address, wallet.l1_signer());
-    let tx_receipt = erc20_contract
-        .mint(wallet.l1_address(), amount)
-        .send()
-        .await?
-        .await?
-        .context("No transaction receipt for erc20 mint")?;
-
-    Ok(tx_receipt)
 }

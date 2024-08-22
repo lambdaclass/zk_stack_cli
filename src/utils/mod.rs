@@ -9,6 +9,7 @@ use zksync_ethers_rs::{
 pub(crate) mod balance;
 pub(crate) mod config;
 pub(crate) mod contracts;
+pub(crate) mod test;
 pub(crate) mod wallet;
 
 pub(crate) fn try_l2_provider_from_config(cfg: &ZKSyncConfig) -> eyre::Result<Provider<Http>> {
