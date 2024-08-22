@@ -11,14 +11,17 @@ use zksync_ethers_rs::{
     wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct U256Parsed(pub U256);
-impl U256Parsed {
-    // Assuming all tokens have 18 decimals
-    pub fn from_dec_str_and_parse(value: &str) -> Result<Self, ConversionError> {
-        Ok(U256Parsed(parse_ether(value)?))
+trait U256Parsed {
+    fn from_dec_str_and_parse(value: &str) -> Result<U256, ConversionError>;
+}
+
+impl U256Parsed for U256 {
+    fn from_dec_str_and_parse(value: &str) -> Result<U256, ConversionError> {
+        // Assuming all tokens have 18 decimals
+        parse_ether(value)
     }
 }
+
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
     #[clap(about = "Get the balance of the wallet.")]
@@ -32,8 +35,8 @@ pub(crate) enum Command {
     },
     #[clap(about = "Deposit funds into some wallet.")]
     Deposit {
-        #[clap(long = "amount", value_parser = U256Parsed::from_dec_str_and_parse)]
-        amount: U256Parsed,
+        #[clap(long = "amount", value_parser = U256::from_dec_str_and_parse)]
+        amount: U256,
         #[clap(
             long = "token",
             help = "Specify the token address, the base token is used as default."
@@ -52,8 +55,8 @@ pub(crate) enum Command {
     },
     #[clap(about = "Transfer funds to another wallet.")]
     Transfer {
-        #[clap(long = "amount", value_parser = U256Parsed::from_dec_str_and_parse)]
-        amount: U256Parsed,
+        #[clap(long = "amount", value_parser = U256::from_dec_str_and_parse)]
+        amount: U256,
         #[clap(long = "token")]
         token_address: Option<Address>,
         #[clap(long = "to")]
@@ -67,8 +70,8 @@ pub(crate) enum Command {
     },
     #[clap(about = "Withdraw funds from the wallet. TODO.")]
     Withdraw {
-        #[clap(long = "amount", value_parser = U256Parsed::from_dec_str_and_parse)]
-        amount: U256Parsed,
+        #[clap(long = "amount", value_parser = U256::from_dec_str_and_parse)]
+        amount: U256,
         #[clap(
             long = "token",
             help = "Specify the token address, the base token is used as default."
@@ -123,11 +126,11 @@ impl Command {
             } => {
                 let mut spinner: Spinner = Spinner::new(send_frames, "Depositing", Color::Cyan);
                 let deposit_hash = match (to, token_address) {
-                    (None, None) => zk_wallet.deposit_base_token(amount.0).await?,
-                    (None, Some(token)) => zk_wallet.deposit_erc20(amount.0, token).await?,
-                    (Some(to), None) => zk_wallet.deposit_base_token_to(amount.0, to).await?,
+                    (None, None) => zk_wallet.deposit_base_token(amount).await?,
+                    (None, Some(token)) => zk_wallet.deposit_erc20(amount, token).await?,
+                    (Some(to), None) => zk_wallet.deposit_base_token_to(amount, to).await?,
                     (Some(to), Some(token)) => {
-                        zk_wallet.deposit_erc20_to(amount.0, token, to).await?
+                        zk_wallet.deposit_erc20_to(amount, token, to).await?
                     }
                 };
 
@@ -162,10 +165,10 @@ impl Command {
                         Spinner::new(send_frames, "Transferring", Color::Cyan);
                     let transfer_hash = if let Some(token_address) = token_address {
                         zk_wallet
-                            .transfer_erc20(amount.0, token_address, to, None)
+                            .transfer_erc20(amount, token_address, to, None)
                             .await?
                     } else {
-                        zk_wallet.transfer_base_token(amount.0, to, None).await?
+                        zk_wallet.transfer_base_token(amount, to, None).await?
                     };
                     let msg = format!("Success: {l2_explorer_url}/tx/{transfer_hash:?}");
                     spinner.success(&msg);
@@ -183,12 +186,12 @@ impl Command {
                 // TODO revise how to withdraw ETH
                 let l2_withdrawal_tx_hash = if let Some(token) = token_address {
                     if token == base_token_address {
-                        zk_wallet.withdraw_base_token(amount.0).await?
+                        zk_wallet.withdraw_base_token(amount).await?
                     } else {
-                        zk_wallet.withdraw_erc20(amount.0, token).await?
+                        zk_wallet.withdraw_erc20(amount, token).await?
                     }
                 } else {
-                    zk_wallet.withdraw_base_token(amount.0).await?
+                    zk_wallet.withdraw_base_token(amount).await?
                 };
                 let wait_withdraw =
                     wait_for_finalize_withdrawal(l2_withdrawal_tx_hash, &l2_provider);
