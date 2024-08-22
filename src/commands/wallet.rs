@@ -6,21 +6,10 @@ use eyre::ContextCompat;
 use spinoff::{spinner, spinners, Color, Spinner};
 use zksync_ethers_rs::{
     abi::Hash,
-    core::utils::{parse_ether, ConversionError},
+    core::utils::parse_ether,
     types::{Address, U256},
     wait_for_finalize_withdrawal, ZKMiddleware,
 };
-
-trait U256Parsed {
-    fn from_dec_str_and_parse(value: &str) -> Result<U256, ConversionError>;
-}
-
-impl U256Parsed for U256 {
-    fn from_dec_str_and_parse(value: &str) -> Result<U256, ConversionError> {
-        // Assuming all tokens have 18 decimals
-        parse_ether(value)
-    }
-}
 
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
@@ -35,7 +24,7 @@ pub(crate) enum Command {
     },
     #[clap(about = "Deposit funds into some wallet.")]
     Deposit {
-        #[clap(long = "amount", value_parser = U256::from_dec_str_and_parse)]
+        #[clap(long = "amount", value_parser = |f: &str| parse_ether(f))]
         amount: U256,
         #[clap(
             long = "token",
@@ -57,7 +46,7 @@ pub(crate) enum Command {
     },
     #[clap(about = "Transfer funds to another wallet.")]
     Transfer {
-        #[clap(long = "amount", value_parser = U256::from_dec_str_and_parse)]
+        #[clap(long = "amount", value_parser = |f: &str| parse_ether(f))]
         amount: U256,
         #[clap(long = "token")]
         token_address: Option<Address>,
@@ -74,7 +63,7 @@ pub(crate) enum Command {
     },
     #[clap(about = "Withdraw funds from the wallet. TODO.")]
     Withdraw {
-        #[clap(long = "amount", value_parser = U256::from_dec_str_and_parse)]
+        #[clap(long = "amount", value_parser = |f: &str| parse_ether(f))]
         amount: U256,
         #[clap(
             long = "token",
