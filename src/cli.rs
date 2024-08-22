@@ -17,7 +17,8 @@ pub struct ZKSyncCLI {
 enum ZKSyncCommand {
     #[clap(
         subcommand,
-        about = "Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks."
+        about = "Wallet interaction commands. The configured wallet could operate both with the L1 and L2 networks.",
+        visible_alias = "w"
     )]
     Wallet(wallet::Command),
     #[clap(
