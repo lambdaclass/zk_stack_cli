@@ -82,7 +82,7 @@ pub(crate) enum Command {
     },
     #[clap(about = "Retrieves the main contract address.", visible_aliases = &["main", "hyperchain", "diamond"])]
     MainContract {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(
@@ -90,21 +90,21 @@ pub(crate) enum Command {
         visible_alias = "bridgehub"
     )]
     BridgehubContract {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(
         about = "Retrieves the testnet paymaster address, specifically for interactions within the ZKsync Sepolia Testnet environment. Note: This method is only applicable for ZKsync Sepolia Testnet."
     )]
     TestnetPaymaster {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(about = "Retrieves the L1 chain ID.")]
     L1ChainID,
     #[clap(about = "Retrieves the L1 base token address.")]
     L1BaseTokenAddress {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(about = "Gets all account balances for a given address.")]
@@ -134,7 +134,7 @@ pub(crate) enum Command {
     #[clap(about = "Gets the finalize deposit transaction hash.")]
     FinalizeDepositTx {
         l1_deposit_tx_hash: Hash,
-        #[clap(long, required = false)]
+        #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
     },
 }

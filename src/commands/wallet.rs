@@ -47,7 +47,7 @@ pub(crate) enum Command {
             help = "Specify the wallet in which you want to deposit your funds."
         )]
         to: Option<Address>,
-        #[clap(long, required = false)]
+        #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
     },
     #[clap(about = "Finalize a pending withdrawal.")]
@@ -69,7 +69,7 @@ pub(crate) enum Command {
             help = "If set it will do an L1 transfer, defaults to an L2 transfer"
         )]
         l1: bool,
-        #[clap(long, required = false)]
+        #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
     },
     #[clap(about = "Withdraw funds from the wallet. TODO.")]
@@ -81,7 +81,7 @@ pub(crate) enum Command {
             help = "Specify the token address, the base token is used as default."
         )]
         token_address: Option<Address>,
-        #[clap(long, required = false)]
+        #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
     },
     #[clap(about = "Get the wallet address.")]
