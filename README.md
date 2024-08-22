@@ -17,16 +17,27 @@ Whether you're a developer focused on deploying and interacting with contracts o
 - [Installation](#installation)
 - [Usage](#usage)
   - [Config](#config)
-    - [Create](#zks-config-create)
-    - [Edit](#zks-config-edit)
-    - [Set](#zks-config-set)
-    - [Display](#zks-config-display)
-    - [List](#zks-config-list)
-    - [Delete](#zks-config-delete)
+    - [`zks config create`](#zks-config-create)
+    - [`zks config edit`](#zks-config-edit)
+    - [`zks config set`](#zks-config-set)
+    - [`zks config display`](#zks-config-display)
+    - [`zks config list`](#zks-config-list)
+    - [`zks config delete`](#zks-config-delete)
   - [Wallet](#wallet)
   - [Chain](#chain)
   - [Contract](#contract)
+  - [Contracts](#contracts)
+    - [Bridgehub](#bridgehub)
+    - [Governance](#governance)
+    - [Hyperchain](#hyperchain)
+    - [L1 Shared Bridge](#l1-shared-bridge)
+    - [State Transition Manager](#state-transition-manager)
+  - [Utils](#utils)
+    - [Calldata Encode](#calldata-encode)
+    - [Calldata Decode](#calldata-decode)
   - [Prover](#prover)
+  - [Test](#test)
+    - [`zks test load-test`](#zks-test-load-test)
 - [Features](#features)
   - [ZKsync JSON-RPC API](#zksync-json-rpc-api)
   - [ZKsync SDK](#zksync-sdk)
@@ -386,48 +397,73 @@ Options:
 
 TODO
 
+### Test
+
+```
+Test commands, LoadTests, Benchmarks, etc.
+
+Usage: zks test <COMMAND>
+
+Commands:
+  load-test      LoadTest the zkStack Chain.
+  help           Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+#### `zks test load-test`
+
+It will make use of the wallet set specified in the config file, if we want to run the loadtest in a loop with 10 random wallets and with `4` BaseToken Tokens:
+
+`-r` means reruns, 0 stands for a infinite runs.
+
+```sh
+zks test loadtest --wallets 10 --amount 4 -r 0
+```
+
 ## Features
 
 ### ZKsync JSON-RPC API 
 
-| Command | Endpoint | Status |
-| --- | --- | --- |
-| `estimate-fee` | `zks_estimateFee` | 🏗️ |
-| `estimate-gas-l1-to-l2` | `zks_estimateGasL1ToL2` | 🏗️ |
-| `bridgehub-contract` | `zks_getBridgehubContract` | ✔️ |
-| `main-contract` | `zks_getMainContract` | ✔️ |
-| `testnet-paymaster` | `zks_getTestnetPaymaster` | ✔️ |
-| `bridge-contracts` | `zks_getBridgeContracts` | ✔️ |
-| `l1-chain-id` | `zks_getL1ChainId` | ✔️ |
-| `l1-base-token-address` | `zks_getL1BaseTokenAddress` | ✔️ |
-| `confirmed-tokens` | `zks_getConfirmedTokens` | ✔️ |
-| `all-account-balances` | `zks_getAllAccountBalances` | ✔️ |
-| `` | `zks_getL2ToL1MsgProof` | 🏗️ |
-| `` | `zks_getL2ToL1LogProof` | 🏗️ |
-| `l1-batch-number` | `zks_getL1BatchNumber` | ✔️ |
-| `block-details` | `zks_getBlockDetails` | ✔️ |
-| `transaction-details` | `zks_getTransactionDetails` | ✔️ |
-| `raw-blocks-transactions` | `zks_getRawBlocksTransactions` | ❌ |
-| `l1-batch-details` | `zks_getL1BatchDetails` | ✔️ |
-| `bytecode-by-hash` | `zks_getBytecodeByHash` | ✔️ |
-| `l1-block-range` | `zks_getL1BlockRange` | 🏗️ |
-| `l1-gas-price` | `zks_getL1GasPrice` | ✔️ |
-| `fee-params` | `zks_getFeeParams` | ✔️ |
-| `protocol-version` | `zks_getProtocolVersion` | ✔️ |
-| `proof` | `zks_getProof` | 🏗️ |
-| `send-raw-transaction-with-detailed-output` | `zks_sendRawTransactionWithDetailedOutput` | ❌ |
+|                   Command                   |                  Endpoint                  | Status |
+| :-----------------------------------------: | :----------------------------------------: | :----: |
+|               `estimate-fee`                |             `zks_estimateFee`              |   🏗️    |
+|           `estimate-gas-l1-to-l2`           |          `zks_estimateGasL1ToL2`           |   🏗️    |
+|            `bridgehub-contract`             |         `zks_getBridgehubContract`         |   ✔️    |
+|               `main-contract`               |           `zks_getMainContract`            |   ✔️    |
+|             `testnet-paymaster`             |         `zks_getTestnetPaymaster`          |   ✔️    |
+|             `bridge-contracts`              |          `zks_getBridgeContracts`          |   ✔️    |
+|                `l1-chain-id`                |             `zks_getL1ChainId`             |   ✔️    |
+|           `l1-base-token-address`           |        `zks_getL1BaseTokenAddress`         |   ✔️    |
+|             `confirmed-tokens`              |          `zks_getConfirmedTokens`          |   ✔️    |
+|           `all-account-balances`            |        `zks_getAllAccountBalances`         |   ✔️    |
+|                     ``                      |          `zks_getL2ToL1MsgProof`           |   🏗️    |
+|                     ``                      |          `zks_getL2ToL1LogProof`           |   🏗️    |
+|              `l1-batch-number`              |           `zks_getL1BatchNumber`           |   ✔️    |
+|               `block-details`               |           `zks_getBlockDetails`            |   ✔️    |
+|            `transaction-details`            |        `zks_getTransactionDetails`         |   ✔️    |
+|          `raw-blocks-transactions`          |       `zks_getRawBlocksTransactions`       |   ❌    |
+|             `l1-batch-details`              |          `zks_getL1BatchDetails`           |   ✔️    |
+|             `bytecode-by-hash`              |          `zks_getBytecodeByHash`           |   ✔️    |
+|              `l1-block-range`               |           `zks_getL1BlockRange`            |   🏗️    |
+|               `l1-gas-price`                |            `zks_getL1GasPrice`             |   ✔️    |
+|                `fee-params`                 |             `zks_getFeeParams`             |   ✔️    |
+|             `protocol-version`              |          `zks_getProtocolVersion`          |   ✔️    |
+|                   `proof`                   |               `zks_getProof`               |   🏗️    |
+| `send-raw-transaction-with-detailed-output` | `zks_sendRawTransactionWithDetailedOutput` |   ❌    |
 
 ### ZKsync SDK
 
-| Command | Feature | Status |
-| --- | --- | --- |
-| `deploy` | Deploy a contract | 🏗️ |
-| `call` | Call a contract | 🏗️ |
-| `send` | Send a transaction | 🏗️ |
-| `balance` | Get the balance of an account | ✔️ |
-| `transfer` ERC20 | Transfer funds | 🏗️ |
-| `transfer` Base Token | Transfer funds | ✔️ |
-| `compile` | Compile a contract | 🏗️ |
-| `deposit` Base Token | Deposit funds | ✔️ |
-| `deposit` ERC20 | Deposit funds | 🏗️ |
-| `withdraw` | Withdraw funds | 🏗️ |
+|        Command        |            Feature            | Status |
+| :-------------------: | :---------------------------: | :----: |
+|       `deploy`        |       Deploy a contract       |   🏗️    |
+|        `call`         |        Call a contract        |   🏗️    |
+|        `send`         |      Send a transaction       |   🏗️    |
+|       `balance`       | Get the balance of an account |   ✔️    |
+|   `transfer` ERC20    |        Transfer funds         |   🏗️    |
+| `transfer` Base Token |        Transfer funds         |   ✔️    |
+|       `compile`       |      Compile a contract       |   🏗️    |
+| `deposit` Base Token  |         Deposit funds         |   ✔️    |
+|    `deposit` ERC20    |         Deposit funds         |   🏗️    |
+|      `withdraw`       |        Withdraw funds         |   🏗️    |

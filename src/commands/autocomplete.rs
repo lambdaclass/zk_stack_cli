@@ -86,7 +86,7 @@ fn install_bash_script(shell_arg: Option<Shell>) -> eyre::Result<()> {
     let file_path = dirs::home_dir()
         .ok_or(eyre::eyre!("Cannot find home directory."))?
         .join(".zks-completion");
-    let mut file = File::create(&file_path)?;
+    let mut file = File::create(file_path)?;
     generate(shell, &mut ZKSyncCLI::command(), "zks", &mut file);
     file.flush()?;
 
