@@ -81,20 +81,32 @@ pub(crate) enum Command {
         msg: Hash,
     },
     #[clap(about = "Retrieves the main contract address.", visible_aliases = &["main", "hyperchain", "diamond"])]
-    MainContract,
+    MainContract {
+        #[arg(long, default_value_t = false)]
+        explorer_url: bool,
+    },
     #[clap(
         about = "Retrieves the bridge hub contract address.",
         visible_alias = "bridgehub"
     )]
-    BridgehubContract,
+    BridgehubContract {
+        #[arg(long, default_value_t = false)]
+        explorer_url: bool,
+    },
     #[clap(
         about = "Retrieves the testnet paymaster address, specifically for interactions within the ZKsync Sepolia Testnet environment. Note: This method is only applicable for ZKsync Sepolia Testnet."
     )]
-    TestnetPaymaster,
+    TestnetPaymaster {
+        #[arg(long, default_value_t = false)]
+        explorer_url: bool,
+    },
     #[clap(about = "Retrieves the L1 chain ID.")]
     L1ChainID,
     #[clap(about = "Retrieves the L1 base token address.")]
-    L1BaseTokenAddress,
+    L1BaseTokenAddress {
+        #[arg(long, default_value_t = false)]
+        explorer_url: bool,
+    },
     #[clap(about = "Gets all account balances for a given address.")]
     AllAccountBalances { account_address: Address },
     #[clap(about = "Retrieves the current L1 batch number.")]
@@ -233,31 +245,49 @@ impl Command {
                 .context("no proof");
                 log::info!("{proof:#?}");
             }
-            Command::MainContract => {
+            Command::MainContract { explorer_url } => {
                 let main_contract_address = l2_provider.get_main_contract().await?;
-                println!("Main Contract:\n{main_contract_address:#?}\n{l2_explorer_url}/address/{main_contract_address:#?}",);
+                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                    println!(
+                        "Main Contract:\n{l2_explorer_url}/address/{main_contract_address:#?}",
+                    );
+                } else {
+                    println!("{main_contract_address:#?}");
+                }
             }
-            Command::BridgehubContract => {
+            Command::BridgehubContract { explorer_url } => {
                 let bridgehub_contract_address = l2_provider.get_bridgehub_contract().await?;
-                println!(
-                    "Bridgehub Contract:\n{bridgehub_contract_address:#?}\n{l2_explorer_url}/address/{bridgehub_contract_address:#?}",
-                );
+                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                    println!(
+                        "Bridgehub Contract:\n{l2_explorer_url}/address/{bridgehub_contract_address:#?}",
+                    );
+                } else {
+                    println!("{bridgehub_contract_address:#?}");
+                }
             }
-            Command::TestnetPaymaster => {
+            Command::TestnetPaymaster { explorer_url } => {
                 let testnet_paymaster_address = l2_provider.get_testnet_paymaster().await?;
-                println!(
-                    "Testnet Paymaster Address:\n{testnet_paymaster_address:#?}\n{l2_explorer_url}/address/{testnet_paymaster_address:#?}",
-                );
+                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                    println!(
+                        "Testnet Paymaster Address:\n{l2_explorer_url}/address/{testnet_paymaster_address:#?}",
+                    );
+                } else {
+                    println!("{testnet_paymaster_address:#?}");
+                }
             }
             Command::L1ChainID => {
                 let l1_chain_id = l2_provider.get_l1_chain_id().await?;
                 println!("L1 Chain ID: {l1_chain_id:#?}");
             }
-            Command::L1BaseTokenAddress => {
+            Command::L1BaseTokenAddress { explorer_url } => {
                 let l1_base_token_address = l2_provider.get_base_token_l1_address().await?;
-                println!(
-                    "L1 Base Token Address:\n{l1_base_token_address:#?}\n{l1_explorer_url}/address/{l1_base_token_address:#?}",
-                );
+                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                    println!(
+                        "L1 Base Token Address:\n{l1_explorer_url}/address/{l1_base_token_address:#?}",
+                    );
+                } else {
+                    println!("{l1_base_token_address:#?}");
+                }
             }
             Command::AllAccountBalances { account_address } => {
                 // Retrieving the L2 balances, the token addresses will not be usable on L1

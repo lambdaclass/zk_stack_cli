@@ -47,6 +47,8 @@ pub(crate) enum Command {
             help = "Specify the wallet in which you want to deposit your funds."
         )]
         to: Option<Address>,
+        #[clap(long, required = false)]
+        explorer_url: bool,
     },
     #[clap(about = "Finalize a pending withdrawal.")]
     FinalizeWithdraw {
@@ -67,6 +69,8 @@ pub(crate) enum Command {
             help = "If set it will do an L1 transfer, defaults to an L2 transfer"
         )]
         l1: bool,
+        #[clap(long, required = false)]
+        explorer_url: bool,
     },
     #[clap(about = "Withdraw funds from the wallet. TODO.")]
     Withdraw {
@@ -77,6 +81,8 @@ pub(crate) enum Command {
             help = "Specify the token address, the base token is used as default."
         )]
         token_address: Option<Address>,
+        #[clap(long, required = false)]
+        explorer_url: bool,
     },
     #[clap(about = "Get the wallet address.")]
     Address,
@@ -123,6 +129,7 @@ impl Command {
                 amount,
                 token_address,
                 to,
+                explorer_url,
             } => {
                 let mut spinner: Spinner = Spinner::new(send_frames, "Depositing", Color::Cyan);
                 let deposit_hash = match (to, token_address) {
@@ -134,7 +141,12 @@ impl Command {
                     }
                 };
 
-                let msg = format!("Success: {l1_explorer_url}/tx/{deposit_hash:?}");
+                let msg = if explorer_url {
+                    format!("Success: {l1_explorer_url}/tx/{deposit_hash:?}")
+                } else {
+                    format!("Success, Deposit hash: {deposit_hash:?}")
+                };
+
                 spinner.success(&msg);
             }
             Command::FinalizeWithdraw {
@@ -157,6 +169,7 @@ impl Command {
                 token_address,
                 to,
                 l1,
+                explorer_url,
             } => {
                 if l1 {
                     todo!("L1 transfers not supported by ZKWallet");
@@ -170,13 +183,20 @@ impl Command {
                     } else {
                         zk_wallet.transfer_base_token(amount, to, None).await?
                     };
-                    let msg = format!("Success: {l2_explorer_url}/tx/{transfer_hash:?}");
+
+                    let msg = if explorer_url {
+                        format!("Success: {l2_explorer_url}/tx/{transfer_hash:?}")
+                    } else {
+                        format!("Success, Transfer hash: {transfer_hash:?}")
+                    };
+
                     spinner.success(&msg);
                 }
             }
             Command::Withdraw {
                 amount,
                 token_address,
+                explorer_url,
             } => {
                 let mut spinner: Spinner = Spinner::new(
                     recv_frames,
@@ -197,7 +217,13 @@ impl Command {
                     wait_for_finalize_withdrawal(l2_withdrawal_tx_hash, &l2_provider);
                 wait_withdraw.await;
                 let withdraw_hash = zk_wallet.finalize_withdraw(l2_withdrawal_tx_hash).await?;
-                let msg = format!("Success: {l1_explorer_url}/tx/{withdraw_hash:?}");
+
+                let msg = if explorer_url {
+                    format!("Success: {l1_explorer_url}/tx/{withdraw_hash:?}")
+                } else {
+                    format!("Success, Withdraw hash: {withdraw_hash:?}")
+                };
+
                 spinner.success(&msg);
             }
             Command::Address => {
