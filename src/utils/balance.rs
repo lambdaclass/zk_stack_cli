@@ -5,17 +5,10 @@ use zksync_ethers_rs::{
         k256::ecdsa::SigningKey,
         utils::{format_ether, format_units},
     },
-    core::{
-        k256::ecdsa::SigningKey,
-        utils::{format_ether, format_units},
-    },
     providers::{Http, Middleware, Provider},
-    signers::Wallet,
     signers::Wallet,
     types::Address,
     utils::L2_ETH_TOKEN_ADDRESS,
-    zk_wallet::ZKWallet,
-    ZKMiddleware,
     zk_wallet::ZKWallet,
     ZKMiddleware,
 };
