@@ -1,16 +1,19 @@
+use crate::{
+    config::DB,
+    utils::config::{
+        config_file_names, config_path, config_path_interactive_selection, confirm,
+        confirm_config_creation, edit_config_by_name_interactively, edit_config_by_name_with_args,
+        edit_config_interactively,
+        messages::{
+            CONFIG_DELETE_PROMPT_MSG, CONFIG_OVERRIDE_PROMPT_MSG,
+            CONFIG_SELECTION_TO_DELETE_PROMPT_MSG, CONFIG_SET_PROMPT_MSG,
+            CONFIG_TO_DISPLAY_PROMPT_MSG,
+        },
+        prompt_zksync_config, selected_config_path, set_new_config,
+    },
+};
 use clap::{Parser, Subcommand};
 use zksync_ethers_rs::types::Address;
-
-use crate::utils::config::{
-    config_file_names, config_path, config_path_interactive_selection, confirm,
-    confirm_config_creation, edit_config_by_name_interactively, edit_config_by_name_with_args,
-    edit_config_interactively,
-    messages::{
-        CONFIG_DELETE_PROMPT_MSG, CONFIG_OVERRIDE_PROMPT_MSG,
-        CONFIG_SELECTION_TO_DELETE_PROMPT_MSG, CONFIG_SET_PROMPT_MSG, CONFIG_TO_DISPLAY_PROMPT_MSG,
-    },
-    prompt_zksync_config, selected_config_path, set_new_config_if_needed,
-};
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Subcommand)]
@@ -59,36 +62,50 @@ pub struct EditConfigOpts {
     pub bridgehub_admin: Option<String>,
     #[arg(long, requires = "config_name", required = false)]
     pub bridgehub_owner: Option<String>,
+    #[arg(long, requires = "config_name", required = false)]
+    pub server_db_url: Option<DB>,
+    #[arg(long, requires = "config_name", required = false)]
+    pub prover_db_url: Option<DB>,
+}
+
+impl EditConfigOpts {
+    pub fn is_empty(&self) -> bool {
+        self.l1_explorer_url.is_none()
+            && self.l1_rpc_url.is_none()
+            && self.l2_explorer_url.is_none()
+            && self.l2_rpc_url.is_none()
+            && self.private_key.is_none()
+            && self.address.is_none()
+            && self.governance.is_none()
+            && self.governance_owner.is_none()
+            && self.bridgehub_admin.is_none()
+            && self.bridgehub_owner.is_none()
+            && self.server_db_url.is_none()
+            && self.prover_db_url.is_none()
+    }
 }
 
 impl Command {
     pub async fn run(self) -> eyre::Result<()> {
         match self {
             Command::Edit { config_name, opts } => {
-                let (new_config, config_path, set_new_config) =
-                    if let Some(ref config_name) = config_name {
-                        let config_path = config_path(config_name)?;
-                        if !config_path.exists() {
-                            return confirm_config_creation(config_name.clone()).await;
-                        }
-                        let (new_config, set_new_config) = if opts.l1_explorer_url.is_none()
-                            && opts.l1_rpc_url.is_none()
-                            && opts.l2_explorer_url.is_none()
-                            && opts.l2_rpc_url.is_none()
-                            && opts.private_key.is_none()
-                            && opts.address.is_none()
-                        {
-                            edit_config_by_name_interactively(&config_path)?
-                        } else {
-                            edit_config_by_name_with_args(&config_path, opts)?
-                        };
-                        (new_config, config_path, set_new_config)
+                let (new_config, config_path) = if let Some(ref config_name) = config_name {
+                    let config_path = config_path(config_name)?;
+                    if !config_path.exists() {
+                        return confirm_config_creation(config_name.clone()).await;
+                    }
+                    let new_config = if opts.is_empty() {
+                        edit_config_by_name_interactively(&config_path)?
                     } else {
-                        edit_config_interactively()?
+                        edit_config_by_name_with_args(&config_path, opts)?
                     };
+                    (new_config, config_path)
+                } else {
+                    edit_config_interactively()?
+                };
                 let toml_config = toml::to_string_pretty(&new_config)?;
                 std::fs::write(&config_path, &toml_config)?;
-                set_new_config_if_needed(set_new_config, config_path.clone()).await?;
+                set_new_config(config_path.clone()).await?;
                 println!("Config updated at: {}", config_path.display());
                 println!("\n{toml_config}");
             }
