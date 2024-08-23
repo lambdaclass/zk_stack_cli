@@ -17,3 +17,5 @@ pub const CONTRACTS_GOVERNANCE_PROMPT_MSG: &str = "Governance contract address";
 pub const CONTRACTS_GOVERNANCE_PRIVATE_KEY_PROMPT_MSG: &str = "Governance owner private key";
 pub const CONTRACTS_BRIDGEHUB_ADMIN_PRIVATE_KEY_PROMPT_MSG: &str = "Bridgehub admin private key";
 pub const CONTRACTS_BRIDGEHUB_OWNER_PRIVATE_KEY_PROMPT_MSG: &str = "Bridgehub owner private key";
+pub const DATABASE_SERVER_URL_PROMPT_MSG: &str = "Server database URL";
+pub const DATABASE_PROVER_URL_PROMPT_MSG: &str = "Prover database URL";

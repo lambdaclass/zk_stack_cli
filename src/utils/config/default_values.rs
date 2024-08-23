@@ -18,3 +18,7 @@ pub const DEFAULT_CONTRACT_ADDRESS: H160 = H160([
     0x5E, 0x6D, 0x08, 0x6F, 0x5e, 0xC0, 0x79, 0xAD, 0xFF, 0x4F, 0xB3, 0x77, 0x4C, 0xdf, 0x3e, 0x8D,
     0x6a, 0x34, 0xF7, 0xE9,
 ]);
+pub const DEFAULT_DATABASE_SERVER_URL: &str =
+    "postgres://postgres:notsecurepassword@localhost/zksync_local";
+pub const DEFAULT_DATABASE_PROVER_URL: &str =
+    "postgres://postgres:notsecurepassword@localhost/prover_local";

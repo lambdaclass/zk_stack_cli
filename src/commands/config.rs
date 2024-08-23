@@ -1,5 +1,5 @@
 use crate::{
-    config::DB,
+    config::Database,
     utils::config::{
         config_file_names, config_path, config_path_interactive_selection, confirm,
         confirm_config_creation, edit_config_by_name_interactively, edit_config_by_name_with_args,
@@ -63,9 +63,9 @@ pub struct EditConfigOpts {
     #[arg(long, requires = "config_name", required = false)]
     pub bridgehub_owner: Option<String>,
     #[arg(long, requires = "config_name", required = false)]
-    pub server_db_url: Option<DB>,
+    pub server_db_url: Option<Database>,
     #[arg(long, requires = "config_name", required = false)]
-    pub prover_db_url: Option<DB>,
+    pub prover_db_url: Option<Database>,
 }
 
 impl EditConfigOpts {
