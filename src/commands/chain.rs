@@ -2,7 +2,7 @@ use crate::{
     config::ZKSyncConfig,
     utils::{
         balance::{display_l1_balance, display_l2_balance},
-        try_l2_provider_from_config,
+        try_l1_provider_from_config, try_l2_provider_from_config,
     },
 };
 use clap::Subcommand;
@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use zksync_ethers_rs::{
     abi::Hash,
     core::utils::format_ether,
-    providers::{Middleware, Provider},
+    providers::Middleware,
     types::{Address, Bytes, U64},
     ZKMiddleware,
 };
@@ -82,7 +82,7 @@ pub(crate) enum Command {
     },
     #[clap(about = "Retrieves the main contract address.", visible_aliases = &["main", "hyperchain", "diamond"])]
     MainContract {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(
@@ -90,21 +90,21 @@ pub(crate) enum Command {
         visible_alias = "bridgehub"
     )]
     BridgehubContract {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(
         about = "Retrieves the testnet paymaster address, specifically for interactions within the ZKsync Sepolia Testnet environment. Note: This method is only applicable for ZKsync Sepolia Testnet."
     )]
     TestnetPaymaster {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(about = "Retrieves the L1 chain ID.")]
     L1ChainID,
     #[clap(about = "Retrieves the L1 base token address.")]
     L1BaseTokenAddress {
-        #[arg(long, default_value_t = false)]
+        #[arg(long, short = 'e', default_value_t = false)]
         explorer_url: bool,
     },
     #[clap(about = "Gets all account balances for a given address.")]
@@ -134,7 +134,7 @@ pub(crate) enum Command {
     #[clap(about = "Gets the finalize deposit transaction hash.")]
     FinalizeDepositTx {
         l1_deposit_tx_hash: Hash,
-        #[clap(long, required = false)]
+        #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
     },
 }
@@ -142,6 +142,22 @@ pub(crate) enum Command {
 impl Command {
     pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
         let l2_provider = try_l2_provider_from_config(&cfg)?;
+        let l1_provider = try_l1_provider_from_config(&cfg)?;
+
+        let l1_explorer_url = cfg
+            .clone()
+            .network
+            .l1_explorer_url
+            .filter(|url| !url.is_empty())
+            .unwrap_or("https://sepolia.etherscan.io".to_owned());
+
+        let l2_explorer_url = cfg
+            .clone()
+            .network
+            .l2_explorer_url
+            .filter(|url| !url.is_empty())
+            .unwrap_or("http://localhost:3010".to_owned());
+
         match self {
             Command::GetCode { contract } => {
                 let deployed_bytecode = l2_provider.get_code(contract, None).await?;
@@ -231,13 +247,9 @@ impl Command {
             }
             Command::MainContract { explorer_url } => {
                 let main_contract_address = l2_provider.get_main_contract().await?;
-                print!("Main Contract: ");
                 if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
-                        "{}/address/{main_contract_address:#?}",
-                        cfg.network
-                            .l2_explorer_url
-                            .context("L2 Explorer URL missing in config")?,
+                        "Main Contract:\n{l2_explorer_url}/address/{main_contract_address:#?}",
                     );
                 } else {
                     println!("{main_contract_address:#?}");
@@ -245,13 +257,9 @@ impl Command {
             }
             Command::BridgehubContract { explorer_url } => {
                 let bridgehub_contract_address = l2_provider.get_bridgehub_contract().await?;
-                print!("Bridgehub Contract: ");
                 if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
-                        "{}/address/{bridgehub_contract_address:#?}",
-                        cfg.network
-                            .l2_explorer_url
-                            .context("L2 Explorer URL missing in config")?,
+                        "Bridgehub Contract:\n{l2_explorer_url}/address/{bridgehub_contract_address:#?}",
                     );
                 } else {
                     println!("{bridgehub_contract_address:#?}");
@@ -259,13 +267,9 @@ impl Command {
             }
             Command::TestnetPaymaster { explorer_url } => {
                 let testnet_paymaster_address = l2_provider.get_testnet_paymaster().await?;
-                print!("Testnet Paymaster Address: ");
                 if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
-                        "{}/address/{testnet_paymaster_address:#?}",
-                        cfg.network
-                            .l2_explorer_url
-                            .context("L2 Explorer URL missing in config")?,
+                        "Testnet Paymaster Address:\n{l2_explorer_url}/address/{testnet_paymaster_address:#?}",
                     );
                 } else {
                     println!("{testnet_paymaster_address:#?}");
@@ -277,13 +281,9 @@ impl Command {
             }
             Command::L1BaseTokenAddress { explorer_url } => {
                 let l1_base_token_address = l2_provider.get_base_token_l1_address().await?;
-                print!("L1 Base Token Address: ");
-                if explorer_url && cfg.network.l1_explorer_url.is_some() {
+                if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
-                        "{}/address/{l1_base_token_address:#?}",
-                        cfg.network
-                            .l1_explorer_url
-                            .context("L1 Explorer URL missing in config")?
+                        "L1 Base Token Address:\n{l1_explorer_url}/address/{l1_base_token_address:#?}",
                     );
                 } else {
                     println!("{l1_base_token_address:#?}");
@@ -348,13 +348,7 @@ impl Command {
                 l2,
                 l1,
             } => {
-                let l1_provider = Provider::try_from(
-                    cfg.network
-                        .l1_rpc_url
-                        .context("L1 RPC URL missing in config")?,
-                )?;
                 if l2 || !l1 {
-                    let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
                     let base_token_address = l2_provider.get_base_token_l1_address().await?;
                     display_l2_balance(
                         of,
@@ -374,11 +368,6 @@ impl Command {
                 l1_deposit_tx_hash,
                 explorer_url,
             } => {
-                let l1_provider = Provider::try_from(
-                    cfg.network
-                        .l1_rpc_url
-                        .context("L1 RPC URL missing in config")?,
-                )?;
                 let deposit_finalization_hash =
                     zksync_ethers_rs::deposit::l2_deposit_tx_hash(l1_deposit_tx_hash, &l1_provider)
                         .await;

@@ -86,8 +86,8 @@ impl Command {
                     "{}: {base_token_address:?}",
                     "Base Token Address".bold().green().on_black()
                 );
-                display_balance(None, &zk_wallet, true).await?;
-                display_balance(Some(base_token_address), &zk_wallet, true).await?;
+                display_balance(None, &zk_wallet, true, false).await?;
+                display_balance(Some(base_token_address), &zk_wallet, true, false).await?;
 
                 let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
                     base_token_address,
@@ -109,10 +109,10 @@ impl Command {
                     let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
                     let receipt = future_receipt.await?;
                     spinner.success("Tokens Minted!");
+                    display_balance(Some(base_token_address), &zk_wallet, true, false).await?;
                     println!("Transaction Hash: {:?}", receipt.transaction_hash);
                 }
 
-                display_balance(Some(base_token_address), &zk_wallet, true).await?;
                 println!("{}", "#".repeat(64));
                 // End Display L1 Balance and BaseToken Addr
 
@@ -149,11 +149,11 @@ impl Command {
                             "rich".bold().red().on_black(),
                             "rich".bold().red().on_black()
                         );
-                        display_balance(None, &zk_wallet, false).await?;
+                        display_balance(None, &zk_wallet, false, true).await?;
                         zk_wallet
                             .deposit_base_token(parsed_amount_to_deposit)
                             .await?;
-                        display_balance(None, &zk_wallet, false).await?;
+                        display_balance(None, &zk_wallet, false, true).await?;
                         println!("{}", "#".repeat(64));
                     }
                     // End Deposit from rich wallet to rich wallet
@@ -221,18 +221,16 @@ impl Command {
                         "[L2->L1]".bold().bright_cyan().on_black(),
                         "rich".bold().red().on_black(),
                     );
-                    display_balance(None, &zk_wallet, false).await?;
+                    display_balance(None, &zk_wallet, true, true).await?;
                     let withdraw_hash = zk_wallet
                         .withdraw_base_token(parse_ether(amount_of_bt_to_withdraw.to_string())?)
                         .await?;
                     println!("Withdraw hash: {withdraw_hash:?}");
-                    display_balance(None, &zk_wallet, false).await?;
                     let base_token_address = Some(l2_provider.get_base_token_l1_address().await?);
-                    display_balance(base_token_address, &zk_wallet, true).await?;
                     println!("finalize withdrawal");
                     wait_for_finalize_withdrawal(withdraw_hash, &l2_provider).await;
                     zk_wallet.finalize_withdraw(withdraw_hash).await?;
-                    display_balance(base_token_address, &zk_wallet, true).await?;
+                    display_balance(base_token_address, &zk_wallet, true, true).await?;
                     println!("{}", "#".repeat(64));
                     // End Withdrawal
                     if reruns_wanted != 0 {
@@ -252,7 +250,7 @@ async fn future_transfer_base_token(
     parsed_amount: U256,
     overrides: Option<L2TxOverrides>,
 ) -> eyre::Result<()> {
-    display_balance(None, to_wallet, false).await?;
+    display_balance(None, to_wallet, false, true).await?;
 
     let transfer_hash = from_wallet
         .transfer_base_token(parsed_amount, to_wallet.l2_address(), overrides)
@@ -260,7 +258,7 @@ async fn future_transfer_base_token(
 
     println!("Transfer hash: {transfer_hash:?}");
 
-    display_balance(None, to_wallet, false).await?;
+    display_balance(None, to_wallet, false, true).await?;
 
     Ok(())
 }
@@ -269,8 +267,8 @@ async fn future_transfer_base_token_back(
     from_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
     to_wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
 ) -> eyre::Result<()> {
-    display_balance(None, from_wallet, false).await?;
-    display_balance(None, to_wallet, false).await?;
+    display_balance(None, from_wallet, false, true).await?;
+    display_balance(None, to_wallet, false, true).await?;
     let balance = from_wallet
         .l2_provider()
         .get_balance(from_wallet.l2_address(), None)
@@ -298,8 +296,8 @@ async fn future_transfer_base_token_back(
         )
         .await?;
     println!("Transfer hash: {transfer_hash:?}");
-    display_balance(None, from_wallet, false).await?;
-    display_balance(None, to_wallet, false).await?;
+    display_balance(None, from_wallet, false, true).await?;
+    display_balance(None, to_wallet, false, true).await?;
     Ok(())
 }
 

@@ -1,11 +1,13 @@
 use crate::config::ZKSyncConfig;
-use eyre::{Context, ContextCompat, Ok};
+use eyre::ContextCompat;
 use zksync_ethers_rs::{
     middleware::SignerMiddleware,
     providers::{Http, Middleware, Provider},
     signers::{LocalWallet, Signer},
     zk_wallet::ZKWallet,
 };
+
+use super::{try_l1_provider_from_config, try_l2_provider_from_config};
 
 type ZKWalletProvider = Provider<Http>;
 type SetupResult = (
@@ -14,22 +16,18 @@ type SetupResult = (
     ZKWalletProvider,
 );
 
-impl TryFrom<ZKSyncConfig> for ZKWallet<ZKWalletProvider, LocalWallet> {
+impl TryFrom<&ZKSyncConfig> for ZKWallet<ZKWalletProvider, LocalWallet> {
     type Error = eyre::Error;
 
-    fn try_from(cfg: ZKSyncConfig) -> eyre::Result<Self> {
-        let l1_provider = Provider::try_from(
-            cfg.network
-                .l1_rpc_url
-                .context("L1 RPC URL missing in config")?,
-        )?;
+    fn try_from(cfg: &ZKSyncConfig) -> eyre::Result<Self> {
+        let l1_provider = try_l1_provider_from_config(cfg)?;
+        let l2_provider = try_l2_provider_from_config(cfg)?;
+
         let l1_chain_id = cfg
             .network
             .l1_chain_id
             .context("L1 CHAIN_ID missing in config")?;
 
-        let l2_provider =
-            Provider::try_from(cfg.network.l2_rpc_url).context("L2 RPC URL missing in config")?;
         let l2_chain_id = cfg
             .network
             .l2_chain_id
@@ -72,15 +70,9 @@ pub(crate) async fn new_zkwallet(
 }
 
 pub fn get_wallet_l1_l2_providers(cfg: ZKSyncConfig) -> eyre::Result<SetupResult> {
-    let cloned_cfg = cfg.clone();
-    let l1_provider = Provider::try_from(
-        cfg.network
-            .l1_rpc_url
-            .context("L1 RPC URL missing in config")?,
-    )?;
-    let l2_provider = Provider::try_from(cfg.network.l2_rpc_url)?;
-
-    let zk_wallet = ZKWallet::try_from(cloned_cfg)?;
+    let l1_provider = try_l1_provider_from_config(&cfg)?;
+    let l2_provider = try_l2_provider_from_config(&cfg)?;
+    let zk_wallet = ZKWallet::try_from(&cfg)?;
 
     Ok((zk_wallet, l1_provider, l2_provider))
 }

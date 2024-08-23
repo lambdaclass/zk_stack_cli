@@ -41,7 +41,7 @@ pub(crate) enum Command {
         transparent: bool,
         #[clap(long, conflicts_with_all = &["shadow", "operation_id"], value_parser = parse_operation, requires = "transparent", required = false)]
         operation: Option<Operation>,
-        #[clap(long, required = false)]
+        #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
     },
     #[clap(about = "Cancel a scheduled operation.")]
@@ -75,7 +75,7 @@ pub(crate) enum Command {
         transparent_upgrade: bool,
         #[arg(short = 'e', long, required = false)]
         execute: bool,
-        #[arg(long, required = false)]
+        #[arg(long, short = 'e', required = false)]
         explorer_url: bool,
     },
     #[clap(
@@ -93,7 +93,7 @@ pub(crate) enum Command {
         transparent_upgrade: bool,
         #[arg(short = 'e', long, required = false)]
         execute: bool,
-        #[arg(long, required = false)]
+        #[arg(long, short = 'e', required = false)]
         explorer_url: bool,
     },
 }
