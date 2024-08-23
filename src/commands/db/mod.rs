@@ -3,7 +3,6 @@ use clap::Subcommand;
 
 pub(crate) mod prover;
 pub(crate) mod server;
-mod types;
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
