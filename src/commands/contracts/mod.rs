@@ -5,7 +5,7 @@ use crate::config::ZKSyncConfig;
 pub(crate) mod bridgehub;
 pub(crate) mod governance;
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(
         subcommand,

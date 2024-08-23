@@ -4,7 +4,7 @@ use clap_complete::{aot::Shell, generate};
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, Write};
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "Generate autocomplete shell script.")]
     Generate {

@@ -11,7 +11,7 @@ use zksync_ethers_rs::{
     wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "Get the balance of the wallet.")]
     Balance {

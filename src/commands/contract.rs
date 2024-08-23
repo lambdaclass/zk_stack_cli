@@ -1,7 +1,7 @@
 use crate::config::ZKSyncConfig;
 use clap::Subcommand;
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "Call view functions on a contract.")]
     Call {
