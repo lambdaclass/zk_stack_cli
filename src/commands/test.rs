@@ -6,12 +6,11 @@ use clap::Subcommand;
 use colored::*;
 use spinoff::{spinners, Color, Spinner};
 use std::ops::Div;
+use std::sync::Arc;
 use zksync_ethers_rs::core::utils::format_ether;
 use zksync_ethers_rs::{
-    core::utils::parse_ether,
-    providers::Middleware,
-    types::{L2TxOverrides, U256},
-    wait_for_finalize_withdrawal, ZKMiddleware,
+    core::utils::parse_ether, providers::Middleware, types::U256, wait_for_finalize_withdrawal,
+    ZKMiddleware,
 };
 #[derive(Subcommand, PartialEq)]
 pub(crate) enum Command {
@@ -108,7 +107,8 @@ impl Command {
                         reruns_wanted.to_string().red()
                     }
                 );
-
+                let zk_wallet_addr = zk_wallet.l2_address();
+                let arc_zk_wallet = Arc::new(zk_wallet);
                 while reruns < reruns_to_complete {
                     println!(
                         "{} N: {}",
@@ -116,100 +116,76 @@ impl Command {
                         (current_reruns).to_string().yellow().on_black()
                     );
                     // Begin Deposit from rich wallet to rich wallet
-                    let l2_balance = zk_wallet
-                        .l2_provider()
-                        .get_balance(zk_wallet.l2_address(), None)
-                        .await?;
+                    let l2_balance = l2_provider.get_balance(zk_wallet_addr, None).await?;
                     if l2_balance.le(&parsed_amount_to_deposit) {
                         println!("{}", "#".repeat(64));
-                        println!(
-                            "{} Deposit from {} wallet to {} wallet.",
-                            "[L1->L2]".bold().bright_cyan().on_black(),
-                            "rich".bold().red().on_black(),
-                            "rich".bold().red().on_black()
-                        );
-                        display_balance(None, &zk_wallet, false, true).await?;
-                        zk_wallet
-                            .deposit_base_token(parsed_amount_to_deposit)
-                            .await?;
-                        display_balance(None, &zk_wallet, false, true).await?;
+                        deposit_base_token(&arc_zk_wallet, parsed_amount_to_deposit).await?;
                         println!("{}", "#".repeat(64));
                     }
-                    // End Deposit from rich wallet to rich wallet
 
-                    // Begin Transfer from rich wallet to each wallet
+                    // End Deposit from rich wallet to rich wallet
                     println!("{}", "#".repeat(64));
+                    // Begin Transfer from rich wallet to each wallet
+
+                    display_balances(&wallets).await?;
+
                     println!(
                         "{} Transfer from {} wallet to {} wallet.",
                         "[L2->L2]".bold().bright_cyan().on_black(),
                         "rich".bold().red().on_black(),
                         "each".bold().blue().on_black()
                     );
-
-                    let mut futures = Vec::new();
-                    let mut nonce = l2_provider
-                        .get_transaction_count(zk_wallet.l2_address(), None)
-                        .await?;
-                    for w in &wallets {
-                        let transfer_future = future_transfer_base_token(
-                            &zk_wallet,
-                            w,
-                            parsed_amount_of_bt_to_transfer_for_each,
-                            Some(L2TxOverrides::new().nonce(nonce)),
-                        );
-                        futures.push(transfer_future);
-                        nonce = nonce.saturating_add(U256::one());
-                    }
                     println!(
                         "{}",
                         "Waiting for all transactions to finish".yellow().on_black()
                     );
-                    for f in futures {
-                        f.await?;
-                    }
-                    println!("{}", "#".repeat(64));
-                    // End Transfer from rich wallet to each wallet
 
-                    // Begin Transfer from each wallet to rich wallet
+                    let _tx_hashes = send_transactions(
+                        &arc_zk_wallet,
+                        &wallets,
+                        parsed_amount_of_bt_to_transfer_for_each,
+                    )
+                    .await?;
+
+                    display_balances(&wallets).await?;
+
+                    // End Transfer from rich wallet to each wallet
                     println!("{}", "#".repeat(64));
+                    // Begin Transfer from each wallet to rich wallet
+
+                    display_balance(None, &arc_zk_wallet, false, true).await?;
+
                     println!(
                         "{} Transfer from {} wallet to {} wallet.",
                         "[L1->L2]".bold().bright_cyan().on_black(),
                         "each".bold().blue().on_black(),
                         "rich".bold().red().on_black()
                     );
-                    let mut futures = Vec::new();
-                    for w in &wallets {
-                        let transfer_future = future_transfer_base_token_back(w, &zk_wallet);
-                        futures.push(transfer_future);
-                    }
-                    println!(
-                        "{}",
-                        "Waiting for all transactions to finish".yellow().on_black()
-                    );
-                    for f in futures {
-                        f.await?;
-                    }
-                    println!("{}", "#".repeat(64));
-                    // End Transfer from each wallet to rich wallet
 
-                    // Begin Withdrawal
+                    let _tx_hashes = send_transactions_back(&wallets, &arc_zk_wallet).await?;
+
+                    display_balance(None, &arc_zk_wallet, false, true).await?;
+
+                    // End Transfer from each wallet to rich wallet
                     println!("{}", "#".repeat(64));
+                    // Begin Withdrawal
+
                     println!(
                         "{} Withdraw basetoken from {} wallet.",
                         "[L2->L1]".bold().bright_cyan().on_black(),
                         "rich".bold().red().on_black(),
                     );
-                    display_balance(None, &zk_wallet, true, true).await?;
-                    let withdraw_hash = zk_wallet
+
+                    display_balance(Some(base_token_address), &arc_zk_wallet, true, true).await?;
+                    let withdraw_hash = arc_zk_wallet
                         .withdraw_base_token(parse_ether(amount_of_bt_to_withdraw.to_string())?)
                         .await?;
                     println!("Withdraw hash: {withdraw_hash:?}");
                     let base_token_address = Some(l2_provider.get_base_token_l1_address().await?);
                     println!("finalize withdrawal");
                     wait_for_finalize_withdrawal(withdraw_hash, &l2_provider).await;
-                    zk_wallet.finalize_withdraw(withdraw_hash).await?;
-                    display_balance(base_token_address, &zk_wallet, true, true).await?;
+                    arc_zk_wallet.finalize_withdraw(withdraw_hash).await?;
+                    display_balance(base_token_address, &arc_zk_wallet, true, true).await?;
                     println!("{}", "#".repeat(64));
                     // End Withdrawal
                     if reruns_wanted != 0 {
