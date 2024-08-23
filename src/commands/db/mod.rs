@@ -6,9 +6,17 @@ pub(crate) mod server;
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
-    #[clap(subcommand, visible_alias = "s")]
+    #[clap(
+        subcommand,
+        about = "Server database interaction commands.",
+        visible_alias = "s"
+    )]
     Server(server::Command),
-    #[clap(subcommand, visible_alias = "p")]
+    #[clap(
+        subcommand,
+        about = "Prover database interaction commands.",
+        visible_alias = "p"
+    )]
     Prover(prover::Command),
 }
 

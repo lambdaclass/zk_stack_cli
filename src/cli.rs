@@ -47,7 +47,10 @@ enum ZKSyncCommand {
     Autocomplete(autocomplete::Command),
     #[clap(subcommand, about = "Utility commands.")]
     Utils(utils::Command),
-    #[clap(subcommand, about = "")]
+    #[clap(
+        subcommand,
+        about = "Commands for interacting with the server and prover databases."
+    )]
     Db(db::Command),
 }
 
