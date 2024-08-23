@@ -92,11 +92,12 @@ pub(crate) async fn display_l2_balance(
 pub(crate) async fn display_balance(
     token: Option<Address>,
     wallet: &ZKWallet<Provider<Http>, Wallet<SigningKey>>,
-    from_l1: bool,
+    l1: bool,
+    l2: bool,
 ) -> eyre::Result<()> {
     let l1_provider = wallet.l1_provider();
     let wallet_address = wallet.l2_address();
-    if !from_l1 {
+    if l2 || !l1 {
         let l2_provider = wallet.l2_provider();
         let base_token_address = l2_provider.get_base_token_l1_address().await?;
         display_l2_balance(
@@ -108,7 +109,8 @@ pub(crate) async fn display_balance(
             false,
         )
         .await?;
-    } else {
+    }
+    if l1 {
         display_l1_balance(wallet_address, token, l1_provider).await?;
     };
     Ok(())
