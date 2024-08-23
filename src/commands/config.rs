@@ -13,7 +13,7 @@ use crate::utils::config::{
 };
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "Edit an existing config.")]
     Edit {
@@ -33,7 +33,7 @@ pub(crate) enum Command {
     Delete { config_name: Option<String> },
 }
 
-#[derive(Parser, PartialEq)]
+#[derive(Parser)]
 pub struct EditConfigOpts {
     #[arg(long, requires = "config_name", required = false)]
     pub l1_rpc_url: Option<String>,

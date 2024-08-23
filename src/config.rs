@@ -3,7 +3,7 @@ use eyre::Context;
 use serde::{Deserialize, Serialize};
 use zksync_ethers_rs::types::Address;
 
-#[derive(Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct ZKSyncConfig {
     pub network: NetworkConfig,
     pub wallet: Option<WalletConfig>,
@@ -11,7 +11,7 @@ pub struct ZKSyncConfig {
     pub bridgehub: BridgehubConfig,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct NetworkConfig {
     pub l1_rpc_url: Option<String>,
     pub l1_chain_id: Option<u64>,
@@ -21,19 +21,19 @@ pub struct NetworkConfig {
     pub l2_explorer_url: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct WalletConfig {
     pub address: Address,
     pub private_key: String,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct GovernanceConfig {
     pub address: Address,
     pub owner_private_key: String,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct BridgehubConfig {
     pub admin_private_key: Option<String>,
     pub owner_private_key: Option<String>,

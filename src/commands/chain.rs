@@ -16,7 +16,7 @@ use zksync_ethers_rs::{
     ZKMiddleware,
 };
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "Get the deployed bytecode of a contract")]
     GetCode { contract: Address },

@@ -13,7 +13,7 @@ pub struct ZKSyncCLI {
     command: ZKSyncCommand,
 }
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 enum ZKSyncCommand {
     #[clap(
         subcommand,

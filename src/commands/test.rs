@@ -21,7 +21,7 @@ use zksync_ethers_rs::{
     ZKMiddleware,
 };
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "LoadTest the zkStack Chain.")]
     LoadTest {

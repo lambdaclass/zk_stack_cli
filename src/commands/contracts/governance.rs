@@ -9,7 +9,7 @@ use zksync_ethers_rs::{
     types::{Address, Bytes, U256},
 };
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(
         about = "Returns whether an id corresponds to a registered operation. This includes Waiting, Ready, and Done operations."
