@@ -12,7 +12,7 @@ where
     let table = input_table_name_for(aggregation_round);
     let query = format!(
         "
-        SELECT l1_batch_number
+        SELECT *
         FROM {table}
         WHERE
             attempts = {CURRENT_MAX_ATTEMPTS}
@@ -34,7 +34,7 @@ pub async fn get_batch_proofs_stuck_at_prover_in_agg_round(
 ) -> eyre::Result<Vec<ProverJobFriInfo>> {
     let query = format!(
         "
-        SELECT l1_batch_number
+        SELECT *
         FROM prover_jobs_fri
         WHERE
             attempts = {CURRENT_MAX_ATTEMPTS}
