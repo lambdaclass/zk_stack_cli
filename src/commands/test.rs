@@ -7,8 +7,13 @@ use crate::utils::{
 use clap::Subcommand;
 use colored::*;
 use core::time;
+use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
-use std::{ops::Div, sync::Arc, thread::sleep};
+use std::{
+    ops::{Add, Div},
+    sync::Arc,
+    thread::sleep,
+};
 use zksync_ethers_rs::{
     core::utils::{format_ether, parse_ether},
     providers::Middleware,
@@ -18,7 +23,7 @@ use zksync_ethers_rs::{
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
-    #[clap(about = "LoadTest the zkStack Chain.")]
+    #[clap(about = "LoadTest the zkStack Chain.", visible_alias = "lt")]
     LoadTest {
         #[clap(long = "wallets", short = 'w', required = true)]
         number_of_wallets: u16,
@@ -50,7 +55,10 @@ pub(crate) enum Command {
         )]
         sleep_secs: u64,
     },
-    #[clap(about = "Gas Measurements for the zkStack Chain.")]
+    #[clap(
+        about = "Gas Measurements for the zkStack Chain.",
+        visible_alias = "gs"
+    )]
     GasScenario {
         #[clap(long = "wallets", short = 'w', required = true)]
         number_of_wallets: u16,
@@ -254,7 +262,145 @@ impl Command {
                 number_of_wallets,
                 amount,
             } => {
-                todo!("GasScenario");
+                let wallets =
+                    get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
+                // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
+                let parsed_amount_to_deposit = parse_ether(amount)?
+                    .div(10_u32)
+                    .saturating_mul(U256::from(12_u32)); // 20% of headroom
+                let float_wallets: f32 = number_of_wallets.into();
+                let amount_of_bt_to_transfer_for_each: f32 = amount / float_wallets;
+
+                // Here we are assuming that the base token has 18 decimals
+                let parsed_amount_of_bt_to_transfer_for_each =
+                    parse_ether(amount_of_bt_to_transfer_for_each)?;
+
+                let zk_wallet_addr = zk_wallet.l2_address();
+                let arc_zk_wallet = Arc::new(zk_wallet);
+
+                let mut spinner = Spinner::new(spinners::Dots, "Checking L2 Balance", Color::Blue);
+
+                let l2_balance = l2_provider.get_balance(zk_wallet_addr, None).await?;
+
+                let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
+                    base_token_address,
+                    zk_wallet_addr,
+                    &l1_provider,
+                )
+                .await?;
+
+                if l2_balance.le(&parsed_amount_to_deposit) {
+                    spinner.update(spinners::Dots, "Checking L1 Balance", Color::Blue);
+
+                    // Here we are assuming that the base token has 18 decimals
+                    if parse_ether(l1_balance)?.le(&parsed_amount_to_deposit) {
+                        let mint_amount = parsed_amount_to_deposit;
+
+                        let msg = format!(
+                            "Not enough tokens... Minting {} {token_symbol}",
+                            format_ether(mint_amount)
+                        );
+                        spinner.update(spinners::Dots, msg, Color::Blue);
+
+                        let future_receipt =
+                            erc20_l1_mint(base_token_address, &arc_zk_wallet, mint_amount);
+
+                        let receipt = future_receipt.await?;
+
+                        display_balance(Some(base_token_address), &arc_zk_wallet, true, false)
+                            .await?;
+                        println!("Transaction Hash: {:?}", receipt.transaction_hash);
+                    }
+                    spinner.update(spinners::Dots, "Depositing", Color::Blue);
+                    // Begin Deposit from rich wallet to rich wallet
+                    deposit_base_token(&arc_zk_wallet, parsed_amount_to_deposit).await?;
+                    // End Deposit from rich wallet to rich wallet
+                    spinner.success("Success, Deposit");
+                } else {
+                    spinner.success("Enough L2 balance");
+                }
+
+                // Begin Transfer from rich wallet to each wallet
+
+                println!(
+                    "{} Transfer from {} wallet to {} wallet.",
+                    "[L2->L2]".bold().bright_cyan().on_black(),
+                    "rich".bold().red().on_black(),
+                    "each".bold().blue().on_black()
+                );
+
+                println!(
+                    "{}",
+                    "Waiting for all transactions to finish".yellow().on_black()
+                );
+
+                let tx_hashes_forwards = send_transactions(
+                    &arc_zk_wallet,
+                    &wallets,
+                    parsed_amount_of_bt_to_transfer_for_each,
+                )
+                .await?;
+
+                display_balances(&wallets).await?;
+
+                // End Transfer from rich wallet to each wallet
+                println!("{}", "#".repeat(64));
+                // Begin Transfer from each wallet to rich wallet
+
+                display_balance(None, &arc_zk_wallet, false, true).await?;
+
+                println!(
+                    "{} Transfer from {} wallet to {} wallet.",
+                    "[L1->L2]".bold().bright_cyan().on_black(),
+                    "each".bold().blue().on_black(),
+                    "rich".bold().red().on_black()
+                );
+
+                let _tx_hashes_backwards = send_transactions_back(&wallets, &arc_zk_wallet).await?;
+
+                // End Transfer from each wallet to rich wallet
+                println!("{}", "#".repeat(64));
+                let mut fees = U256::zero();
+                let mut gas = U256::zero();
+                let mut gas_price = U256::zero();
+                for h in tx_hashes_forwards {
+                    let receipt = l2_provider
+                        .get_transaction_receipt(h)
+                        .await?
+                        .context("Error unwrapping tx_receipt")?;
+
+                    let gas_used = receipt.gas_used.context("Error unwrapping gas_used")?;
+                    let receipt_gas_price = receipt
+                        .effective_gas_price
+                        .context("Error unwrapping gas price")?;
+
+                    let details = l2_provider
+                        .get_transaction_details(h)
+                        .await?
+                        .context("Error unwrapping tx_details")?;
+
+                    fees = fees.add(details.fee);
+                    if gas_price.is_zero() {
+                        gas_price = receipt_gas_price;
+                    }
+                    gas_price = (receipt_gas_price + gas_price) / 2_u32;
+                    gas = gas.add(gas_used);
+                }
+
+                println!(
+                    "{} Transaction(s)\nGas Used: {}\nTotal Fees: {}",
+                    format!("{}", wallets.len())
+                        .bold()
+                        .bright_yellow()
+                        .on_black(),
+                    format!("{gas}").bold().bright_green().on_black(),
+                    format!("{} {}", format_ether(fees), token_symbol)
+                        .bold()
+                        .bright_cyan()
+                        .on_black(),
+                );
+
+                Ok(())
             }
         }
     }

@@ -116,11 +116,9 @@ pub async fn deposit_base_token(
         "rich".bold().red().on_black(),
         "rich".bold().red().on_black()
     );
-    display_balance(None, from_wallet, false, true).await?;
     from_wallet
         .deposit_base_token(parsed_amount_to_deposit)
         .await?;
-    display_balance(None, from_wallet, false, true).await?;
     Ok(())
 }
 
