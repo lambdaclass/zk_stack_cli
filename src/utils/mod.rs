@@ -9,6 +9,7 @@ use zksync_ethers_rs::{
 pub(crate) mod balance;
 pub(crate) mod config;
 pub(crate) mod contracts;
+pub(crate) mod db;
 pub(crate) mod test;
 pub(crate) mod wallet;
 

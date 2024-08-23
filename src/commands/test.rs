@@ -12,7 +12,7 @@ use zksync_ethers_rs::{
     core::utils::parse_ether, providers::Middleware, types::U256, wait_for_finalize_withdrawal,
     ZKMiddleware,
 };
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "LoadTest the zkStack Chain.")]
     LoadTest {

@@ -56,3 +56,17 @@ dialoguer = "0.11"
 colored = "2.1.0"
 clap_complete = "4.5.17"
 spinoff = "0.8.0"
+sqlx = { version = "0.8.0", default-features = false, features = [
+    "runtime-tokio",
+    "tls-native-tls",
+    "macros",
+    "postgres",
+    "bigdecimal",
+    "rust_decimal",
+    "chrono",
+    "json",
+    "migrate",
+    "ipnetwork",
+]}
+chrono = "0.4"
+itertools = "0.13.0"

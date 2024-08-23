@@ -6,7 +6,7 @@ use zksync_ethers_rs::{
     types::{Address, Bytes, I256, U128, U256},
 };
 
-#[derive(Subcommand, PartialEq)]
+#[derive(Subcommand)]
 pub(crate) enum Command {
     #[command(name = "calldata", visible_alias = "cd")]
     CalldataEncode {
