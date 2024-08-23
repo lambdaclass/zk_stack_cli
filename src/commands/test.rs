@@ -31,6 +31,25 @@ pub(crate) enum Command {
             help = "If set to 0 it will run indefinitely, If not set defaults to 1 run."
         )]
         reruns_wanted: Option<u8>,
+        #[arg(
+            long = "withdraw",
+            short = 'w',
+            default_value_t = false,
+            help = "If set, the funds will be withdrawn after each run."
+        )]
+        withdraw: bool,
+    },
+    #[clap(about = "Gas Measurements for the zkStack Chain.")]
+    GasScenario {
+        #[clap(long = "wallets", short = 'w', required = true)]
+        number_of_wallets: u16,
+        #[clap(
+            long = "amount",
+            short = 'a',
+            required = true,
+            help = "Amount of BaseToken to deposit, 20% more will be deposited.\nThat extra 20% will remain in the main wallet,\nthe rest will be redistributed to random wallets"
+        )]
+        amount: f32,
     },
 }
 
@@ -44,6 +63,7 @@ impl Command {
                 number_of_wallets,
                 amount,
                 reruns_wanted,
+                withdraw,
             } => {
                 let wallets =
                     get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
@@ -66,30 +86,6 @@ impl Command {
                 );
                 display_balance(None, &zk_wallet, true, false).await?;
                 display_balance(Some(base_token_address), &zk_wallet, true, false).await?;
-
-                let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
-                    base_token_address,
-                    zk_wallet.l1_address(),
-                    &l1_provider,
-                )
-                .await?;
-
-                // Here we are assuming that the base token has 18 decimals
-                if parse_ether(l1_balance)?.le(&parsed_amount_to_deposit) {
-                    let mint_amount = parsed_amount_to_deposit
-                        .div(100_u32)
-                        .saturating_mul(U256::from(120_u32));
-                    let future_receipt = erc20_l1_mint(base_token_address, &zk_wallet, mint_amount);
-                    let msg = format!(
-                        "Not enough tokens... Minting {} {token_symbol}",
-                        format_ether(mint_amount)
-                    );
-                    let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
-                    let receipt = future_receipt.await?;
-                    spinner.success("Tokens Minted!");
-                    display_balance(Some(base_token_address), &zk_wallet, true, false).await?;
-                    println!("Transaction Hash: {:?}", receipt.transaction_hash);
-                }
 
                 println!("{}", "#".repeat(64));
                 // End Display L1 Balance and BaseToken Addr
@@ -115,16 +111,52 @@ impl Command {
                         "Run".red().on_black(),
                         (current_reruns).to_string().yellow().on_black()
                     );
-                    // Begin Deposit from rich wallet to rich wallet
+
+                    let mut spinner =
+                        Spinner::new(spinners::Dots, "Checking L2 Balance", Color::Blue);
+
                     let l2_balance = l2_provider.get_balance(zk_wallet_addr, None).await?;
+
                     if l2_balance.le(&parsed_amount_to_deposit) {
-                        println!("{}", "#".repeat(64));
+                        spinner.update(spinners::Dots, "Checking L1 Balance", Color::Blue);
+
+                        let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
+                            base_token_address,
+                            zk_wallet_addr,
+                            &l1_provider,
+                        )
+                        .await?;
+
+                        // Here we are assuming that the base token has 18 decimals
+                        if parse_ether(l1_balance)?.le(&parsed_amount_to_deposit) {
+                            let mint_amount = parsed_amount_to_deposit
+                                .div(100_u32)
+                                .saturating_mul(U256::from(120_u32));
+
+                            let msg = format!(
+                                "Not enough tokens... Minting {} {token_symbol}",
+                                format_ether(mint_amount)
+                            );
+                            spinner.update(spinners::Dots, msg, Color::Blue);
+
+                            let future_receipt =
+                                erc20_l1_mint(base_token_address, &arc_zk_wallet, mint_amount);
+
+                            let receipt = future_receipt.await?;
+
+                            display_balance(Some(base_token_address), &arc_zk_wallet, true, false)
+                                .await?;
+                            println!("Transaction Hash: {:?}", receipt.transaction_hash);
+                        }
+                        spinner.update(spinners::Dots, "Depositing", Color::Blue);
+                        // Begin Deposit from rich wallet to rich wallet
                         deposit_base_token(&arc_zk_wallet, parsed_amount_to_deposit).await?;
-                        println!("{}", "#".repeat(64));
+                        // End Deposit from rich wallet to rich wallet
+                        spinner.success("Success, Deposit");
+                    } else {
+                        spinner.success("Enough L2 balance");
                     }
 
-                    // End Deposit from rich wallet to rich wallet
-                    println!("{}", "#".repeat(64));
                     // Begin Transfer from rich wallet to each wallet
 
                     display_balances(&wallets).await?;
@@ -168,32 +200,43 @@ impl Command {
 
                     // End Transfer from each wallet to rich wallet
                     println!("{}", "#".repeat(64));
-                    // Begin Withdrawal
 
-                    println!(
-                        "{} Withdraw basetoken from {} wallet.",
-                        "[L2->L1]".bold().bright_cyan().on_black(),
-                        "rich".bold().red().on_black(),
-                    );
+                    if withdraw {
+                        // Begin Withdrawal
+                        println!(
+                            "{} Withdraw basetoken from {} wallet.",
+                            "[L2->L1]".bold().bright_cyan().on_black(),
+                            "rich".bold().red().on_black(),
+                        );
 
-                    display_balance(Some(base_token_address), &arc_zk_wallet, true, true).await?;
-                    let withdraw_hash = arc_zk_wallet
-                        .withdraw_base_token(parse_ether(amount_of_bt_to_withdraw.to_string())?)
-                        .await?;
-                    println!("Withdraw hash: {withdraw_hash:?}");
-                    let base_token_address = Some(l2_provider.get_base_token_l1_address().await?);
-                    println!("finalize withdrawal");
-                    wait_for_finalize_withdrawal(withdraw_hash, &l2_provider).await;
-                    arc_zk_wallet.finalize_withdraw(withdraw_hash).await?;
-                    display_balance(base_token_address, &arc_zk_wallet, true, true).await?;
-                    println!("{}", "#".repeat(64));
-                    // End Withdrawal
+                        display_balance(Some(base_token_address), &arc_zk_wallet, true, true)
+                            .await?;
+                        let withdraw_hash = arc_zk_wallet
+                            .withdraw_base_token(parse_ether(amount_of_bt_to_withdraw.to_string())?)
+                            .await?;
+                        println!("Withdraw hash: {withdraw_hash:?}");
+                        let base_token_address =
+                            Some(l2_provider.get_base_token_l1_address().await?);
+                        println!("finalize withdrawal");
+                        wait_for_finalize_withdrawal(withdraw_hash, &l2_provider).await;
+                        arc_zk_wallet.finalize_withdraw(withdraw_hash).await?;
+                        display_balance(base_token_address, &arc_zk_wallet, true, true).await?;
+                        println!("{}", "#".repeat(64));
+                        // End Withdrawal
+                    }
+
                     if reruns_wanted != 0 {
                         reruns += 1;
                     }
                     current_reruns += 1;
                 }
                 Ok(())
+            }
+            Command::GasScenario {
+                number_of_wallets,
+                amount,
+            } => {
+                todo!("GasScenario");
             }
         }
     }
