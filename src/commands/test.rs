@@ -1,17 +1,21 @@
 use crate::config::ZKSyncConfig;
-use crate::utils::balance::{display_balance, get_erc20_balance_decimals_symbol};
-use crate::utils::test::*;
-use crate::utils::wallet::*;
+use crate::utils::{
+    balance::{display_balance, get_erc20_balance_decimals_symbol},
+    test::*,
+    wallet::*,
+};
 use clap::Subcommand;
 use colored::*;
+use core::time;
 use spinoff::{spinners, Color, Spinner};
-use std::ops::Div;
-use std::sync::Arc;
-use zksync_ethers_rs::core::utils::format_ether;
+use std::{ops::Div, sync::Arc, thread::sleep};
 use zksync_ethers_rs::{
-    core::utils::parse_ether, providers::Middleware, types::U256, wait_for_finalize_withdrawal,
-    ZKMiddleware,
+    core::utils::{format_ether, parse_ether},
+    providers::Middleware,
+    types::U256,
+    wait_for_finalize_withdrawal, ZKMiddleware,
 };
+
 #[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "LoadTest the zkStack Chain.")]
@@ -38,6 +42,13 @@ pub(crate) enum Command {
             help = "If set, the funds will be withdrawn after each run."
         )]
         withdraw: bool,
+        #[arg(
+            long = "sleep",
+            short = 's',
+            default_value_t = 1,
+            help = "Sleep interval between each rerun"
+        )]
+        sleep_secs: u64,
     },
     #[clap(about = "Gas Measurements for the zkStack Chain.")]
     GasScenario {
@@ -64,6 +75,7 @@ impl Command {
                 amount,
                 reruns_wanted,
                 withdraw,
+                sleep_secs,
             } => {
                 let wallets =
                     get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
@@ -129,9 +141,7 @@ impl Command {
 
                         // Here we are assuming that the base token has 18 decimals
                         if parse_ether(l1_balance)?.le(&parsed_amount_to_deposit) {
-                            let mint_amount = parsed_amount_to_deposit
-                                .div(100_u32)
-                                .saturating_mul(U256::from(120_u32));
+                            let mint_amount = parsed_amount_to_deposit;
 
                             let msg = format!(
                                 "Not enough tokens... Minting {} {token_symbol}",
@@ -229,6 +239,14 @@ impl Command {
                         reruns += 1;
                     }
                     current_reruns += 1;
+
+                    let mut spinner = Spinner::new(
+                        spinners::Dots,
+                        format!("Waiting for {sleep_secs} second(s)"),
+                        Color::Blue,
+                    );
+                    sleep(time::Duration::from_secs(sleep_secs));
+                    spinner.success(&format!("Rerun {current_reruns} finished"));
                 }
                 Ok(())
             }
