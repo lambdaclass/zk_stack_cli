@@ -1,4 +1,5 @@
 use crate::config::ZKSyncConfig;
+use crate::utils::balance::get_erc20_decimals_symbol;
 use crate::utils::{
     balance::{display_balance, get_erc20_balance_decimals_symbol},
     test::*,
@@ -14,7 +15,6 @@ use std::{
     sync::Arc,
     thread::sleep,
 };
-use tokio::time::Instant;
 use zksync_ethers_rs::{
     core::utils::{format_ether, parse_ether},
     providers::Middleware,
@@ -71,12 +71,12 @@ pub(crate) enum Command {
         )]
         amount: f32,
         #[arg(
-            long = "minutes",
-            short = 'm',
+            long = "rounds",
+            short = 'r',
             default_value_t = 1,
-            help = "Minutes to run the program in a loop"
+            help = "Amount of times to run the program in a loop, it defaults to 1. Max is 255"
         )]
-        minutes: u64,
+        rounds: u8,
     },
 }
 
@@ -269,21 +269,25 @@ impl Command {
             Command::GasScenario {
                 tps,
                 amount,
-                minutes,
+                rounds,
             } => {
-                // TPS, at the moment the calculation is performed with the following corollaries
+                // TPS, at the moment the calculation is performed with the following conditions
                 // - Don't take deposits into account
                 // - 1 transaction from the rich wallet to each random wallet
                 // - 1 transaction from each random wallet to the rich wallet
-                // - sleep 1 second and start again. This step is made to simulate the number of transaction per second
+                // - sleep 1 second (this has to be revised, maybe not necesary) and start again. This step is made to simulate the number of transaction per second
                 //  - (disclaimer) this tps is not the same tps of the chain, here we are sending transactions, the chain is processing transactions
                 //  - (disclaimer) moreover, the "downtime" of the deposit transaction is not taken into account. This reduces the actual tps.
                 //  - the only variable is the amount of randowm wallets
                 //  - taking into account we will have 2*number_of_wallets transactions
                 //  - the number_of_wallets is calculated as follows: 2*number_of_wallets [txs] = tps [tx/s] * 1 [s]
-                //  - so number_of_wallets = (tps+1)/2. The +1 is to have a round number. 3/2 = 1 but 4/2 = 2
-
+                //  - so number_of_wallets = (tps+1)/2. The +1 is to have a round number. For example, 3/2 = 1 but 4/2 = 2
                 let number_of_wallets = ((tps + 1) / 2).try_into()?;
+                // There is a flag called rounds, which tells the amount of times to run the prorgram,
+                // the following assumptions are made
+                //  - If 1 round lasts 1 second to send all the transactions per second specified by the tps flag
+                //    the runtime would be rounds * 1[s] = rounds [seconds]
+                //  - If we follow the sleep condition to simulate the transactions per second, this may vary.
 
                 let mut fees: Vec<U256> = Vec::new();
                 let mut gas: Vec<U256> = Vec::new();
@@ -309,20 +313,34 @@ impl Command {
                 let zk_wallet_addr = zk_wallet.l2_address();
                 let arc_zk_wallet = Arc::new(zk_wallet);
 
-                let mut spinner = Spinner::new(spinners::Dots, "Checking L2 Balance", Color::Blue);
+                let (_token_decimals, token_symbol) =
+                    get_erc20_decimals_symbol(base_token_address, &l1_provider).await?;
 
-                let l2_balance = l2_provider.get_balance(zk_wallet_addr, None).await?;
+                let mut reruns: u8 = 0;
+                let mut current_reruns: u8 = 1;
+                let reruns_wanted: u8 = rounds;
+                let reruns_to_complete: u8 = if reruns_wanted == 0 { 1 } else { reruns_wanted };
 
-                let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
-                    base_token_address,
-                    zk_wallet_addr,
-                    &l1_provider,
-                )
-                .await?;
+                while reruns < reruns_to_complete {
+                    let mut spinner =
+                        Spinner::new(spinners::Dots, "Checking L2 Balance", Color::Blue);
 
-                let start_time = Instant::now();
-                while start_time.elapsed() <= tokio::time::Duration::from_secs(minutes * 10) {
+                    let l2_balance = l2_provider.get_balance(zk_wallet_addr, None).await?;
+
+                    println!(
+                        "{} N: {}",
+                        "Run".red().on_black(),
+                        (current_reruns).to_string().yellow().on_black()
+                    );
+
                     if l2_balance.le(&parsed_amount_to_deposit) {
+                        let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
+                            base_token_address,
+                            zk_wallet_addr,
+                            &l1_provider,
+                        )
+                        .await?;
+
                         spinner.update(spinners::Dots, "Checking L1 Balance", Color::Blue);
 
                         // Here we are assuming that the base token has 18 decimals
@@ -434,9 +452,15 @@ impl Command {
                             .bright_cyan()
                             .on_black(),
                     );
+
                     fees.push(fees_per_run);
                     gas.push(gas_per_run);
                     gas_price.push(gas_price_per_run);
+
+                    if reruns_wanted != 0 {
+                        reruns += 1;
+                    }
+                    current_reruns += 1;
                 }
 
                 Ok(())
