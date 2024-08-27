@@ -1,5 +1,6 @@
 use crate::config::ZKSyncConfig;
 use crate::utils::balance::get_erc20_decimals_symbol;
+use crate::utils::gas_tracker::{self, GasTracker};
 use crate::utils::{
     balance::{display_balance, get_erc20_balance_decimals_symbol},
     test::*,
@@ -289,13 +290,12 @@ impl Command {
                 //    the runtime would be rounds * 1[s] = rounds [seconds]
                 //  - If we follow the sleep condition to simulate the transactions per second, this may vary.
 
-                let mut fees: Vec<U256> = Vec::new();
-                let mut gas: Vec<U256> = Vec::new();
-                let mut gas_price: Vec<U256> = Vec::new();
+                let mut gas_tracker = GasTracker::new();
 
-                let mut fees_per_run = U256::zero();
-                let mut gas_per_run = U256::zero();
-                let mut gas_price_per_run = U256::zero();
+                let mut txs_per_run;
+                let mut fees_sma_per_run;
+                let mut gas_sma_per_run;
+                let mut gas_sma_price_per_run;
 
                 let wallets =
                     get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
@@ -313,15 +313,16 @@ impl Command {
                 let zk_wallet_addr = zk_wallet.l2_address();
                 let arc_zk_wallet = Arc::new(zk_wallet);
 
-                let (_token_decimals, token_symbol) =
-                    get_erc20_decimals_symbol(base_token_address, &l1_provider).await?;
-
                 let mut reruns: u8 = 0;
                 let mut current_reruns: u8 = 1;
                 let reruns_wanted: u8 = rounds;
                 let reruns_to_complete: u8 = if reruns_wanted == 0 { 1 } else { reruns_wanted };
 
                 while reruns < reruns_to_complete {
+                    fees_sma_per_run = U256::zero();
+                    gas_sma_per_run = U256::zero();
+                    gas_sma_price_per_run = U256::zero();
+
                     let mut spinner =
                         Spinner::new(spinners::Dots, "Checking L2 Balance", Color::Blue);
 
@@ -407,13 +408,17 @@ impl Command {
                         "rich".bold().red().on_black()
                     );
 
-                    let _tx_hashes_backwards =
+                    let tx_hashes_backwards =
                         send_transactions_back(&wallets, &arc_zk_wallet).await?;
 
                     // End Transfer from each wallet to rich wallet
                     println!("{}", "#".repeat(64));
 
-                    for h in tx_hashes_forwards {
+                    let mut tx_hashes = tx_hashes_forwards.clone();
+                    tx_hashes.extend(&tx_hashes_backwards);
+                    txs_per_run = tx_hashes.len().try_into()?;
+
+                    for h in tx_hashes {
                         let receipt = l2_provider
                             .get_transaction_receipt(h)
                             .await?
@@ -429,40 +434,34 @@ impl Command {
                             .await?
                             .context("Error unwrapping tx_details")?;
 
-                        fees_per_run = fees_per_run.add(details.fee);
-                        if gas_price_per_run.is_zero() {
-                            gas_price_per_run = receipt_gas_price;
+                        // Implementing simple moving average (SMA)
+                        if gas_sma_per_run.is_zero() {
+                            gas_sma_per_run = gas_used;
                         }
-                        gas_price_per_run = (receipt_gas_price + gas_price_per_run) / 2_u32;
-                        gas_per_run = gas_per_run.add(gas_used);
+                        gas_sma_per_run = gas_sma_per_run.add(gas_used) / 2_u32;
+                        if fees_sma_per_run.is_zero() {
+                            fees_sma_per_run = details.fee;
+                        }
+                        fees_sma_per_run = fees_sma_per_run.add(details.fee) / 2_u32;
+                        if gas_sma_price_per_run.is_zero() {
+                            gas_sma_price_per_run = receipt_gas_price;
+                        }
+                        gas_sma_price_per_run = (receipt_gas_price + gas_sma_price_per_run) / 2_u32;
                     }
 
-                    println!(
-                        "{} Transaction(s)\nGas Used: {}\nTotal Fees: {}",
-                        format!("{}", wallets.len())
-                            .bold()
-                            .bright_yellow()
-                            .on_black(),
-                        format!("{gas_price_per_run}")
-                            .bold()
-                            .bright_green()
-                            .on_black(),
-                        format!("{} {}", format_ether(fees_per_run), token_symbol)
-                            .bold()
-                            .bright_cyan()
-                            .on_black(),
+                    gas_tracker.add_run(
+                        gas_sma_per_run,
+                        fees_sma_per_run,
+                        gas_sma_price_per_run,
+                        txs_per_run,
                     );
-
-                    fees.push(fees_per_run);
-                    gas.push(gas_per_run);
-                    gas_price.push(gas_price_per_run);
 
                     if reruns_wanted != 0 {
                         reruns += 1;
                     }
                     current_reruns += 1;
                 }
-
+                println!("{gas_tracker}");
                 Ok(())
             }
         }
