@@ -215,13 +215,13 @@ impl Command {
                 // - Don't take deposits into account
                 // - 1 transaction from the rich wallet to each random wallet
                 // - 1 transaction from each random wallet to the rich wallet
-                // - sleep 1 second (this has to be revised, maybe not necesary) and start again. This step is made to simulate the number of transaction per second
+                // - sleep 30 seconds. This step is made to simulate the number of transactions per secondzks
                 //  - (disclaimer) this tps is not the same tps of the chain, here we are sending transactions, the chain is processing transactions
                 //  - (disclaimer) moreover, the "downtime" of the deposit transaction is not taken into account. This reduces the actual tps.
-                //  - the only variable is the amount of randowm wallets
+                //  - the only variable is the amount of random wallets
                 //  - taking into account we will have 2*number_of_wallets transactions
                 //  - the number_of_wallets is calculated as follows: 2*number_of_wallets [txs] = tps [tx/s] * 1 [s]
-                //  - so number_of_wallets = (tps+1)/2. The +1 is to have a round number. For example, 3/2 = 1 but 4/2 = 2
+                //  - so number_of_wallets = (tps+1)/2. The +1 is to have an even number from an odd number. An even number of tps is preffered.
                 let number_of_wallets = ((tps + 1) / 2).try_into()?;
                 // There is a flag called rounds, which tells the amount of times to run the prorgram,
                 // the following assumptions are made
@@ -316,7 +316,7 @@ impl Command {
                             .await?
                             .context("Error unwrapping tx_details")?;
 
-                        // Implementing simple moving average (SMA)
+                        // Implementing running average calculation
                         if gas_sma_per_run.is_zero() {
                             gas_sma_per_run = gas_used;
                         }
@@ -342,6 +342,8 @@ impl Command {
                         reruns += 1;
                     }
                     current_reruns += 1;
+
+                    sleep(time::Duration::from_secs(30));
                 }
                 println!("{gas_tracker}");
                 Ok(())
