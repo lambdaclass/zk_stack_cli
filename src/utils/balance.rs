@@ -26,7 +26,6 @@ pub(crate) async fn get_erc20_balance_decimals_symbol(
     Ok((parsed_balance, token_decimals, token_symbol))
 }
 
-#[allow(dead_code)]
 pub(crate) async fn get_erc20_decimals_symbol(
     token_address: Address,
     provider: &Provider<Http>,
@@ -35,6 +34,18 @@ pub(crate) async fn get_erc20_decimals_symbol(
     let token_decimals: i32 = erc20.decimals().await?.into();
     let token_symbol = erc20.symbol().await?;
     Ok((token_decimals, token_symbol))
+}
+
+pub(crate) async fn get_erc20_balance(
+    token_address: Address,
+    wallet_address: Address,
+    provider: &Provider<Http>,
+) -> eyre::Result<String> {
+    let erc20 = ERC20::new(token_address, Arc::new(provider.clone()));
+    let balance = erc20.balance_of(wallet_address).await?;
+    let token_decimals: i32 = erc20.decimals().await?.into();
+    let parsed_balance = format_units(balance, token_decimals)?;
+    Ok(parsed_balance)
 }
 
 pub(crate) async fn print_l2_base_token_balance(

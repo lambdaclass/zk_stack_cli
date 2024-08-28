@@ -2,11 +2,13 @@ use crate::utils::balance::display_balance;
 use crate::utils::wallet::new_zkwallet;
 use colored::Colorize;
 use eyre::ContextCompat;
+use spinoff::{spinners, Color, Spinner};
 use std::ops::Div;
 use std::sync::Arc;
 use tokio::task::JoinSet;
 use zksync_ethers_rs::contracts::erc20::MINT_IERC20;
 use zksync_ethers_rs::core::rand::thread_rng;
+use zksync_ethers_rs::core::utils::{format_ether, parse_ether};
 use zksync_ethers_rs::signers::{LocalWallet, Signer};
 use zksync_ethers_rs::types::H256;
 use zksync_ethers_rs::{
@@ -20,11 +22,20 @@ use zksync_ethers_rs::{
     zk_wallet::ZKWallet,
 };
 
+use super::balance::{get_erc20_balance, get_erc20_balance_decimals_symbol};
+
 pub async fn send_transactions(
     from_wallet: &Arc<ZKWallet<Provider<Http>, LocalWallet>>,
     to_wallets: &Vec<Arc<ZKWallet<Provider<Http>, LocalWallet>>>,
     parsed_amount: U256,
 ) -> eyre::Result<Vec<H256>> {
+    println!(
+        "{} Transfer from {} wallet to {} wallet.",
+        "[L2->L2]".bold().bright_cyan().on_black(),
+        "rich".bold().red().on_black(),
+        "each".bold().blue().on_black()
+    );
+
     let mut l2_txs_receipts: Vec<H256> = Vec::new();
     let mut set = JoinSet::new();
 
@@ -44,6 +55,11 @@ pub async fn send_transactions(
         nonce = nonce.saturating_add(U256::one());
     }
 
+    println!(
+        "{}",
+        "Waiting for all transactions to finish".yellow().on_black()
+    );
+
     while let Some(res) = set.join_next().await {
         let tx_hash = res??;
         l2_txs_receipts.push(tx_hash);
@@ -55,6 +71,13 @@ pub async fn send_transactions_back(
     from_wallets: &Vec<Arc<ZKWallet<Provider<Http>, LocalWallet>>>,
     to_wallet: &Arc<ZKWallet<Provider<Http>, LocalWallet>>,
 ) -> eyre::Result<Vec<H256>> {
+    println!(
+        "{} Transfer from {} wallet to {} wallet.",
+        "[L1->L2]".bold().bright_cyan().on_black(),
+        "each".bold().blue().on_black(),
+        "rich".bold().red().on_black()
+    );
+
     let mut l2_txs_receipts: Vec<H256> = Vec::new();
     let mut set = JoinSet::new();
 
@@ -70,6 +93,12 @@ pub async fn send_transactions_back(
         let tx_hash = res??;
         l2_txs_receipts.push(tx_hash);
     }
+
+    println!(
+        "{}",
+        "Waiting for all transactions to finish".yellow().on_black()
+    );
+
     Ok(l2_txs_receipts)
 }
 
@@ -171,4 +200,61 @@ pub async fn erc20_l1_mint(
         .context("No transaction receipt for erc20 mint")?;
 
     Ok(tx_receipt)
+}
+
+pub async fn check_balance_and_deposit_or_mint(
+    wallet: Arc<ZKWallet<Provider<Http>, LocalWallet>>,
+    base_token_address: Address,
+    amount: U256,
+) -> eyre::Result<()> {
+    let mut spinner = Spinner::new(spinners::Dots, "Checking L2 Balance", Color::Blue);
+
+    let l2_balance = wallet
+        .l2_provider()
+        .get_balance(wallet.l1_address(), None)
+        .await?;
+
+    if l2_balance.le(&amount) {
+        let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
+            base_token_address,
+            wallet.l1_address(),
+            wallet.l1_provider(),
+        )
+        .await?;
+
+        spinner.update(spinners::Dots, "Checking L1 Balance", Color::Blue);
+
+        // Here we are assuming that the base token has 18 decimals
+        if parse_ether(&l1_balance)?.le(&amount) {
+            let mint_amount = amount;
+
+            let balance = get_erc20_balance(
+                base_token_address,
+                wallet.l1_address(),
+                wallet.l1_provider(),
+            )
+            .await?;
+
+            let msg = format!(
+                "[L1] Balance isn't enough: {balance} {token_symbol} || Minting {} {token_symbol}",
+                format_ether(mint_amount)
+            );
+            spinner.update(spinners::Dots, msg, Color::Blue);
+
+            let future_receipt = erc20_l1_mint(base_token_address, &wallet, mint_amount);
+
+            let receipt = future_receipt.await?;
+
+            let msg = format!("Success, Mint TxHash: {:?}", receipt.transaction_hash);
+            spinner.update(spinners::Dots, msg, Color::Blue);
+        }
+        spinner.update(spinners::Dots, "Depositing", Color::Blue);
+        // Begin Deposit from rich wallet to rich wallet
+        deposit_base_token(&wallet, amount, false).await?;
+        // End Deposit from rich wallet to rich wallet
+        spinner.success("Success, Deposit");
+    } else {
+        spinner.success("Enough L2 balance");
+    }
+    Ok(())
 }
