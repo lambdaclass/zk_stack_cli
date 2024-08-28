@@ -109,13 +109,16 @@ pub async fn future_transfer_base_token_back(
 pub async fn deposit_base_token(
     from_wallet: &Arc<ZKWallet<Provider<Http>, LocalWallet>>,
     parsed_amount_to_deposit: U256,
+    verbose: bool,
 ) -> eyre::Result<()> {
-    println!(
-        "{} Deposit from {} wallet to {} wallet.",
-        "[L1->L2]".bold().bright_cyan().on_black(),
-        "rich".bold().red().on_black(),
-        "rich".bold().red().on_black()
-    );
+    if verbose {
+        println!(
+            "{} Deposit from {} wallet to {} wallet.",
+            "[L1->L2]".bold().bright_cyan().on_black(),
+            "rich".bold().red().on_black(),
+            "rich".bold().red().on_black()
+        );
+    }
     from_wallet
         .deposit_base_token(parsed_amount_to_deposit)
         .await?;

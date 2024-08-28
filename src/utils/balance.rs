@@ -26,6 +26,7 @@ pub(crate) async fn get_erc20_balance_decimals_symbol(
     Ok((parsed_balance, token_decimals, token_symbol))
 }
 
+#[allow(dead_code)]
 pub(crate) async fn get_erc20_decimals_symbol(
     token_address: Address,
     provider: &Provider<Http>,

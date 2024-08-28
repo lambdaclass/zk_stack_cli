@@ -44,14 +44,15 @@ impl GasTracker {
         let mid = values.len() / 2;
         if values.len() % 2 == 0 {
             Ok((*values.get(mid - 1).context("Indexing error")?
-                + values.get(mid).context("Indexing error")?.clone())
+                + *values.get(mid).context("Indexing error")?)
                 / 2_u32)
         } else {
             values.get(mid).context("Indexing error").copied()
         }
     }
 
-    pub fn print_statistics(&self) -> eyre::Result<()> {
+    #[allow(dead_code)]
+    pub fn print_parsed_statistics(&self) -> eyre::Result<()> {
         let gas_mean = Self::mean(&self.gas);
         let gas_median = Self::median(&self.gas)?;
 
@@ -81,11 +82,11 @@ impl fmt::Display for GasTracker {
 
         let total_txs = self.txs_per_run.iter().sum::<u64>();
         writeln!(f, "GasTracker Statistics:")?;
-        writeln!(f, "Gas Used: Mean: {gas_mean:.2}, Median: {gas_median:.2}")?;
-        writeln!(f, "Fees: Mean: {fees_mean:.2}, Median: {fees_median:.2}")?;
+        writeln!(f, "Gas Used: Mean: {gas_mean}, Median: {gas_median}")?;
+        writeln!(f, "Fees: Mean: {fees_mean}, Median: {fees_median}")?;
         writeln!(
             f,
-            "Gas Prices: Mean: {gas_price_mean:.2}, Median: {gas_price_median:.2}"
+            "Gas Prices: Mean: {gas_price_mean}, Median: {gas_price_median}"
         )?;
         writeln!(f, "Total Transactions: {total_txs}")?;
         writeln!(f, "Transactions per Run: {:?}\n", self.txs_per_run)?;

@@ -1,6 +1,5 @@
 use crate::config::ZKSyncConfig;
-use crate::utils::balance::get_erc20_decimals_symbol;
-use crate::utils::gas_tracker::{self, GasTracker};
+use crate::utils::gas_tracker::GasTracker;
 use crate::utils::{
     balance::{display_balance, get_erc20_balance_decimals_symbol},
     test::*,
@@ -177,7 +176,7 @@ impl Command {
                         }
                         spinner.update(spinners::Dots, "Depositing", Color::Blue);
                         // Begin Deposit from rich wallet to rich wallet
-                        deposit_base_token(&arc_zk_wallet, parsed_amount_to_deposit).await?;
+                        deposit_base_token(&arc_zk_wallet, parsed_amount_to_deposit, false).await?;
                         // End Deposit from rich wallet to rich wallet
                         spinner.success("Success, Deposit");
                     } else {
@@ -328,12 +327,6 @@ impl Command {
 
                     let l2_balance = l2_provider.get_balance(zk_wallet_addr, None).await?;
 
-                    println!(
-                        "{} N: {}",
-                        "Run".red().on_black(),
-                        (current_reruns).to_string().yellow().on_black()
-                    );
-
                     if l2_balance.le(&parsed_amount_to_deposit) {
                         let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
                             base_token_address,
@@ -348,8 +341,15 @@ impl Command {
                         if parse_ether(&l1_balance)?.le(&parsed_amount_to_deposit) {
                             let mint_amount = parsed_amount_to_deposit;
 
+                            let (balance, _, _) = get_erc20_balance_decimals_symbol(
+                                base_token_address,
+                                zk_wallet_addr,
+                                &l1_provider,
+                            )
+                            .await?;
+
                             let msg = format!(
-                                "Not enough tokens... Minting {} {token_symbol}",
+                                "[L1] Balance isn't enough: {balance} {token_symbol} || Minting {} {token_symbol}",
                                 format_ether(mint_amount)
                             );
                             spinner.update(spinners::Dots, msg, Color::Blue);
@@ -359,18 +359,24 @@ impl Command {
 
                             let receipt = future_receipt.await?;
 
-                            display_balance(Some(base_token_address), &arc_zk_wallet, true, false)
-                                .await?;
-                            println!("Transaction Hash: {:?}", receipt.transaction_hash);
+                            let msg =
+                                format!("Success, Mint TxHash: {:?}", receipt.transaction_hash);
+                            spinner.update(spinners::Dots, msg, Color::Blue);
                         }
                         spinner.update(spinners::Dots, "Depositing", Color::Blue);
                         // Begin Deposit from rich wallet to rich wallet
-                        deposit_base_token(&arc_zk_wallet, parsed_amount_to_deposit).await?;
+                        deposit_base_token(&arc_zk_wallet, parsed_amount_to_deposit, false).await?;
                         // End Deposit from rich wallet to rich wallet
                         spinner.success("Success, Deposit");
                     } else {
                         spinner.success("Enough L2 balance");
                     }
+
+                    println!(
+                        "\n{} N: {}\n",
+                        "Run".red().on_black(),
+                        (current_reruns).to_string().yellow().on_black()
+                    );
 
                     // Begin Transfer from rich wallet to each wallet
 

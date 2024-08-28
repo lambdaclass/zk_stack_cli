@@ -28,6 +28,7 @@ where
         .map_err(Into::into)
 }
 
+#[allow(clippy::as_conversions)]
 pub async fn get_batch_proofs_stuck_at_prover_in_agg_round(
     prover_db: &mut PoolConnection<Postgres>,
     aggregation_round: AggregationRound,
