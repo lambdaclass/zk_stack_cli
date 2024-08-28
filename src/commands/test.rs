@@ -234,9 +234,9 @@ impl Command {
                     .set_token_symbol(base_token_symbol);
 
                 let mut txs_per_run;
-                let mut fees_sma_per_run;
-                let mut gas_sma_per_run;
-                let mut gas_sma_price_per_run;
+                let mut fees_ra_per_run;
+                let mut gas_ra_per_run;
+                let mut gas_ra_price_per_run;
 
                 let wallets =
                     get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
@@ -257,9 +257,9 @@ impl Command {
                 let reruns_to_complete: u8 = if reruns_wanted == 0 { 1 } else { reruns_wanted };
 
                 while reruns < reruns_to_complete {
-                    fees_sma_per_run = U256::zero();
-                    gas_sma_per_run = U256::zero();
-                    gas_sma_price_per_run = U256::zero();
+                    fees_ra_per_run = U256::zero();
+                    gas_ra_per_run = U256::zero();
+                    gas_ra_price_per_run = U256::zero();
 
                     check_balance_and_deposit_or_mint(
                         Arc::clone(&arc_zk_wallet),
@@ -317,24 +317,24 @@ impl Command {
                             .context("Error unwrapping tx_details")?;
 
                         // Implementing running average calculation
-                        if gas_sma_per_run.is_zero() {
-                            gas_sma_per_run = gas_used;
+                        if gas_ra_per_run.is_zero() {
+                            gas_ra_per_run = gas_used;
                         }
-                        gas_sma_per_run = gas_sma_per_run.add(gas_used) / 2_u32;
-                        if fees_sma_per_run.is_zero() {
-                            fees_sma_per_run = details.fee;
+                        gas_ra_per_run = gas_ra_per_run.add(gas_used) / 2_u32;
+                        if fees_ra_per_run.is_zero() {
+                            fees_ra_per_run = details.fee;
                         }
-                        fees_sma_per_run = fees_sma_per_run.add(details.fee) / 2_u32;
-                        if gas_sma_price_per_run.is_zero() {
-                            gas_sma_price_per_run = receipt_gas_price;
+                        fees_ra_per_run = fees_ra_per_run.add(details.fee) / 2_u32;
+                        if gas_ra_price_per_run.is_zero() {
+                            gas_ra_price_per_run = receipt_gas_price;
                         }
-                        gas_sma_price_per_run = (receipt_gas_price + gas_sma_price_per_run) / 2_u32;
+                        gas_ra_price_per_run = (receipt_gas_price + gas_ra_price_per_run) / 2_u32;
                     }
 
                     gas_tracker.add_run(
-                        gas_sma_per_run,
-                        fees_sma_per_run,
-                        gas_sma_price_per_run,
+                        gas_ra_per_run,
+                        fees_ra_per_run,
+                        gas_ra_price_per_run,
                         txs_per_run,
                     );
 
