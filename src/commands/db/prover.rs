@@ -1,16 +1,33 @@
 use crate::{
     config::ZKSyncConfig,
     utils::{
-        config::confirm,
+        config::{
+            confirm,
+            default_values::{
+                DEFAULT_PROTOCOL_VERSION, DEFAULT_RECURSION_CIRCUITS_SET_VK_HASH,
+                DEFAULT_RECURSION_LEAF_VK_HASH, DEFAULT_RECURSION_NODE_VK_HASH,
+                DEFAULT_RECURSION_SCHEDULER_VK_HASH, DEFAULT_VERSION_PATCH,
+            },
+            prompt,
+        },
         db::{
             prover::{
                 find_map_stuck_wg_jobs_in_aggregation_round,
                 find_stuck_prover_jobs_in_aggregation_round, map_bwg_info, map_leaf_wg_info,
                 map_node_wg_info, map_recursion_tip_wg_info, map_scheduler_wg_info,
             },
-            queries::{get_compressor_job_status, restart_batch_proof},
+            queries::{
+                get_basic_witness_job_status, get_compressor_job_status,
+                insert_prover_protocol_version, insert_witness_inputs, restart_batch_proof,
+            },
         },
         messages::{
+            DATABASE_PROVER_PROTOCOL_VERSION_PATCH_PROMPT_MSG,
+            DATABASE_PROVER_PROTOCOL_VERSION_PROMPT_MSG,
+            DATABASE_PROVER_RECURSION_CIRCUITS_SET_PROMPT_MSG,
+            DATABASE_PROVER_RECURSION_LEAF_VK_HASH_PROMPT_MSG,
+            DATABASE_PROVER_RECURSION_NODE_VK_HASH_PROMPT_MSG,
+            DATABASE_PROVER_RECURSION_SCHEDULER_VK_HASH_PROMPT_MSG,
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
@@ -19,8 +36,17 @@ use crate::{
 use clap::Subcommand;
 use eyre::ContextCompat;
 use spinoff::{spinners::Dots, Color, Spinner};
-use zksync_ethers_rs::types::zksync::{
-    basic_fri_types::AggregationRound, prover_dal::ProofCompressionJobStatus, L1BatchNumber,
+use zksync_ethers_rs::{
+    abi::Hash,
+    types::{
+        zksync::{
+            basic_fri_types::AggregationRound,
+            protocol_version::VersionPatch,
+            prover_dal::{ProofCompressionJobStatus, WitnessJobStatus},
+            L1BatchNumber, ProtocolVersionId,
+        },
+        TryFromPrimitive,
+    },
 };
 
 #[derive(Subcommand)]
@@ -29,12 +55,34 @@ pub(crate) enum Command {
     StuckBatchProofs,
     #[clap(about = "Restart a batch proof.")]
     RestartBatchProof { batch_number: L1BatchNumber },
+    #[clap(about = "Insert a batch proof.", visible_aliases = ["insert-witness", "insert-witness-inputs"])]
+    InsertBatchWitnessInputs {
+        #[clap(index = 1)]
+        batch_number: L1BatchNumber,
+        #[clap(value_parser = |v: &str| ProtocolVersionId::try_from_primitive(v.parse::<u16>().expect("Invalid Protocol Version")), index = 2, default_value_t = ProtocolVersionId::default())]
+        protocol_version: ProtocolVersionId,
+        #[clap(index = 3)]
+        protocol_version_patch: VersionPatch,
+    },
+    #[clap(
+        about = "Insert a protocol version.",
+        visible_alias = "protocol-version"
+    )]
+    InsertProtcolVersion {
+        #[arg(short = 'd')]
+        default_values: bool,
+    },
+}
+
+fn protocol_version_from_str(s: &str) -> ProtocolVersionId {
+    ProtocolVersionId::try_from_primitive(s.parse().unwrap()).unwrap()
 }
 
 impl Command {
     pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
         let mut prover_db = cfg
             .db
+            .clone()
             .context("DB config missing")?
             .prover
             .acquire()
@@ -95,20 +143,151 @@ impl Command {
                 let mut spinner = Spinner::new(Dots, "Checking batch proof status", Color::Blue);
                 let compressor_job_status_for_batch =
                     get_compressor_job_status(batch_number, &mut prover_db).await?;
-                if let Some(status) = compressor_job_status_for_batch {
-                    if (matches!(status, ProofCompressionJobStatus::SentToServer)
+                if (matches!(
+                    compressor_job_status_for_batch,
+                    Some(ProofCompressionJobStatus::SentToServer)
+                ) && confirm(
+                    DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
+                )?) || confirm(DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG)?
+                {
+                    spinner.update_text("Restarting batch proof");
+                    restart_batch_proof(batch_number, &mut prover_db).await?;
+                    spinner.success("Batch proof restarted");
+                } else {
+                    spinner.info("Batch proof restart aborted");
+                }
+            }
+            Command::InsertBatchWitnessInputs {
+                batch_number,
+                protocol_version,
+                protocol_version_patch,
+            } => {
+                let mut spinner = Spinner::new(
+                    Dots,
+                    "Checking batch proof basic witness generation status",
+                    Color::Blue,
+                );
+                let basic_witness_job_status_for_batch =
+                    get_basic_witness_job_status(batch_number, &mut prover_db).await?;
+                if basic_witness_job_status_for_batch.is_some() {
+                    spinner.warn(
+                        "Batch proof already exists, you need to restart the batch proof to insert new witness inputs",
+                    );
+                    let mut spinner =
+                        Spinner::new(Dots, "Checking batch proof compression status", Color::Blue);
+                    let compressor_job_status_for_batch =
+                        get_compressor_job_status(batch_number, &mut prover_db).await?;
+                    let proof_was_sent_to_server = matches!(
+                        compressor_job_status_for_batch,
+                        Some(ProofCompressionJobStatus::SentToServer)
+                    );
+                    if proof_was_sent_to_server {
+                        spinner.info("Batch proof is already sent to the server.");
+                    } else {
+                        spinner.success("Batch proof is not sent to the server.");
+                    }
+                    if (proof_was_sent_to_server
                         && confirm(
                             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
                         )?)
                         || confirm(DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG)?
                     {
-                        spinner.update_text("Restarting batch proof");
+                        let mut spinner = Spinner::new(Dots, "Restarting batch proof", Color::Blue);
                         restart_batch_proof(batch_number, &mut prover_db).await?;
                         spinner.success("Batch proof restarted");
                     } else {
                         spinner.info("Batch proof restart aborted");
+                        return Ok(());
                     }
                 }
+
+                let mut spinner = Spinner::new(Dots, "Inserting witness inputs", Color::Blue);
+                let witness_inputs_blob_url = format!("witness_inputs_{}.bin", batch_number);
+                match insert_witness_inputs(
+                    batch_number,
+                    &witness_inputs_blob_url,
+                    protocol_version,
+                    protocol_version_patch,
+                    &mut prover_db,
+                )
+                .await
+                {
+                    Ok(_) => spinner.success("Batch proof inserted"),
+                    Err(e) => {
+                        spinner.fail("Batch proof insertion failed");
+                        return Err(e);
+                    }
+                }
+                return Ok(());
+            }
+            Command::InsertProtcolVersion { default_values } => {
+                let protocol_version = if default_values {
+                    ProtocolVersionId::default()
+                } else {
+                    ProtocolVersionId::try_from_primitive(prompt(
+                        DATABASE_PROVER_PROTOCOL_VERSION_PROMPT_MSG,
+                        DEFAULT_PROTOCOL_VERSION,
+                    )?)?
+                };
+                let recursion_scheduler_vk_hash = if default_values {
+                    DEFAULT_RECURSION_SCHEDULER_VK_HASH
+                } else {
+                    prompt(
+                        DATABASE_PROVER_RECURSION_SCHEDULER_VK_HASH_PROMPT_MSG,
+                        DEFAULT_RECURSION_SCHEDULER_VK_HASH,
+                    )?
+                };
+                let recursion_node_vk_hash = if default_values {
+                    DEFAULT_RECURSION_NODE_VK_HASH
+                } else {
+                    prompt(
+                        DATABASE_PROVER_RECURSION_NODE_VK_HASH_PROMPT_MSG,
+                        DEFAULT_RECURSION_NODE_VK_HASH,
+                    )?
+                };
+                let recursion_leaf_vk_hash = if default_values {
+                    DEFAULT_RECURSION_LEAF_VK_HASH
+                } else {
+                    prompt(
+                        DATABASE_PROVER_RECURSION_LEAF_VK_HASH_PROMPT_MSG,
+                        DEFAULT_RECURSION_LEAF_VK_HASH,
+                    )?
+                };
+                let recursion_circuits_set_vk_hash = if default_values {
+                    DEFAULT_RECURSION_CIRCUITS_SET_VK_HASH
+                } else {
+                    prompt(
+                        DATABASE_PROVER_RECURSION_CIRCUITS_SET_PROMPT_MSG,
+                        DEFAULT_RECURSION_CIRCUITS_SET_VK_HASH,
+                    )?
+                };
+                let protocol_version_patch = if default_values {
+                    DEFAULT_VERSION_PATCH
+                } else {
+                    prompt(
+                        DATABASE_PROVER_PROTOCOL_VERSION_PATCH_PROMPT_MSG,
+                        DEFAULT_VERSION_PATCH,
+                    )?
+                };
+
+                let mut spinner = Spinner::new(Dots, "Inserting protocol version", Color::Blue);
+                match insert_prover_protocol_version(
+                    protocol_version,
+                    recursion_scheduler_vk_hash,
+                    recursion_node_vk_hash,
+                    recursion_leaf_vk_hash,
+                    recursion_circuits_set_vk_hash,
+                    protocol_version_patch,
+                    &mut prover_db,
+                )
+                .await
+                {
+                    Ok(_) => spinner.success("Protocol version inserted"),
+                    Err(e) => {
+                        spinner.fail("Protocol version insertion failed");
+                        return Err(e);
+                    }
+                };
             }
         };
 

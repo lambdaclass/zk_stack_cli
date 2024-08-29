@@ -26,3 +26,11 @@ pub const DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG: &
     "The batch proof is already sent to the server. Do you want to restart it anyways?";
 pub const DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG: &str =
     "You're about to delete unrecoverable data from the database. Are you sure you want to proceed?";
+pub const DATABASE_PROVER_PROTOCOL_VERSION_PROMPT_MSG: &str = "Protocol version";
+pub const DATABASE_PROVER_PROTOCOL_VERSION_PATCH_PROMPT_MSG: &str = "Protocol version patch";
+pub const DATABASE_PROVER_RECURSION_SCHEDULER_VK_HASH_PROMPT_MSG: &str =
+    "Recursion Scheduler Level VK Hash";
+pub const DATABASE_PROVER_RECURSION_NODE_VK_HASH_PROMPT_MSG: &str = "Recursion Node Level VK Hash";
+pub const DATABASE_PROVER_RECURSION_LEAF_VK_HASH_PROMPT_MSG: &str = "Recursion Leaf Level VK Hash";
+pub const DATABASE_PROVER_RECURSION_CIRCUITS_SET_PROMPT_MSG: &str =
+    "Recursion Circuits Set VKs Hash";
