@@ -22,7 +22,7 @@ pub const DATABASE_SERVER_URL_PROMPT_MSG: &str = "Server database URL";
 pub const DATABASE_PROVER_URL_PROMPT_MSG: &str = "Prover database URL";
 
 // `zks db` messages
-pub const DATABASE_PROVER_RESTART_PROVED_BATCH_PROOF_CONFIRMATION_MSG: &str =
+pub const DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG: &str =
     "The batch proof is already sent to the server. Do you want to restart it anyways?";
 pub const DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG: &str =
     "You're about to delete unrecoverable data from the database. Are you sure you want to proceed?";
