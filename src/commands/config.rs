@@ -1,15 +1,17 @@
 use crate::{
     config::Database,
-    utils::config::{
-        config_file_names, config_path, config_path_interactive_selection, confirm,
-        confirm_config_creation, edit_config_by_name_interactively, edit_config_by_name_with_args,
-        edit_config_interactively,
+    utils::{
+        config::{
+            config_file_names, config_path, config_path_interactive_selection, confirm,
+            confirm_config_creation, edit_config_by_name_interactively,
+            edit_config_by_name_with_args, edit_config_interactively, prompt_zksync_config,
+            selected_config_path, set_new_config,
+        },
         messages::{
             CONFIG_DELETE_PROMPT_MSG, CONFIG_OVERRIDE_PROMPT_MSG,
             CONFIG_SELECTION_TO_DELETE_PROMPT_MSG, CONFIG_SET_PROMPT_MSG,
             CONFIG_TO_DISPLAY_PROMPT_MSG,
         },
-        prompt_zksync_config, selected_config_path, set_new_config,
     },
 };
 use clap::{Parser, Subcommand};

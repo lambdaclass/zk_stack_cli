@@ -1,3 +1,4 @@
+// `zks config` messages
 pub const CONFIG_OVERRIDE_PROMPT_MSG: &str = "Config already exists. Do you want to overwrite it?";
 pub const CONFIG_CREATE_PROMPT_MSG: &str = "This config does not exist. Do you want to create it?";
 pub const CONFIG_EDIT_PROMPT_MSG: &str = "What config do you want to edit?";
@@ -19,3 +20,9 @@ pub const CONTRACTS_BRIDGEHUB_ADMIN_PRIVATE_KEY_PROMPT_MSG: &str = "Bridgehub ad
 pub const CONTRACTS_BRIDGEHUB_OWNER_PRIVATE_KEY_PROMPT_MSG: &str = "Bridgehub owner private key";
 pub const DATABASE_SERVER_URL_PROMPT_MSG: &str = "Server database URL";
 pub const DATABASE_PROVER_URL_PROMPT_MSG: &str = "Prover database URL";
+
+// `zks db` messages
+pub const DATABASE_PROVER_RESTART_PROVED_BATCH_PROOF_CONFIRMATION_MSG: &str =
+    "The batch proof is already sent to the server. Do you want to restart it anyways?";
+pub const DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG: &str =
+    "You're about to delete unrecoverable data from the database. Are you sure you want to proceed?";

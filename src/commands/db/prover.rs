@@ -1,9 +1,19 @@
 use crate::{
     config::ZKSyncConfig,
-    utils::db::prover::{
-        find_map_stuck_wg_jobs_in_aggregation_round, find_stuck_prover_jobs_in_aggregation_round,
-        map_bwg_info, map_leaf_wg_info, map_node_wg_info, map_recursion_tip_wg_info,
-        map_scheduler_wg_info,
+    utils::{
+        config::confirm,
+        db::{
+            prover::{
+                find_map_stuck_wg_jobs_in_aggregation_round,
+                find_stuck_prover_jobs_in_aggregation_round, map_bwg_info, map_leaf_wg_info,
+                map_node_wg_info, map_recursion_tip_wg_info, map_scheduler_wg_info,
+            },
+            queries::{get_compressor_job_status, restart_batch_proof},
+        },
+        messages::{
+            DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
+            DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
+        },
     },
 };
 use clap::Subcommand;
