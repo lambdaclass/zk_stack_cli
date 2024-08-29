@@ -1,5 +1,5 @@
 cli: 
-	cargo install --path .
+	cargo +nightly install --path .
 	zks autocomplete install
 
 build-cli:
