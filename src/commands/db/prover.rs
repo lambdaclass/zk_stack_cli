@@ -56,7 +56,7 @@ pub(crate) enum Command {
     #[clap(about = "Restart a batch proof.")]
     RestartBatchProof { batch_number: L1BatchNumber },
     #[clap(about = "Insert a batch proof.", visible_aliases = ["insert-witness", "insert-witness-inputs"])]
-    InsertBatchWitnessInputs {
+    InsertBatchWitnessInput {
         #[clap(index = 1)]
         batch_number: L1BatchNumber,
         #[clap(value_parser = |v: &str| ProtocolVersionId::try_from_primitive(v.parse::<u16>().expect("Invalid Protocol Version")), index = 2, default_value_t = ProtocolVersionId::default())]
@@ -68,7 +68,7 @@ pub(crate) enum Command {
         about = "Insert a protocol version.",
         visible_alias = "protocol-version"
     )]
-    InsertProtcolVersion {
+    InsertProtocolVersion {
         #[arg(short = 'd')]
         default_values: bool,
     },
@@ -157,7 +157,7 @@ impl Command {
                     spinner.info("Batch proof restart aborted");
                 }
             }
-            Command::InsertBatchWitnessInputs {
+            Command::InsertBatchWitnessInput {
                 batch_number,
                 protocol_version,
                 protocol_version_patch,
@@ -220,7 +220,7 @@ impl Command {
                 }
                 return Ok(());
             }
-            Command::InsertProtcolVersion { default_values } => {
+            Command::InsertProtocolVersion { default_values } => {
                 let protocol_version = if default_values {
                     ProtocolVersionId::default()
                 } else {
