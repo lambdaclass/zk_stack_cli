@@ -4,6 +4,7 @@ use crate::config::ZKSyncConfig;
 
 pub(crate) mod bridgehub;
 pub(crate) mod governance;
+pub(crate) mod state_transition_manager;
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
@@ -36,7 +37,7 @@ pub(crate) enum Command {
         about = "StateTransitionManager contract interaction commands.",
         visible_alias = "stm"
     )]
-    StateTransitionManager,
+    StateTransitionManager(state_transition_manager::Command),
 }
 
 impl Command {
@@ -46,7 +47,7 @@ impl Command {
             Command::Governance(cmd) => cmd.run(cfg).await?,
             Command::Hyperchain => todo!(),
             Command::L1SharedBridge => todo!(),
-            Command::StateTransitionManager => todo!(),
+            Command::StateTransitionManager(cmd) => cmd.run(cfg).await?,
         };
 
         Ok(())

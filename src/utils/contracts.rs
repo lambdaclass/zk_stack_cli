@@ -5,7 +5,10 @@ use crate::{
 use eyre::ContextCompat;
 use std::sync::Arc;
 use zksync_ethers_rs::{
-    contracts::{bridgehub::Bridgehub, governance::Governance},
+    contracts::{
+        bridgehub::Bridgehub, governance::Governance,
+        state_transition_manager::StateTransitionManager,
+    },
     middleware::SignerMiddleware,
     providers::Middleware,
     signers::Signer,
@@ -33,4 +36,25 @@ pub(crate) async fn try_bridgehub_from_config(
         .get_bridgehub_contract()
         .await?;
     Ok(Bridgehub::new(bridgehub_address, Arc::new(l1_signer)))
+}
+
+pub(crate) async fn try_state_transition_manager_from_config(
+    cfg: &ZKSyncConfig,
+) -> eyre::Result<StateTransitionManager<SignerMiddleware<impl Middleware, impl Signer>>> {
+    let chain_id = cfg
+        .network
+        .l2_chain_id
+        .ok_or(eyre::eyre!("L2 chain id not found in config"))?;
+    let bridgehub = try_bridgehub_from_config(cfg).await?;
+    let stm_address = bridgehub
+        .state_transition_manager(chain_id.into())
+        .call()
+        .await?;
+    let l1_signer =
+        try_l1_signer_from_config(cfg.governance.owner_private_key.parse()?, cfg).await?;
+
+    Ok(StateTransitionManager::new(
+        stm_address,
+        Arc::new(l1_signer),
+    ))
 }
