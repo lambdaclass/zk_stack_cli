@@ -11,6 +11,7 @@ pub(crate) mod config;
 pub(crate) mod contracts;
 pub(crate) mod db;
 pub(crate) mod gas_tracker;
+pub(crate) mod messages;
 pub(crate) mod test;
 pub(crate) mod wallet;
 
