@@ -1,6 +1,16 @@
 use crate::utils::db::{types::ProverJobFriInfo, CURRENT_MAX_ATTEMPTS};
-use sqlx::{pool::PoolConnection, postgres::PgRow, Executor, FromRow, Postgres};
-use zksync_ethers_rs::types::zksync::basic_fri_types::AggregationRound;
+use eyre::ContextCompat;
+use sqlx::{pool::PoolConnection, postgres::PgRow, Executor, FromRow, Postgres, Row};
+use std::str::FromStr;
+use zksync_ethers_rs::{
+    abi::Hash,
+    types::zksync::{
+        basic_fri_types::AggregationRound,
+        protocol_version::VersionPatch,
+        prover_dal::{ProofCompressionJobStatus, WitnessJobStatus},
+        L1BatchNumber, ProtocolVersionId,
+    },
+};
 
 pub async fn get_batch_proofs_stuck_at_wg_round<WG>(
     aggregation_round: AggregationRound,
@@ -28,6 +38,7 @@ where
         .map_err(Into::into)
 }
 
+#[allow(clippy::as_conversions, reason = "AggregationRound is an enum of u8s")]
 pub async fn get_batch_proofs_stuck_at_prover_in_agg_round(
     prover_db: &mut PoolConnection<Postgres>,
     aggregation_round: AggregationRound,
@@ -50,6 +61,217 @@ pub async fn get_batch_proofs_stuck_at_prover_in_agg_round(
         .map(ProverJobFriInfo::from_row)
         .collect::<Result<Vec<ProverJobFriInfo>, _>>()
         .map_err(Into::into)
+}
+
+pub async fn get_compressor_job_status(
+    l1_batch_number: L1BatchNumber,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<Option<ProofCompressionJobStatus>> {
+    let query = format!(
+        "
+        SELECT status
+        FROM proof_compression_jobs_fri
+        WHERE
+            l1_batch_number = {}
+            AND status = 'sent_to_server'
+        ",
+        l1_batch_number.0,
+    );
+    let row = prover_db
+        .fetch_optional(query.as_str())
+        .await?
+        .context("Parsing Row")?;
+    let raw_status: String = row.get("status");
+    Ok(Some(ProofCompressionJobStatus::from_str(
+        raw_status.as_str(),
+    )?))
+}
+
+pub async fn restart_batch_proof(
+    l1_batch_number: L1BatchNumber,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    delete_batch_proof_compression_data(l1_batch_number, prover_db).await?;
+    delete_batch_witness_generation_data(AggregationRound::Scheduler, l1_batch_number, prover_db)
+        .await?;
+    delete_batch_witness_generation_data(
+        AggregationRound::RecursionTip,
+        l1_batch_number,
+        prover_db,
+    )
+    .await?;
+    delete_batch_witness_generation_data(
+        AggregationRound::NodeAggregation,
+        l1_batch_number,
+        prover_db,
+    )
+    .await?;
+    delete_batch_witness_generation_data(
+        AggregationRound::LeafAggregation,
+        l1_batch_number,
+        prover_db,
+    )
+    .await?;
+    delete_batch_proof_prover_data(l1_batch_number, prover_db).await?;
+    set_basic_witness_generator_job_status(l1_batch_number, WitnessJobStatus::Queued, prover_db)
+        .await
+}
+
+pub async fn set_basic_witness_generator_job_status(
+    l1_batch_number: L1BatchNumber,
+    status: WitnessJobStatus,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    let query = format!(
+        "
+        UPDATE witness_inputs_fri
+        SET status = '{status}'
+        WHERE
+            l1_batch_number = {l1_batch_number}
+        ",
+        status = status,
+        l1_batch_number = l1_batch_number.0
+    );
+    prover_db.execute(query.as_str()).await?;
+    Ok(())
+}
+
+pub async fn delete_batch_proof_compression_data(
+    l1_batch_number: L1BatchNumber,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    delete_batch_data_from_table(l1_batch_number, "proof_compression_jobs_fri", prover_db).await
+}
+
+pub async fn delete_batch_witness_generation_data(
+    aggregation_round: AggregationRound,
+    l1_batch_number: L1BatchNumber,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    delete_batch_data_from_table(
+        l1_batch_number,
+        input_table_name_for(aggregation_round),
+        prover_db,
+    )
+    .await
+}
+
+pub async fn delete_batch_proof_prover_data(
+    l1_batch_number: L1BatchNumber,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    delete_batch_data_from_table(l1_batch_number, "prover_jobs_fri", prover_db).await
+}
+
+async fn delete_batch_data_from_table(
+    l1_batch_number: L1BatchNumber,
+    table: &str,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    let query = format!(
+        "
+        DELETE FROM {table}
+        WHERE
+            l1_batch_number = {l1_batch_number}
+        ",
+        table = table,
+        l1_batch_number = l1_batch_number.0
+    );
+    prover_db.execute(query.as_str()).await?;
+    Ok(())
+}
+
+#[allow(clippy::as_conversions, reason = "Allow as for ProtocolVersionId")]
+pub async fn insert_witness_inputs(
+    l1_batch_number: L1BatchNumber,
+    witness_inputs_blob_url: &str,
+    protocol_version: ProtocolVersionId,
+    protocol_version_patch: VersionPatch,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    let query = format!(
+        "
+        INSERT INTO
+            witness_inputs_fri (
+                l1_batch_number,
+                witness_inputs_blob_url,
+                protocol_version,
+                status,
+                created_at,
+                updated_at,
+                protocol_version_patch
+            )
+        VALUES
+            ({}, '{}', {}, 'queued', NOW(), NOW(), {})
+        ON CONFLICT (l1_batch_number) DO NOTHING
+        ",
+        l1_batch_number.0, witness_inputs_blob_url, protocol_version as u16, protocol_version_patch
+    );
+    prover_db.execute(query.as_str()).await?;
+    Ok(())
+}
+
+pub async fn get_basic_witness_job_status(
+    l1_batch_number: L1BatchNumber,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<Option<WitnessJobStatus>> {
+    let query = format!(
+        "
+        SELECT status
+        FROM witness_inputs_fri
+        WHERE
+            l1_batch_number = {}
+        ",
+        l1_batch_number.0,
+    );
+
+    let row = prover_db
+        .fetch_optional(query.as_str())
+        .await?
+        .context("Parsing Row")?;
+    let raw_status: String = row.get("status");
+    Ok(Some(WitnessJobStatus::from_str(raw_status.as_str())?))
+}
+
+#[allow(clippy::as_conversions, reason = "Allow as for ProtocolVersionId")]
+pub async fn insert_prover_protocol_version(
+    protocol_version: ProtocolVersionId,
+    recursion_scheduler_level_vk_hash: Hash,
+    recursion_node_level_vk_hash: Hash,
+    recursion_leaf_level_vk_hash: Hash,
+    recursion_circuits_set_vks_hash: Hash,
+    protocol_version_patch: VersionPatch,
+    prover_db: &mut PoolConnection<Postgres>,
+) -> eyre::Result<()> {
+    let query = format!(
+        "
+        INSERT INTO
+            prover_fri_protocol_versions (
+                id,
+                recursion_scheduler_level_vk_hash,
+                recursion_node_level_vk_hash,
+                recursion_leaf_level_vk_hash,
+                recursion_circuits_set_vks_hash,
+                protocol_version_patch,
+                created_at
+            )
+        VALUES
+            ({}, '\\x{:x}', '\\x{:x}', '\\x{:x}', '\\x{:x}', {}, NOW())
+        ON CONFLICT (id, protocol_version_patch) DO UPDATE SET
+            recursion_scheduler_level_vk_hash = EXCLUDED.recursion_scheduler_level_vk_hash,
+            recursion_node_level_vk_hash = EXCLUDED.recursion_node_level_vk_hash,
+            recursion_leaf_level_vk_hash = EXCLUDED.recursion_leaf_level_vk_hash,
+            recursion_circuits_set_vks_hash = EXCLUDED.recursion_circuits_set_vks_hash
+        ",
+        protocol_version as u16,
+        recursion_scheduler_level_vk_hash,
+        recursion_node_level_vk_hash,
+        recursion_leaf_level_vk_hash,
+        recursion_circuits_set_vks_hash,
+        protocol_version_patch
+    );
+    prover_db.execute(query.as_str()).await?;
+    Ok(())
 }
 
 fn input_table_name_for(aggregation_round: AggregationRound) -> &'static str {

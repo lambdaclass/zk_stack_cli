@@ -1,5 +1,5 @@
 use crate::{
-    commands::{autocomplete, chain, config, contract, contracts, db, test, utils, wallet},
+    commands::{autocomplete, chain, config, contract, contracts, db, prover, test, utils, wallet},
     config::load_selected_config,
 };
 use clap::{Parser, Subcommand};
@@ -26,8 +26,8 @@ enum ZKSyncCommand {
         about = "Chain interaction commands. These make use of the JSON-RPC API."
     )]
     Chain(chain::Command),
-    #[clap(about = "Prover commands. TODO.")]
-    Prover,
+    #[clap(subcommand, about = "Prover commands. TODO.")]
+    Prover(prover::Command),
     #[clap(subcommand, about = "Contract interaction commands.")]
     Contract(contract::Command),
     #[clap(subcommand, about = "CLI config commands.")]
@@ -64,7 +64,7 @@ pub async fn start() -> eyre::Result<()> {
     match command {
         ZKSyncCommand::Wallet(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Chain(cmd) => cmd.run(cfg).await?,
-        ZKSyncCommand::Prover => todo!(),
+        ZKSyncCommand::Prover(cmd) => cmd.run()?,
         ZKSyncCommand::Contract(cmd) => cmd.run(cfg)?,
         ZKSyncCommand::Contracts(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Autocomplete(cmd) => cmd.run()?,

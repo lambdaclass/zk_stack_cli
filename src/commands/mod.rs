@@ -4,6 +4,7 @@ pub(crate) mod config;
 pub(crate) mod contract;
 pub(crate) mod contracts;
 pub(crate) mod db;
+pub(crate) mod prover;
 pub(crate) mod test;
 pub(crate) mod utils;
 pub(crate) mod wallet;
