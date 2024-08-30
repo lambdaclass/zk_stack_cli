@@ -5,7 +5,7 @@ use zksync_ethers_rs::types::{
     zksync::{
         basic_fri_types::AggregationRound,
         protocol_version::VersionPatch,
-        prover_dal::{ProverJobStatus, WitnessJobStatus},
+        prover_dal::{ProofCompressionJobStatus, ProverJobStatus, WitnessJobStatus},
         L1BatchNumber, ProtocolVersionId,
     },
     U256,
@@ -265,6 +265,38 @@ impl FromRow<'_, PgRow> for SchedulerWitnessGeneratorJobInfo {
         })
     }
 }
+#[derive(Debug, Clone)]
+pub struct ProofCompressionJobInfo {
+    pub l1_batch_number: L1BatchNumber,
+    pub _attempts: u32,
+    pub _status: ProofCompressionJobStatus,
+    pub _fri_proof_blob_url: Option<String>,
+    pub _l1_proof_blob_url: Option<String>,
+    pub _error: Option<String>,
+    pub _created_at: NaiveDateTime,
+    pub _updated_at: NaiveDateTime,
+    pub _processing_started_at: Option<NaiveDateTime>,
+    pub _time_taken: Option<NaiveTime>,
+    pub _picked_by: Option<String>,
+}
+
+impl FromRow<'_, PgRow> for ProofCompressionJobInfo {
+    fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        Ok(Self {
+            l1_batch_number: L1BatchNumber::from(get_u32_from_pg_row(row, "l1_batch_number")?),
+            _attempts: get_u32_from_pg_row(row, "attempts")?,
+            _status: get_proof_compression_job_status_from_pg_row(row)?,
+            _fri_proof_blob_url: row.get("fri_proof_blob_url"),
+            _l1_proof_blob_url: row.get("l1_proof_blob_url"),
+            _error: row.get("error"),
+            _created_at: row.get("created_at"),
+            _updated_at: row.get("updated_at"),
+            _processing_started_at: row.get("processing_started_at"),
+            _time_taken: row.get("time_taken"),
+            _picked_by: row.get("picked_by"),
+        })
+    }
+}
 
 fn get_u32_from_pg_row(row: &PgRow, index: &str) -> Result<u32, sqlx::Error> {
     let raw_u32: Result<u32, _> = row.get::<i16, &str>(index).try_into();
@@ -284,4 +316,11 @@ fn get_version_path_from_pg_row(row: &PgRow) -> Result<VersionPatch, sqlx::Error
 fn get_witness_job_status_from_pg_row(row: &PgRow) -> Result<WitnessJobStatus, sqlx::Error> {
     let raw_status = row.get::<&str, &str>("status");
     WitnessJobStatus::from_str(raw_status).map_err(|e| sqlx::Error::Decode(e.into()))
+}
+
+fn get_proof_compression_job_status_from_pg_row(
+    row: &PgRow,
+) -> Result<ProofCompressionJobStatus, sqlx::Error> {
+    let raw_status = row.get::<&str, &str>("status");
+    ProofCompressionJobStatus::from_str(raw_status).map_err(|e| sqlx::Error::Decode(e.into()))
 }
