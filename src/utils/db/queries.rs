@@ -38,6 +38,7 @@ where
         .map_err(Into::into)
 }
 
+#[allow(clippy::as_conversions, reason = "AggregationRound is an enum of u8s")]
 pub async fn get_batch_proofs_stuck_at_prover_in_agg_round(
     prover_db: &mut PoolConnection<Postgres>,
     aggregation_round: AggregationRound,
@@ -76,10 +77,14 @@ pub async fn get_compressor_job_status(
         ",
         l1_batch_number.0,
     );
-    Ok(prover_db.fetch_optional(query.as_str()).await?.map(|row| {
-        let raw_status: String = row.get("status");
-        ProofCompressionJobStatus::from_str(raw_status.as_str()).unwrap()
-    }))
+    let row = prover_db
+        .fetch_optional(query.as_str())
+        .await?
+        .context("Parsing Row")?;
+    let raw_status: String = row.get("status");
+    Ok(Some(ProofCompressionJobStatus::from_str(
+        raw_status.as_str(),
+    )?))
 }
 
 pub async fn restart_batch_proof(
@@ -176,6 +181,7 @@ async fn delete_batch_data_from_table(
     Ok(())
 }
 
+#[allow(clippy::as_conversions, reason = "Allow as for ProtocolVersionId")]
 pub async fn insert_witness_inputs(
     l1_batch_number: L1BatchNumber,
     witness_inputs_blob_url: &str,
@@ -218,12 +224,16 @@ pub async fn get_basic_witness_job_status(
         ",
         l1_batch_number.0,
     );
-    Ok(prover_db.fetch_optional(query.as_str()).await?.map(|row| {
-        let raw_status: String = row.get("status");
-        WitnessJobStatus::from_str(raw_status.as_str()).unwrap()
-    }))
+
+    let row = prover_db
+        .fetch_optional(query.as_str())
+        .await?
+        .context("Parsing Row")?;
+    let raw_status: String = row.get("status");
+    Ok(Some(WitnessJobStatus::from_str(raw_status.as_str())?))
 }
 
+#[allow(clippy::as_conversions, reason = "Allow as for ProtocolVersionId")]
 pub async fn insert_prover_protocol_version(
     protocol_version: ProtocolVersionId,
     recursion_scheduler_level_vk_hash: Hash,

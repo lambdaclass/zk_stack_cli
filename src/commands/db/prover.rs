@@ -36,17 +36,12 @@ use crate::{
 use clap::Subcommand;
 use eyre::ContextCompat;
 use spinoff::{spinners::Dots, Color, Spinner};
-use zksync_ethers_rs::{
-    abi::Hash,
-    types::{
-        zksync::{
-            basic_fri_types::AggregationRound,
-            protocol_version::VersionPatch,
-            prover_dal::{ProofCompressionJobStatus, WitnessJobStatus},
-            L1BatchNumber, ProtocolVersionId,
-        },
-        TryFromPrimitive,
+use zksync_ethers_rs::types::{
+    zksync::{
+        basic_fri_types::AggregationRound, protocol_version::VersionPatch,
+        prover_dal::ProofCompressionJobStatus, L1BatchNumber, ProtocolVersionId,
     },
+    TryFromPrimitive,
 };
 
 #[derive(Subcommand)]
@@ -74,8 +69,9 @@ pub(crate) enum Command {
     },
 }
 
-fn protocol_version_from_str(s: &str) -> ProtocolVersionId {
-    ProtocolVersionId::try_from_primitive(s.parse().unwrap()).unwrap()
+#[allow(unused, reason = "not used atm")]
+fn protocol_version_from_str(s: &str) -> eyre::Result<ProtocolVersionId> {
+    Ok(ProtocolVersionId::try_from_primitive(s.parse()?)?)
 }
 
 impl Command {
@@ -202,7 +198,7 @@ impl Command {
                 }
 
                 let mut spinner = Spinner::new(Dots, "Inserting witness inputs", Color::Blue);
-                let witness_inputs_blob_url = format!("witness_inputs_{}.bin", batch_number);
+                let witness_inputs_blob_url = format!("witness_inputs_{batch_number}.bin");
                 match insert_witness_inputs(
                     batch_number,
                     &witness_inputs_blob_url,

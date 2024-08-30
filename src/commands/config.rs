@@ -17,7 +17,6 @@ use crate::{
 use clap::{Parser, Subcommand};
 use zksync_ethers_rs::types::Address;
 
-#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(about = "Edit an existing config.")]

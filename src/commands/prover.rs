@@ -1,15 +1,11 @@
-use crate::cli::ZKSyncCLI;
-use clap::{CommandFactory, Subcommand, ValueEnum};
-use clap_complete::{aot::Shell, generate};
-use std::fs::{File, OpenOptions};
-use std::io::{self, BufRead, Write};
+use clap::Subcommand;
 use std::path::PathBuf;
-use zksync_ethers_rs::types::zksync::inputs::{VMRunWitnessInputData, WitnessInputData};
+use zksync_ethers_rs::types::zksync::inputs::WitnessInputData;
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
     #[clap(
-        about = "Generate autocomplete shell script.",
+        about = "Prover - Debug Witness Inputs",
         visible_alias = "debug-proof-gen-data"
     )]
     DebugWitnessInputs {
