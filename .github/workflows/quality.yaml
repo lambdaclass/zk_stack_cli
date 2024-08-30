@@ -19,7 +19,7 @@ jobs:
       - name: Rustup toolchain install
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
+          toolchain: nighlty
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -28,7 +28,7 @@ jobs:
       - name: Run cargo check
         uses: dtolnay/rust-toolchain@stable
         with:
-          command: +nightly check
+          command: check
 
   format:
     name: Check format
@@ -48,7 +48,7 @@ jobs:
           components: rustfmt
 
       - name: Run cargo fmt
-        run: cargo +nightly fmt --all -- --check
+        run: cargo fmt --all -- --check
 
   clippy:
     name: Clippy
@@ -68,7 +68,7 @@ jobs:
           components: clippy
 
       - name: Run clippy
-        run: cargo +nightly clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
   test:
     name: Test
@@ -88,4 +88,4 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Run tests
-        run: cargo +nightly test
+        run: cargo test
