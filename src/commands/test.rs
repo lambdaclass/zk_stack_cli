@@ -12,6 +12,7 @@ use std::{
     sync::Arc,
     thread::sleep,
 };
+use zksync_ethers_rs::core::utils::parse_units;
 use zksync_ethers_rs::{
     core::utils::parse_ether, providers::Middleware, types::U256, wait_for_finalize_withdrawal,
     ZKMiddleware,
@@ -56,8 +57,8 @@ pub(crate) enum Command {
         visible_alias = "gs"
     )]
     GasScenario {
-        #[clap(long = "tps", required = true)]
-        tps: u64,
+        #[clap(long = "tpr", required = true, help = "Transactions per run")]
+        tpr: u64,
         #[clap(
             long = "amount",
             short = 'a',
@@ -66,12 +67,12 @@ pub(crate) enum Command {
         )]
         amount: f32,
         #[arg(
-            long = "rounds",
+            long = "reruns",
             short = 'r',
             default_value_t = 1,
             help = "Amount of times to run the program in a loop, it defaults to 1. Max is 255"
         )]
-        rounds: u8,
+        reruns_wanted: u8,
     },
 }
 
@@ -84,6 +85,9 @@ impl Command {
 
         let mut reruns = 0;
         let mut current_reruns: u32 = 1;
+
+        let arc_zk_wallet = Arc::new(zk_wallet);
+
         match self {
             Command::LoadTest {
                 number_of_wallets,
@@ -111,8 +115,8 @@ impl Command {
                     "{}: {base_token_address:?}",
                     "Base Token Address".bold().green().on_black()
                 );
-                display_balance(None, &zk_wallet, true, false).await?;
-                display_balance(Some(base_token_address), &zk_wallet, true, false).await?;
+                display_balance(None, &arc_zk_wallet, true, false).await?;
+                display_balance(Some(base_token_address), &arc_zk_wallet, true, false).await?;
 
                 println!("{}", "#".repeat(64));
                 // End Display L1 Balance and BaseToken Addr
@@ -128,7 +132,7 @@ impl Command {
                         reruns_wanted.to_string().red()
                     }
                 );
-                let arc_zk_wallet = Arc::new(zk_wallet);
+
                 while reruns < reruns_to_complete {
                     check_balance_and_deposit_or_mint(
                         Arc::clone(&arc_zk_wallet),
@@ -207,27 +211,20 @@ impl Command {
                 Ok(())
             }
             Command::GasScenario {
-                tps,
+                tpr,
                 amount,
-                rounds,
+                reruns_wanted,
             } => {
-                // TPS, at the moment the calculation is performed with the following conditions
+                // Calculations are performed with the following conditions
                 // - Don't take deposits into account
                 // - 1 transaction from the rich wallet to each random wallet
                 // - 1 transaction from each random wallet to the rich wallet
-                // - sleep 30 seconds. This step is made to simulate the number of transactions per secondzks
-                //  - (disclaimer) this tps is not the same tps of the chain, here we are sending transactions, the chain is processing transactions
-                //  - (disclaimer) moreover, the "downtime" of the deposit transaction is not taken into account. This reduces the actual tps.
+                // - sleep 30 miliseconds. Between each run.
                 //  - the only variable is the amount of random wallets
                 //  - taking into account we will have 2*number_of_wallets transactions
-                //  - the number_of_wallets is calculated as follows: 2*number_of_wallets [txs] = tps [tx/s] * 1 [s]
-                //  - so number_of_wallets = (tps+1)/2. The +1 is to have an even number from an odd number. An even number of tps is preffered.
-                let number_of_wallets = ((tps + 1) / 2).try_into()?;
-                // There is a flag called rounds, which tells the amount of times to run the prorgram,
-                // the following assumptions are made
-                //  - If 1 round lasts 1 second to send all the transactions per second specified by the tps flag
-                //    the runtime would be rounds * 1[s] = rounds [seconds]
-                //  - If we follow the sleep condition to simulate the transactions per second, this may vary.
+                //  - the number_of_wallets is calculated as follows: 2*number_of_wallets [txs] = tpr [tx/run]
+                //  - so number_of_wallets = (tpr+1)/2. The +1 is to have an even number from an odd number. An even number of tps is preffered.
+                let number_of_wallets = ((tpr + 1) / 2).try_into()?;
 
                 let mut gas_tracker = GasTracker::new()
                     .set_token_decimals(base_token_decimals)
@@ -241,19 +238,17 @@ impl Command {
                 let wallets =
                     get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
                 // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
-                let parsed_amount_to_deposit = parse_ether(amount)?
+                let parsed_amount_to_deposit: U256 =
+                    parse_units(amount, base_token_decimals)?.into();
+                let parsed_amount_to_deposit = parsed_amount_to_deposit
                     .div(10_u32)
                     .saturating_mul(U256::from(12_u32)); // 20% of headroom
                 let float_wallets: f32 = number_of_wallets.into();
                 let amount_of_bt_to_transfer_for_each: f32 = amount / float_wallets;
 
-                // Here we are assuming that the base token has 18 decimals
                 let parsed_amount_of_bt_to_transfer_for_each =
-                    parse_ether(amount_of_bt_to_transfer_for_each)?;
+                    parse_units(amount_of_bt_to_transfer_for_each, base_token_decimals)?;
 
-                let arc_zk_wallet = Arc::new(zk_wallet);
-
-                let reruns_wanted: u8 = rounds;
                 let reruns_to_complete: u8 = if reruns_wanted == 0 { 1 } else { reruns_wanted };
 
                 while reruns < reruns_to_complete {
@@ -278,7 +273,7 @@ impl Command {
                     let tx_hashes_forwards = send_transactions(
                         &arc_zk_wallet,
                         &wallets,
-                        parsed_amount_of_bt_to_transfer_for_each,
+                        parsed_amount_of_bt_to_transfer_for_each.into(),
                     )
                     .await?;
 
