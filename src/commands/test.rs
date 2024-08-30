@@ -219,7 +219,7 @@ impl Command {
                 // - Don't take deposits into account
                 // - 1 transaction from the rich wallet to each random wallet
                 // - 1 transaction from each random wallet to the rich wallet
-                // - sleep 30 miliseconds. Between each run.
+                // - sleep 300 miliseconds == 0.3[s] . Between each run.
                 //  - the only variable is the amount of random wallets
                 //  - taking into account we will have 2*number_of_wallets transactions
                 //  - the number_of_wallets is calculated as follows: 2*number_of_wallets [txs] = tpr [tx/run]
@@ -338,7 +338,7 @@ impl Command {
                     }
                     current_reruns += 1;
 
-                    sleep(time::Duration::from_secs(30));
+                    sleep(time::Duration::from_millis(300));
                 }
                 println!("{gas_tracker}");
                 Ok(())
