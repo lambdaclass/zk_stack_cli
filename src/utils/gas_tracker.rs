@@ -66,7 +66,7 @@ impl GasTracker {
         }
     }
 
-    #[allow(clippy::as_conversions)]
+    #[allow(clippy::as_conversions, reason = "Allow as conversion for usize")]
     pub fn std_deviation(values: &[U256], units: i32) -> eyre::Result<f64> {
         let float_values = values
             .iter()

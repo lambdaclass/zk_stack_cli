@@ -14,8 +14,7 @@ use std::{
 };
 use zksync_ethers_rs::core::utils::parse_units;
 use zksync_ethers_rs::{
-    core::utils::parse_ether, providers::Middleware, types::U256, wait_for_finalize_withdrawal,
-    ZKMiddleware,
+    providers::Middleware, types::U256, wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
 #[derive(Subcommand)]
@@ -99,15 +98,16 @@ impl Command {
                 let wallets =
                     get_n_random_wallets(number_of_wallets, &l1_provider, &l2_provider).await?;
                 // ideally it should be the amount transferred, the gas + fees have to be deducted automatically
-                let parsed_amount_to_deposit = parse_ether(amount)?
+                let parsed_amount_to_deposit: U256 =
+                    parse_units(amount, base_token_decimals)?.into();
+                let parsed_amount_to_withdraw = parsed_amount_to_deposit;
+                let parsed_amount_to_deposit = parsed_amount_to_deposit
                     .div(10_u32)
                     .saturating_mul(U256::from(12_u32)); // 20% of headroom
                 let float_wallets: f32 = number_of_wallets.into();
                 let amount_of_bt_to_transfer_for_each: f32 = amount / float_wallets;
-                let amount_of_bt_to_withdraw: f32 = amount;
-                // Here we are assuming that the base token has 18 decimals
-                let parsed_amount_of_bt_to_transfer_for_each =
-                    parse_ether(amount_of_bt_to_transfer_for_each)?;
+                let parsed_amount_of_bt_to_transfer_for_each: U256 =
+                    parse_units(amount_of_bt_to_transfer_for_each, base_token_decimals)?.into();
 
                 // Begin Display L1 Balance and BaseToken Addr
                 println!("{}", "#".repeat(64));
@@ -182,7 +182,7 @@ impl Command {
                         display_balance(Some(base_token_address), &arc_zk_wallet, true, true)
                             .await?;
                         let withdraw_hash = arc_zk_wallet
-                            .withdraw_base_token(parse_ether(amount_of_bt_to_withdraw.to_string())?)
+                            .withdraw_base_token(parsed_amount_to_withdraw)
                             .await?;
                         println!("Withdraw hash: {withdraw_hash:?}");
                         let base_token_address =
