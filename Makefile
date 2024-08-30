@@ -3,10 +3,10 @@ cli:
 	zks autocomplete install
 
 build-cli:
-	cargo build --release
+	cargo +nightly build --release
 
 fmt:
-	cargo fmt --all
+	cargo +nightly fmt --all
 
 clippy:
-	cargo clippy --all-targets -- -D warnings
+	cargo +nightly clippy --all-targets -- -D warnings
