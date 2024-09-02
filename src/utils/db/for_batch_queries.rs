@@ -1,11 +1,10 @@
+use super::types::RecursionTipWitnessGeneratorJobInfo;
 use crate::utils::db::types::{
     BasicWitnessGeneratorJobInfo, LeafWitnessGeneratorJobInfo, NodeWitnessGeneratorJobInfo,
     ProofCompressionJobInfo, ProverJobFriInfo, SchedulerWitnessGeneratorJobInfo,
 };
 use sqlx::{pool::PoolConnection, Executor, FromRow, Postgres};
 use zksync_ethers_rs::types::zksync::{basic_fri_types::AggregationRound, L1BatchNumber};
-
-use super::types::RecursionTipWitnessGeneratorJobInfo;
 
 #[allow(clippy::as_conversions, reason = "AggregationRound is an enum of u8s")]
 pub(crate) async fn get_prover_jobs_info_for_batch(

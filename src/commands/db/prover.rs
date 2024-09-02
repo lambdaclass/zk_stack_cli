@@ -31,7 +31,7 @@ use crate::{
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
-        prover_status::{get_batches_data, BatchData, StageInfo, Status},
+        prover_status::{display_batch_info, display_batch_status, get_batches_data, Status},
     },
 };
 use clap::Subcommand;
@@ -294,7 +294,15 @@ impl Command {
                 };
             }
             Command::Status { batches, verbose } => {
-                let mut spinner = Spinner::new(Dots, "Getting Batch(es)", Color::Blue);
+                let msg = format!(
+                    "Fetching {}",
+                    if batches.len() > 1 {
+                        "Batches".to_owned()
+                    } else {
+                        "Batch".to_owned()
+                    }
+                );
+                let mut spinner = Spinner::new(Dots, msg, Color::Blue);
                 let batches_data = get_batches_data(batches, &mut prover_db).await?;
                 spinner.success("Data Retrieved from DB");
 
@@ -329,7 +337,7 @@ impl Command {
                     if !verbose {
                         display_batch_status(batch_data);
                     } else {
-                        //display_batch_info(batch_data);
+                        display_batch_info(batch_data)?;
                     }
                 }
             }
@@ -337,45 +345,4 @@ impl Command {
 
         Ok(())
     }
-}
-
-fn display_batch_status(batch_data: BatchData) {
-    display_status_for_stage(batch_data.basic_witness_generator);
-    display_status_for_stage(batch_data.leaf_witness_generator);
-    display_status_for_stage(batch_data.node_witness_generator);
-    display_status_for_stage(batch_data.recursion_tip_witness_generator);
-    display_status_for_stage(batch_data.scheduler_witness_generator);
-    display_status_for_stage(batch_data.compressor);
-}
-
-fn display_status_for_stage(stage_info: StageInfo) {
-    let max_attempts = 10;
-    display_aggregation_round(&stage_info);
-    let status = stage_info.witness_generator_jobs_status(max_attempts);
-    match status {
-        Status::Custom(msg) => {
-            println!("{}: {} \n", stage_info.to_string().bold(), msg);
-        }
-        Status::Queued | Status::WaitingForProofs | Status::Stuck | Status::JobsNotFound => {
-            println!("{}: {}", stage_info.to_string().bold(), status)
-        }
-        Status::InProgress | Status::Successful => {
-            println!("{}: {}", stage_info.to_string().bold(), status);
-            if let Some(job_status) = stage_info.prover_jobs_status(max_attempts) {
-                println!("> {}: {}", "Prover Jobs".to_owned().bold(), job_status);
-            }
-        }
-    }
-}
-
-#[allow(clippy::as_conversions, reason = "AggregationRound is an enum of u8s")]
-fn display_aggregation_round(stage_info: &StageInfo) {
-    if let Some(aggregation_round) = stage_info.aggregation_round() {
-        println!(
-            "\n-- {} --",
-            format!("Aggregation Round {}", aggregation_round as u8).bold()
-        );
-    } else {
-        println!("\n-- {} --", "Proof Compression".to_owned().bold());
-    };
 }
