@@ -9,7 +9,7 @@ use zksync_ethers_rs::types::zksync::{basic_fri_types::AggregationRound, L1Batch
 use super::types::RecursionTipWitnessGeneratorJobInfo;
 
 #[allow(clippy::as_conversions, reason = "AggregationRound is an enum of u8s")]
-async fn get_prover_jobs_info_for_batch(
+pub(crate) async fn get_prover_jobs_info_for_batch(
     l1_batch_number: L1BatchNumber,
     aggregation_round: AggregationRound,
     prover_db: &mut PoolConnection<Postgres>,
@@ -34,7 +34,7 @@ async fn get_prover_jobs_info_for_batch(
         .map_err(Into::into)
 }
 
-async fn get_proof_basic_witness_generator_into_for_batch(
+pub(crate) async fn get_proof_basic_witness_generator_info_for_batch(
     l1_batch_number: L1BatchNumber,
     prover_db: &mut PoolConnection<Postgres>,
 ) -> eyre::Result<Option<BasicWitnessGeneratorJobInfo>> {
@@ -56,8 +56,7 @@ async fn get_proof_basic_witness_generator_into_for_batch(
     Ok(Some(BasicWitnessGeneratorJobInfo::from_row(&row)?))
 }
 
-// https://github.com/matter-labs/zksync-era/blob/6d18061df4a18803d3c6377305ef711ce60317e1/prover/crates/lib/prover_dal/src/fri_witness_generator_dal.rs#L1489
-async fn get_proof_leaf_witness_generator_info_for_batch(
+pub(crate) async fn get_proof_leaf_witness_generator_info_for_batch(
     l1_batch_number: L1BatchNumber,
     prover_db: &mut PoolConnection<Postgres>,
 ) -> eyre::Result<Vec<LeafWitnessGeneratorJobInfo>> {
@@ -80,7 +79,7 @@ async fn get_proof_leaf_witness_generator_info_for_batch(
         .map_err(Into::into)
 }
 
-async fn get_proof_node_witness_generator_info_for_batch(
+pub(crate) async fn get_proof_node_witness_generator_info_for_batch(
     l1_batch_number: L1BatchNumber,
     prover_db: &mut PoolConnection<Postgres>,
 ) -> eyre::Result<Vec<NodeWitnessGeneratorJobInfo>> {
@@ -103,7 +102,7 @@ async fn get_proof_node_witness_generator_info_for_batch(
         .map_err(Into::into)
 }
 
-async fn get_proof_recursion_tip_witness_generator_info_for_batch(
+pub(crate) async fn get_proof_recursion_tip_witness_generator_info_for_batch(
     l1_batch_number: L1BatchNumber,
     prover_db: &mut PoolConnection<Postgres>,
 ) -> eyre::Result<Option<RecursionTipWitnessGeneratorJobInfo>> {
@@ -125,7 +124,7 @@ async fn get_proof_recursion_tip_witness_generator_info_for_batch(
     Ok(Some(RecursionTipWitnessGeneratorJobInfo::from_row(&row)?))
 }
 
-async fn get_proof_scheduler_witness_generator_info_for_batch(
+pub(crate) async fn get_proof_scheduler_witness_generator_info_for_batch(
     l1_batch_number: L1BatchNumber,
     prover_db: &mut PoolConnection<Postgres>,
 ) -> eyre::Result<Option<SchedulerWitnessGeneratorJobInfo>> {
@@ -147,7 +146,7 @@ async fn get_proof_scheduler_witness_generator_info_for_batch(
     Ok(Some(SchedulerWitnessGeneratorJobInfo::from_row(&row)?))
 }
 
-async fn get_proof_compression_job_info_for_batch(
+pub(crate) async fn get_proof_compression_job_info_for_batch(
     l1_batch_number: L1BatchNumber,
     prover_db: &mut PoolConnection<Postgres>,
 ) -> eyre::Result<Option<ProofCompressionJobInfo>> {

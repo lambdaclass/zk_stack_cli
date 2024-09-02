@@ -11,6 +11,7 @@ pub(crate) mod config;
 pub(crate) mod contracts;
 pub(crate) mod db;
 pub(crate) mod messages;
+pub(crate) mod prover_status;
 pub(crate) mod wallet;
 
 pub(crate) fn try_l2_provider_from_config(cfg: &ZKSyncConfig) -> eyre::Result<Provider<Http>> {

@@ -31,6 +31,7 @@ use crate::{
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
+        prover_status::get_batches_data,
     },
 };
 use clap::Subcommand;
@@ -66,6 +67,12 @@ pub(crate) enum Command {
     InsertProtocolVersion {
         #[arg(short = 'd')]
         default_values: bool,
+    },
+    Status {
+        #[clap(short = 'n', num_args = 1.., required = true)]
+        batches: Vec<L1BatchNumber>,
+        #[clap(short = 'v', long, default_value("false"))]
+        verbose: bool,
     },
 }
 
@@ -284,6 +291,11 @@ impl Command {
                         return Err(e);
                     }
                 };
+            }
+            Command::Status { batches, verbose } => {
+                println!("{batches:?}");
+                let batches_data = get_batches_data(batches, &mut prover_db).await?;
+                println!("{batches_data:?}");
             }
         };
 
