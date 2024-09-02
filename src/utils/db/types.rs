@@ -5,7 +5,7 @@ use zksync_ethers_rs::types::{
     zksync::{
         basic_fri_types::AggregationRound,
         protocol_version::VersionPatch,
-        prover_dal::{ProofCompressionJobStatus, ProverJobStatus, WitnessJobStatus},
+        prover_dal::{ProofCompressionJobStatus, ProverJobStatus, Stallable, WitnessJobStatus},
         L1BatchNumber, ProtocolVersionId,
     },
     U256,
@@ -48,6 +48,16 @@ impl FromRow<'_, PgRow> for BasicWitnessGeneratorJobInfo {
             _protocol_version_patch: get_version_patch_from_pg_row(row).ok(),
             _witness_inputs_blob_url: row.get("witness_inputs_blob_url"),
         })
+    }
+}
+
+impl Stallable for BasicWitnessGeneratorJobInfo {
+    fn get_status(&self) -> WitnessJobStatus {
+        self._status.clone()
+    }
+
+    fn get_attempts(&self) -> u32 {
+        self._attempts
     }
 }
 
@@ -131,6 +141,16 @@ pub struct LeafWitnessGeneratorJobInfo {
     pub _protocol_version_patch: Option<VersionPatch>,
 }
 
+impl Stallable for LeafWitnessGeneratorJobInfo {
+    fn get_status(&self) -> WitnessJobStatus {
+        self._status.clone()
+    }
+
+    fn get_attempts(&self) -> u32 {
+        self._attempts
+    }
+}
+
 impl FromRow<'_, PgRow> for LeafWitnessGeneratorJobInfo {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
@@ -173,6 +193,16 @@ pub struct NodeWitnessGeneratorJobInfo {
     pub _protocol_version_patch: Option<VersionPatch>,
 }
 
+impl Stallable for NodeWitnessGeneratorJobInfo {
+    fn get_status(&self) -> WitnessJobStatus {
+        self._status.clone()
+    }
+
+    fn get_attempts(&self) -> u32 {
+        self._attempts
+    }
+}
+
 impl FromRow<'_, PgRow> for NodeWitnessGeneratorJobInfo {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
@@ -212,6 +242,16 @@ pub struct RecursionTipWitnessGeneratorJobInfo {
     pub _protocol_version_patch: Option<VersionPatch>,
 }
 
+impl Stallable for RecursionTipWitnessGeneratorJobInfo {
+    fn get_status(&self) -> WitnessJobStatus {
+        self._status.clone()
+    }
+
+    fn get_attempts(&self) -> u32 {
+        self._attempts
+    }
+}
+
 impl FromRow<'_, PgRow> for RecursionTipWitnessGeneratorJobInfo {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
@@ -247,6 +287,16 @@ pub struct SchedulerWitnessGeneratorJobInfo {
     pub _protocol_version_patch: Option<VersionPatch>,
 }
 
+impl Stallable for SchedulerWitnessGeneratorJobInfo {
+    fn get_status(&self) -> WitnessJobStatus {
+        self._status.clone()
+    }
+
+    fn get_attempts(&self) -> u32 {
+        self._attempts
+    }
+}
+
 impl FromRow<'_, PgRow> for SchedulerWitnessGeneratorJobInfo {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
@@ -268,7 +318,7 @@ impl FromRow<'_, PgRow> for SchedulerWitnessGeneratorJobInfo {
 
 #[derive(Debug, Clone)]
 pub struct ProofCompressionJobInfo {
-    pub l1_batch_number: L1BatchNumber,
+    pub _l1_batch_number: L1BatchNumber,
     pub _attempts: u32,
     pub _status: ProofCompressionJobStatus,
     pub _fri_proof_blob_url: Option<String>,
@@ -284,7 +334,7 @@ pub struct ProofCompressionJobInfo {
 impl FromRow<'_, PgRow> for ProofCompressionJobInfo {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
-            l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
+            _l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
             _attempts: get_u32_from_pg_row(row, "attempts")?,
             _status: get_proof_compression_job_status_from_pg_row(row)?,
             _fri_proof_blob_url: row.get("fri_proof_blob_url"),

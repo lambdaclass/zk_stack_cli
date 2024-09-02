@@ -2,7 +2,6 @@ use crate::utils::db::types::{
     BasicWitnessGeneratorJobInfo, LeafWitnessGeneratorJobInfo, NodeWitnessGeneratorJobInfo,
     ProofCompressionJobInfo, ProverJobFriInfo, SchedulerWitnessGeneratorJobInfo,
 };
-use eyre::ContextCompat;
 use sqlx::{pool::PoolConnection, Executor, FromRow, Postgres};
 use zksync_ethers_rs::types::zksync::{basic_fri_types::AggregationRound, L1BatchNumber};
 
@@ -48,12 +47,14 @@ pub(crate) async fn get_proof_basic_witness_generator_info_for_batch(
         l1_batch_number.0,
     );
 
-    let row = prover_db
-        .fetch_optional(query.as_str())
-        .await?
-        .context("Parsing Row")?;
+    let row = match prover_db.fetch_optional(query.as_str()).await? {
+        Some(row) => row,
+        None => return Ok(None),
+    };
 
-    Ok(Some(BasicWitnessGeneratorJobInfo::from_row(&row)?))
+    BasicWitnessGeneratorJobInfo::from_row(&row)
+        .map(Some)
+        .or(Ok(None))
 }
 
 pub(crate) async fn get_proof_leaf_witness_generator_info_for_batch(
@@ -116,12 +117,14 @@ pub(crate) async fn get_proof_recursion_tip_witness_generator_info_for_batch(
         l1_batch_number.0,
     );
 
-    let row = prover_db
-        .fetch_optional(query.as_str())
-        .await?
-        .context("Parsing Row")?;
+    let row = match prover_db.fetch_optional(query.as_str()).await? {
+        Some(row) => row,
+        None => return Ok(None),
+    };
 
-    Ok(Some(RecursionTipWitnessGeneratorJobInfo::from_row(&row)?))
+    RecursionTipWitnessGeneratorJobInfo::from_row(&row)
+        .map(Some)
+        .or(Ok(None))
 }
 
 pub(crate) async fn get_proof_scheduler_witness_generator_info_for_batch(
@@ -138,12 +141,14 @@ pub(crate) async fn get_proof_scheduler_witness_generator_info_for_batch(
         l1_batch_number.0,
     );
 
-    let row = prover_db
-        .fetch_optional(query.as_str())
-        .await?
-        .context("Parsing Row")?;
+    let row = match prover_db.fetch_optional(query.as_str()).await? {
+        Some(row) => row,
+        None => return Ok(None),
+    };
 
-    Ok(Some(SchedulerWitnessGeneratorJobInfo::from_row(&row)?))
+    SchedulerWitnessGeneratorJobInfo::from_row(&row)
+        .map(Some)
+        .or(Ok(None))
 }
 
 pub(crate) async fn get_proof_compression_job_info_for_batch(
@@ -160,10 +165,12 @@ pub(crate) async fn get_proof_compression_job_info_for_batch(
         l1_batch_number.0,
     );
 
-    let row = prover_db
-        .fetch_optional(query.as_str())
-        .await?
-        .context("Parsing Row")?;
+    let row = match prover_db.fetch_optional(query.as_str()).await? {
+        Some(row) => row,
+        None => return Ok(None),
+    };
 
-    Ok(Some(ProofCompressionJobInfo::from_row(&row)?))
+    ProofCompressionJobInfo::from_row(&row)
+        .map(Some)
+        .or(Ok(None))
 }
