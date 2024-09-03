@@ -12,12 +12,12 @@ use super::governance::run_upgrade;
 pub(crate) enum Command {
     #[command(name = "freeze", about = "Freeze chain", visible_alias = "fr")]
     FreezeChain {
-        #[clap(index = 1, required = true)]
+        #[clap(required = true)]
         chain_id: U256,
     },
     #[command(name = "unfreeze", about = "Unfreeze chain", visible_alias = "uf")]
     UnfreezeChain {
-        #[clap(index = 1, required = true)]
+        #[clap(required = true)]
         chain_id: U256,
     },
     #[command(
@@ -26,9 +26,9 @@ pub(crate) enum Command {
         visible_alias = "rdh"
     )]
     RegisterAlreadyDeployedHyperchain {
-        #[clap(index = 1, required = true)]
+        #[clap(required = true)]
         chain_id: U256,
-        #[clap(index = 2, required = true)]
+        #[clap(required = true)]
         hyperchain_address: Address,
     },
     #[command(
@@ -37,9 +37,9 @@ pub(crate) enum Command {
         visible_alias = "pgl"
     )]
     SetPriorityTxMaxGasLimit {
-        #[clap(index = 1, required = true)]
+        #[clap(required = true)]
         chain_id: U256,
-        #[clap(index = 2, required = true)]
+        #[clap(required = true)]
         max_gas_limit: U256,
     },
     #[command(visible_alias = "pa")]
