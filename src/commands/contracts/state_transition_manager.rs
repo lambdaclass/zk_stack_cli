@@ -54,14 +54,14 @@ pub(crate) enum Command {
         #[clap(required = true)]
         chain_id: U256,
         #[clap(short = 'n', long = "nominator", required = false, default_value = "1")]
-        nominator: U128,
+        nominator: u128,
         #[clap(
             short = 'd',
             long = "denominator",
             required = false,
             default_value = "1"
         )]
-        denominator: U128,
+        denominator: u128,
     },
 }
 
@@ -168,7 +168,29 @@ impl Command {
                 chain_id,
                 nominator,
                 denominator,
-            } => {}
+            } => {
+                let calldata = state_transition_manager
+                    .set_token_multiplier(chain_id, nominator, denominator)
+                    .function
+                    .encode_input(
+                        &[
+                            chain_id.into_tokens(),
+                            nominator.into_tokens(),
+                            denominator.into_tokens(),
+                        ]
+                        .concat(),
+                    )?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
         };
         Ok(())
     }
