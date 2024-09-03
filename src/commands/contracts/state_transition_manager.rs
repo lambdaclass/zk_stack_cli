@@ -1,12 +1,49 @@
+use std::fs::File;
+
 use crate::{
     config::ZKSyncConfig,
     utils::contracts::{try_governance_from_config, try_state_transition_manager_from_config},
 };
 use clap::Subcommand;
-use zksync_ethers_rs::types::{U128, U256};
-use zksync_ethers_rs::{abi::Tokenize, types::Address};
+use serde::Deserialize;
+use zksync_ethers_rs::{
+    abi::Tokenize,
+    types::{Address, Selector},
+};
+use zksync_ethers_rs::{
+    contracts::state_transition_manager::{DiamondCutData, FacetCut},
+    types::U256,
+};
 
 use super::governance::run_upgrade;
+
+#[derive(Deserialize)]
+#[repr(u8)]
+enum FacetCutType {
+    Add = 0,
+    Replace,
+    Remove,
+}
+
+#[derive(Deserialize)]
+struct FacetCutDef {
+    facet: Address,
+    action: FacetCutType,
+    selectors: Vec<Selector>,
+    is_freezable: bool,
+}
+
+impl From<FacetCutDef> for FacetCut {
+    fn from(value: FacetCutDef) -> Self {
+        let selectors = value.selectors;
+        FacetCut {
+            facet: value.facet,
+            action: value.action as u8,
+            selectors,
+            is_freezable: value.is_freezable,
+        }
+    }
+}
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
