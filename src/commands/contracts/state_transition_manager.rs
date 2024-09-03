@@ -60,6 +60,29 @@ fn diamond_cut_data_from_params(
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    #[command(visible_alias = "eu")]
+    ExecuteUpgrade {
+        #[clap(required = true)]
+        chain_id: U256,
+        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        facet_cuts_path: String,
+        #[clap(
+            name = "init-address",
+            short = 'a',
+            required = false,
+            requires = "init-calldata",
+            help = "The address that's delegate called after setting up new facet changes"
+        )]
+        init_address: Option<Address>,
+        #[clap(
+            name = "init-calldata",
+            short = 'c',
+            required = false,
+            requires = "init-address",
+            help = "Calldata for the delegate call to initAddress"
+        )]
+        init_calldata: Option<Vec<u8>>,
+    },
     #[command(name = "freeze", about = "Freeze chain", visible_alias = "fr")]
     FreezeChain {
         #[clap(required = true)]
@@ -140,6 +163,7 @@ pub(crate) enum Command {
         )]
         denominator: u128,
     },
+    #[command(visible_alias = "uc")]
     UpgradeChainFromVersion {
         #[clap(required = true)]
         chain_id: U256,
@@ -171,6 +195,31 @@ impl Command {
         let governance = try_governance_from_config(&cfg).await?;
         let state_transition_manager = try_state_transition_manager_from_config(&cfg).await?;
         match self {
+            Command::ExecuteUpgrade {
+                chain_id,
+                facet_cuts_path,
+                init_address,
+                init_calldata,
+            } => {
+                let diamond_cut_data =
+                    diamond_cut_data_from_params(facet_cuts_path, init_address, init_calldata)?;
+                let calldata = state_transition_manager
+                    .execute_upgrade(chain_id, diamond_cut_data.clone())
+                    .function
+                    .encode_input(
+                        &[chain_id.into_tokens(), diamond_cut_data.into_tokens()].concat(),
+                    )?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
             Command::FreezeChain { chain_id } => {
                 let calldata = state_transition_manager
                     .freeze_chain(chain_id)
