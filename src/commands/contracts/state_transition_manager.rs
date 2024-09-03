@@ -3,8 +3,8 @@ use crate::{
     utils::contracts::{try_governance_from_config, try_state_transition_manager_from_config},
 };
 use clap::Subcommand;
-use zksync_ethers_rs::abi::Tokenize;
 use zksync_ethers_rs::types::U256;
+use zksync_ethers_rs::{abi::Tokenize, types::Address};
 
 use super::governance::run_upgrade;
 
@@ -17,6 +17,12 @@ pub(crate) enum Command {
     UnfreezeChain {
         #[clap(index = 1, required = true)]
         chain_id: U256,
+    },
+    RegisterAlreadyDeployedHyperchain {
+        #[clap(index = 1, required = true)]
+        chain_id: U256,
+        #[clap(index = 2, required = true)]
+        hyperchain_address: Address,
     },
 }
 
@@ -48,6 +54,27 @@ impl Command {
                     .encode_input(&chain_id.into_tokens())?;
                 run_upgrade(
                     unfreeze_calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
+            Command::RegisterAlreadyDeployedHyperchain {
+                chain_id,
+                hyperchain_address,
+            } => {
+                let register_hyperchain_calldata = state_transition_manager
+                    .register_already_deployed_hyperchain(chain_id, hyperchain_address)
+                    .function
+                    .encode_input(
+                        &[chain_id.into_tokens(), hyperchain_address.into_tokens()].concat(),
+                    )?;
+                run_upgrade(
+                    register_hyperchain_calldata.into(),
                     false,
                     true,
                     0.into(),
