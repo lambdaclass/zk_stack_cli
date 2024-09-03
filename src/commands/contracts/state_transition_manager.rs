@@ -68,6 +68,33 @@ pub(crate) enum Command {
         #[clap(required = true)]
         hyperchain_address: Address,
     },
+    #[command(name = "set-new-version-upgrade", visible_alias = "nvu")]
+    SetNewVersionUpgrade {
+        #[clap(required = true)]
+        old_protocol_version: U256,
+        #[clap(required = true)]
+        old_protocol_version_deadline: U256,
+        #[clap(required = true)]
+        new_protocol_version: U256,
+        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        facet_cuts_path: String,
+        #[clap(
+            name = "init-address",
+            short = 'a',
+            required = false,
+            requires = "init-calldata",
+            help = "The address that's delegate called after setting up new facet changes"
+        )]
+        init_address: Option<Address>,
+        #[clap(
+            name = "init-calldata",
+            short = 'c',
+            required = false,
+            requires = "init-address",
+            help = "Calldata for the delegate call to initAddress"
+        )]
+        init_calldata: Option<Vec<u8>>,
+    },
     #[command(
         name = "set-priority-gas-limit",
         about = "Set priority tx max gas limit",
@@ -277,6 +304,49 @@ impl Command {
                         &[
                             chain_id.into_tokens(),
                             old_protocol_version.into_tokens(),
+                            diamond_cut_data.into_tokens(),
+                        ]
+                        .concat(),
+                    )?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
+            Command::SetNewVersionUpgrade {
+                old_protocol_version,
+                old_protocol_version_deadline,
+                new_protocol_version,
+                facet_cuts_path,
+                init_address,
+                init_calldata,
+            } => {
+                let facet_cuts_file = File::open(facet_cuts_path)?;
+                let facet_cuts: Vec<FacetCutDef> = serde_json::from_reader(facet_cuts_file)?;
+                let diamond_cut_data = DiamondCutData {
+                    init_address: init_address.unwrap_or(Address::zero()),
+                    init_calldata: init_calldata.unwrap_or(vec![]).into(),
+                    facet_cuts: facet_cuts.into_iter().map(|x| x.into()).collect(),
+                };
+                let calldata = state_transition_manager
+                    .set_new_version_upgrade(
+                        diamond_cut_data.clone(),
+                        old_protocol_version,
+                        old_protocol_version_deadline,
+                        new_protocol_version,
+                    )
+                    .function
+                    .encode_input(
+                        &[
+                            old_protocol_version.into_tokens(),
+                            old_protocol_version_deadline.into_tokens(),
+                            new_protocol_version.into_tokens(),
                             diamond_cut_data.into_tokens(),
                         ]
                         .concat(),
