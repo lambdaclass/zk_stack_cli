@@ -2,8 +2,8 @@ use crate::{
     config::ZKSyncConfig,
     utils::contracts::{try_governance_from_config, try_state_transition_manager_from_config},
 };
-use clap::{ArgAction, Subcommand};
-use zksync_ethers_rs::types::U256;
+use clap::Subcommand;
+use zksync_ethers_rs::types::{U128, U256};
 use zksync_ethers_rs::{abi::Tokenize, types::Address};
 
 use super::governance::run_upgrade;
@@ -42,16 +42,26 @@ pub(crate) enum Command {
         #[clap(index = 2, required = true)]
         max_gas_limit: U256,
     },
-    #[command(
-        name = "set-porter-availability",
-        about = "Set porter availability",
-        visible_alias = "pa"
-    )]
+    #[command(visible_alias = "pa")]
     SetPorterAvailability {
         #[clap(required = true)]
         chain_id: U256,
         #[clap(required = true, help = "0: false, 1: true")]
         is_available: u8,
+    },
+    #[command(visible_alias = "tm")]
+    SetTokenMultiplier {
+        #[clap(required = true)]
+        chain_id: U256,
+        #[clap(short = 'n', long = "nominator", required = false, default_value = "1")]
+        nominator: U128,
+        #[clap(
+            short = 'd',
+            long = "denominator",
+            required = false,
+            default_value = "1"
+        )]
+        denominator: U128,
     },
 }
 
@@ -154,6 +164,11 @@ impl Command {
                 )
                 .await?;
             }
+            Command::SetTokenMultiplier {
+                chain_id,
+                nominator,
+                denominator,
+            } => {}
         };
         Ok(())
     }
