@@ -2,7 +2,7 @@ use crate::{
     config::ZKSyncConfig,
     utils::contracts::{try_governance_from_config, try_state_transition_manager_from_config},
 };
-use clap::Subcommand;
+use clap::{ArgAction, Subcommand};
 use zksync_ethers_rs::types::U256;
 use zksync_ethers_rs::{abi::Tokenize, types::Address};
 
@@ -32,7 +32,7 @@ pub(crate) enum Command {
         hyperchain_address: Address,
     },
     #[command(
-        name = "priority-gas-limit",
+        name = "set-priority-gas-limit",
         about = "Set priority tx max gas limit",
         visible_alias = "pgl"
     )]
@@ -41,6 +41,17 @@ pub(crate) enum Command {
         chain_id: U256,
         #[clap(index = 2, required = true)]
         max_gas_limit: U256,
+    },
+    #[command(
+        name = "set-porter-availability",
+        about = "Set porter availability",
+        visible_alias = "pa"
+    )]
+    SetPorterAvailability {
+        #[clap(required = true)]
+        chain_id: U256,
+        #[clap(required = true, help = "0: false, 1: true")]
+        is_available: u8,
     },
 }
 
@@ -112,6 +123,26 @@ impl Command {
                     .encode_input(
                         &[chain_id.into_tokens(), max_gas_limit.into_tokens()].concat(),
                     )?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
+            Command::SetPorterAvailability {
+                chain_id,
+                is_available,
+            } => {
+                let is_available: bool = is_available != 0;
+                let calldata = state_transition_manager
+                    .set_porter_availability(chain_id, is_available)
+                    .function
+                    .encode_input(&[chain_id.into_tokens(), is_available.into_tokens()].concat())?;
                 run_upgrade(
                     calldata.into(),
                     false,
