@@ -104,6 +104,27 @@ pub(crate) enum Command {
         #[clap(required = true)]
         hyperchain_address: Address,
     },
+    #[command(name = "set-initial-cut-hash", visible_alias = "ich")]
+    SetInitialCutHash {
+        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        facet_cuts_path: String,
+        #[clap(
+            name = "init-address",
+            short = 'a',
+            required = false,
+            requires = "init-calldata",
+            help = "The address that's delegate called after setting up new facet changes"
+        )]
+        init_address: Option<Address>,
+        #[clap(
+            name = "init-calldata",
+            short = 'c',
+            required = false,
+            requires = "init-address",
+            help = "Calldata for the delegate call to initAddress"
+        )]
+        init_calldata: Option<Vec<u8>>,
+    },
     #[command(name = "set-new-version-upgrade", visible_alias = "nvu")]
     SetNewVersionUpgrade {
         #[clap(required = true)]
@@ -262,6 +283,28 @@ impl Command {
                     .encode_input(
                         &[chain_id.into_tokens(), hyperchain_address.into_tokens()].concat(),
                     )?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
+            Command::SetInitialCutHash {
+                facet_cuts_path,
+                init_address,
+                init_calldata,
+            } => {
+                let diamond_cut_data =
+                    diamond_cut_data_from_params(facet_cuts_path, init_address, init_calldata)?;
+                let calldata = state_transition_manager
+                    .set_initial_cut_hash(diamond_cut_data.clone())
+                    .function
+                    .encode_input(&diamond_cut_data.into_tokens())?;
                 run_upgrade(
                     calldata.into(),
                     false,
