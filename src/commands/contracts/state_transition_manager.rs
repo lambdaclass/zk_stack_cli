@@ -11,11 +11,18 @@ use zksync_ethers_rs::{
     types::{Address, Selector},
 };
 use zksync_ethers_rs::{
-    contracts::state_transition_manager::{DiamondCutData, FacetCut},
+    contracts::state_transition_manager::{DiamondCutData, FacetCut, FeeParams},
     types::U256,
 };
 
 use super::governance::run_upgrade;
+
+#[derive(Deserialize)]
+#[repr(u8)]
+enum PubdataPricingMode {
+    Rollup = 0,
+    Validium,
+}
 
 #[derive(Deserialize)]
 #[repr(u8)]
@@ -60,6 +67,36 @@ fn diamond_cut_data_from_params(
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    #[command(visible_alias = "cfp")]
+    ChangeFeeParams {
+        #[clap(required = true)]
+        chain_id: U256,
+        #[clap(required = true)]
+        batch_overhead_l1_gas: u32,
+        #[clap(required = true)]
+        max_pubdata_per_batch: u32,
+        #[clap(required = true)]
+        max_l2_gas_per_batch: u32,
+        #[clap(required = true)]
+        priority_tx_max_pubdata: u32,
+        #[clap(required = true)]
+        minimal_l2_gas_price: u64,
+        #[clap(
+            short = 'r',
+            long = "rollup-mode",
+            required = false,
+            default_value = "0",
+            help = "Default"
+        )]
+        rollup_mode: bool,
+        #[clap(
+            short = 'v',
+            long = "validium-mode",
+            required = false,
+            default_value = "0"
+        )]
+        validium_mode: bool,
+    },
     #[command(visible_alias = "eu")]
     ExecuteUpgrade {
         #[clap(required = true)]
@@ -184,6 +221,29 @@ pub(crate) enum Command {
         )]
         denominator: u128,
     },
+    #[command(visible_alias = "udc")]
+    SetUpgradeDiamondCut {
+        #[clap(required = true)]
+        old_protocol_version: U256,
+        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        facet_cuts_path: String,
+        #[clap(
+            name = "init-address",
+            short = 'a',
+            required = false,
+            requires = "init-calldata",
+            help = "The address that's delegate called after setting up new facet changes"
+        )]
+        init_address: Option<Address>,
+        #[clap(
+            name = "init-calldata",
+            short = 'c',
+            required = false,
+            requires = "init-address",
+            help = "Calldata for the delegate call to initAddress"
+        )]
+        init_calldata: Option<Vec<u8>>,
+    },
     #[command(visible_alias = "uc")]
     UpgradeChainFromVersion {
         #[clap(required = true)]
@@ -216,6 +276,42 @@ impl Command {
         let governance = try_governance_from_config(&cfg).await?;
         let state_transition_manager = try_state_transition_manager_from_config(&cfg).await?;
         match self {
+            Command::ChangeFeeParams {
+                chain_id,
+                batch_overhead_l1_gas,
+                max_pubdata_per_batch,
+                max_l2_gas_per_batch,
+                priority_tx_max_pubdata,
+                minimal_l2_gas_price,
+                rollup_mode,
+                validium_mode,
+            } => {
+                let fee_params = FeeParams {
+                    pubdata_pricing_mode: match (rollup_mode, validium_mode) {
+                        (false, true) => PubdataPricingMode::Validium as u8,
+                        _ => PubdataPricingMode::Rollup as u8,
+                    },
+                    batch_overhead_l1_gas,
+                    max_pubdata_per_batch,
+                    max_l2_gas_per_batch,
+                    priority_tx_max_pubdata,
+                    minimal_l2_gas_price,
+                };
+                let calldata = state_transition_manager
+                    .change_fee_params(chain_id, fee_params.clone())
+                    .function
+                    .encode_input(&[chain_id.into_tokens(), fee_params.into_tokens()].concat())?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
             Command::ExecuteUpgrade {
                 chain_id,
                 facet_cuts_path,
@@ -370,6 +466,35 @@ impl Command {
                             chain_id.into_tokens(),
                             nominator.into_tokens(),
                             denominator.into_tokens(),
+                        ]
+                        .concat(),
+                    )?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
+            Command::SetUpgradeDiamondCut {
+                old_protocol_version,
+                facet_cuts_path,
+                init_address,
+                init_calldata,
+            } => {
+                let diamond_cut_data =
+                    diamond_cut_data_from_params(facet_cuts_path, init_address, init_calldata)?;
+                let calldata = state_transition_manager
+                    .set_upgrade_diamond_cut(diamond_cut_data.clone(), old_protocol_version)
+                    .function
+                    .encode_input(
+                        &[
+                            diamond_cut_data.into_tokens(),
+                            old_protocol_version.into_tokens(),
                         ]
                         .concat(),
                     )?;
