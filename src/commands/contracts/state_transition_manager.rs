@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::{fs::File, io};
 
 use crate::{
     config::ZKSyncConfig,
@@ -43,6 +43,19 @@ impl From<FacetCutDef> for FacetCut {
             is_freezable: value.is_freezable,
         }
     }
+}
+
+fn diamond_cut_data_from_params(
+    facet_cuts_path: String,
+    init_address: Option<Address>,
+    init_calldata: Option<Vec<u8>>,
+) -> io::Result<DiamondCutData> {
+    let facet_cuts: Vec<FacetCutDef> = serde_json::from_reader(File::open(facet_cuts_path)?)?;
+    Ok(DiamondCutData {
+        facet_cuts: facet_cuts.into_iter().map(FacetCut::from).collect(),
+        init_address: init_address.unwrap_or(Address::zero()),
+        init_calldata: init_calldata.unwrap_or(Vec::new()).into(),
+    })
 }
 
 #[derive(Subcommand)]
@@ -286,13 +299,8 @@ impl Command {
                 init_address,
                 init_calldata,
             } => {
-                let facet_cuts_file = File::open(facet_cuts_path)?;
-                let facet_cuts: Vec<FacetCutDef> = serde_json::from_reader(facet_cuts_file)?;
-                let diamond_cut_data = DiamondCutData {
-                    init_address: init_address.unwrap_or(Address::zero()),
-                    init_calldata: init_calldata.unwrap_or(vec![]).into(),
-                    facet_cuts: facet_cuts.into_iter().map(|x| x.into()).collect(),
-                };
+                let diamond_cut_data =
+                    diamond_cut_data_from_params(facet_cuts_path, init_address, init_calldata)?;
                 let calldata = state_transition_manager
                     .upgrade_chain_from_version(
                         chain_id,
@@ -327,13 +335,8 @@ impl Command {
                 init_address,
                 init_calldata,
             } => {
-                let facet_cuts_file = File::open(facet_cuts_path)?;
-                let facet_cuts: Vec<FacetCutDef> = serde_json::from_reader(facet_cuts_file)?;
-                let diamond_cut_data = DiamondCutData {
-                    init_address: init_address.unwrap_or(Address::zero()),
-                    init_calldata: init_calldata.unwrap_or(vec![]).into(),
-                    facet_cuts: facet_cuts.into_iter().map(|x| x.into()).collect(),
-                };
+                let diamond_cut_data =
+                    diamond_cut_data_from_params(facet_cuts_path, init_address, init_calldata)?;
                 let calldata = state_transition_manager
                     .set_new_version_upgrade(
                         diamond_cut_data.clone(),
@@ -344,10 +347,10 @@ impl Command {
                     .function
                     .encode_input(
                         &[
+                            diamond_cut_data.into_tokens(),
                             old_protocol_version.into_tokens(),
                             old_protocol_version_deadline.into_tokens(),
                             new_protocol_version.into_tokens(),
-                            diamond_cut_data.into_tokens(),
                         ]
                         .concat(),
                     )?;
