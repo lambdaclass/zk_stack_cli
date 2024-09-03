@@ -100,6 +100,30 @@ pub(crate) enum Command {
         )]
         denominator: u128,
     },
+    UpgradeChainFromVersion {
+        #[clap(required = true)]
+        chain_id: U256,
+        #[clap(required = true)]
+        old_protocol_version: U256,
+        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        facet_cuts_path: String,
+        #[clap(
+            name = "init-address",
+            short = 'a',
+            required = false,
+            requires = "init-calldata",
+            help = "The address that's delegate called after setting up new facet changes"
+        )]
+        init_address: Option<Address>,
+        #[clap(
+            name = "init-calldata",
+            short = 'c',
+            required = false,
+            requires = "init-address",
+            help = "Calldata for the delegate call to initAddress"
+        )]
+        init_calldata: Option<Vec<u8>>,
+    },
 }
 
 impl Command {
@@ -214,6 +238,46 @@ impl Command {
                             chain_id.into_tokens(),
                             nominator.into_tokens(),
                             denominator.into_tokens(),
+                        ]
+                        .concat(),
+                    )?;
+                run_upgrade(
+                    calldata.into(),
+                    false,
+                    true,
+                    0.into(),
+                    false,
+                    governance,
+                    cfg,
+                )
+                .await?;
+            }
+            Command::UpgradeChainFromVersion {
+                chain_id,
+                old_protocol_version,
+                facet_cuts_path,
+                init_address,
+                init_calldata,
+            } => {
+                let facet_cuts_file = File::open(facet_cuts_path)?;
+                let facet_cuts: Vec<FacetCutDef> = serde_json::from_reader(facet_cuts_file)?;
+                let diamond_cut_data = DiamondCutData {
+                    init_address: init_address.unwrap_or(Address::zero()),
+                    init_calldata: init_calldata.unwrap_or(vec![]).into(),
+                    facet_cuts: facet_cuts.into_iter().map(|x| x.into()).collect(),
+                };
+                let calldata = state_transition_manager
+                    .upgrade_chain_from_version(
+                        chain_id,
+                        old_protocol_version,
+                        diamond_cut_data.clone(),
+                    )
+                    .function
+                    .encode_input(
+                        &[
+                            chain_id.into_tokens(),
+                            old_protocol_version.into_tokens(),
+                            diamond_cut_data.into_tokens(),
                         ]
                         .concat(),
                     )?;
