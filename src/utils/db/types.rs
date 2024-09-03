@@ -86,16 +86,18 @@ pub struct ProverJobFriInfo {
 
 impl FromRow<'_, PgRow> for ProverJobFriInfo {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
+        let aggregation_round = {
+            let raw_aggregation_round = row.get::<&str, &str>("aggregation_round");
+            AggregationRound::from_str(raw_aggregation_round)
+                .map_err(|e| sqlx::Error::Decode(e.into()))?
+        };
+        let circuit_id = get_u32_from_pg_row(row, "circuit_id")?;
         Ok(Self {
             _id: get_id_from_pg_row(row)?,
             l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
-            _circuit_id: get_u32_from_pg_row(row, "circuit_id")?,
+            _circuit_id: sub2_from_circuit_id(aggregation_round, circuit_id),
             _circuit_blob_url: row.get("circuit_blob_url"),
-            _aggregation_round: {
-                let raw_aggregation_round = row.get::<&str, &str>("aggregation_round");
-                AggregationRound::from_str(raw_aggregation_round)
-                    .map_err(|e| sqlx::Error::Decode(e.into()))?
-            },
+            _aggregation_round: aggregation_round,
             _sequence_number: get_u32_from_pg_row(row, "sequence_number")?,
             _status: {
                 let raw_status = row.get::<&str, &str>("status");
@@ -120,6 +122,32 @@ impl FromRow<'_, PgRow> for ProverJobFriInfo {
             _protocol_version_patch: get_version_patch_from_pg_row(row).ok(),
         })
     }
+}
+
+// TODO: Old prover versions panic when using BaseLayerCircuitType::from_numeric_value
+// The quick solution is to subtract 2 to the circuit ID if the AggregationRound is greater than 2.
+// It should be fixed in the newest version
+fn sub2_from_circuit_id(aggregation_round: AggregationRound, circuit_id: u32) -> u32 {
+    match aggregation_round {
+        AggregationRound::NodeAggregation
+        | AggregationRound::RecursionTip
+        | AggregationRound::Scheduler => {
+            if circuit_id == 18 {
+                255
+            } else {
+                circuit_id.saturating_sub(2)
+            }
+        }
+        _ => circuit_id,
+    }
+}
+
+fn get_and_sub2_from_circuit_id(row: &PgRow) -> Result<u32, sqlx::Error> {
+    let circuit_id = get_u32_from_pg_row(row, "circuit_id")?;
+    if circuit_id == 18 {
+        return Ok(255);
+    }
+    Ok(circuit_id.saturating_sub(2))
 }
 
 #[derive(Debug, Clone)]
@@ -208,7 +236,7 @@ impl FromRow<'_, PgRow> for NodeWitnessGeneratorJobInfo {
         Ok(Self {
             _id: get_id_from_pg_row(row)?,
             l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
-            _circuit_id: get_u32_from_pg_row(row, "circuit_id")?,
+            _circuit_id: get_and_sub2_from_circuit_id(row)?,
             _depth: get_depth_from_pg_row(row)?,
             _status: get_witness_job_status_from_pg_row(row)?,
             _attempts: get_u32_from_pg_row(row, "attempts")?,
