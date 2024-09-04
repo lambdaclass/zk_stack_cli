@@ -1,5 +1,6 @@
 use crate::{config::ZKSyncConfig, utils::wallet::get_wallet_l1_l2_providers};
 use clap::Subcommand;
+use eyre::ContextCompat;
 use std::str::FromStr;
 use zksync_ethers_rs::{
     abi::Token,
@@ -9,6 +10,7 @@ use zksync_ethers_rs::{
         transaction::eip2718::TypedTransaction, Address, Bytes, Eip1559TransactionRequest, H160,
         U256,
     },
+    ZKMiddleware,
 };
 
 #[derive(Subcommand)]
@@ -39,6 +41,8 @@ pub(crate) enum Command {
         function_signature: String,
         #[clap(long = "args", short = 'a')]
         args: Option<Vec<String>>,
+        #[clap(long = "l1", default_value_t = false)]
+        l1: bool,
     },
 }
 
@@ -79,10 +83,48 @@ impl Command {
                 constructor_args: _,
             } => todo!("Deploy"),
             Command::Send {
-                contract_address: _,
-                function_signature: _,
-                args: _,
-            } => todo!(),
+                contract_address,
+                function_signature,
+                args,
+                l1,
+            } => {
+                let selector = get_fn_selector(&function_signature);
+                let types = parse_signature(&function_signature)?;
+                let tx_data = encode_function_call(selector, args, types)?;
+                let tx_data_bytes = Bytes::from(tx_data);
+
+                let mut raw_tx = Eip1559TransactionRequest::new()
+                    .from(zk_wallet.l1_address())
+                    .to(H160::from_str(&contract_address)?)
+                    .data(tx_data_bytes)
+                    .value(U256::zero());
+
+                let fees = _l2_provider.estimate_fee(&raw_tx).await?;
+                raw_tx = raw_tx
+                    .max_fee_per_gas(fees.max_fee_per_gas)
+                    .max_priority_fee_per_gas(fees.max_priority_fee_per_gas)
+                    .gas(fees.gas_limit);
+
+                let tx: TypedTransaction = raw_tx.into();
+
+                let receipt = if l1 {
+                    zk_wallet
+                        .l1_signer()
+                        .send_transaction(tx, None)
+                        .await?
+                        .await?
+                        .context("error unwrapping")?
+                } else {
+                    zk_wallet
+                        .l2_signer()
+                        .send_transaction(tx, None)
+                        .await?
+                        .await?
+                        .context("error unwrapping")?
+                };
+
+                println!("{receipt:#?}");
+            }
         };
         Ok(())
     }
@@ -114,10 +156,10 @@ fn encode_function_call(
                         }
                         "uint256" => {
                             // Parse as uint256
-                            let value: u64 = arg
+                            let value: U256 = arg
                                 .parse()
                                 .map_err(|_e| eyre::eyre!("Invalid uint256 format"))?;
-                            Ok(Token::Uint(U256::from(value)))
+                            Ok(Token::Uint(value))
                         }
                         "string" => {
                             // Parse as string
@@ -144,7 +186,7 @@ fn parse_signature(signature: &str) -> eyre::Result<Option<Vec<&str>>> {
 
     if let Some(start) = signature.find('(') {
         if let Some(end) = signature.rfind(')') {
-            let params = &signature[start + 1..end];
+            let params = signature.get(start + 1..end).context("Parsing Error")?;
 
             // Split the parameters by comma
             for param in params.split(',') {
