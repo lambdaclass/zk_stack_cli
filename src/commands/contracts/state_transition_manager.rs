@@ -125,6 +125,15 @@ pub(crate) enum Command {
     FreezeChain { chain_id: U256 },
     #[command(name = "unfreeze", about = "Unfreeze chain", visible_alias = "uf")]
     UnfreezeChain { chain_id: U256 },
+    #[command(visible_alias = "pv")]
+    ProtocolVersion {
+        #[clap(
+            short = 's',
+            long = "semantic",
+            help = "Print human-readable semantic protocol version"
+        )]
+        semantic: bool,
+    },
     #[command(
         name = "register-deployed-hyperchain",
         about = "Register already deployed hyperchain",
@@ -348,6 +357,17 @@ impl Command {
                     cfg,
                 )
                 .await?;
+            }
+            Command::ProtocolVersion { semantic } => {
+                if semantic {
+                    let (major, minor, patch) = state_transition_manager
+                        .get_semver_protocol_version()
+                        .await?;
+                    println!("{major}.{minor}.{patch}");
+                } else {
+                    let version = state_transition_manager.protocol_version().await?;
+                    println!("{}", version);
+                }
             }
             Command::RegisterAlreadyDeployedHyperchain {
                 chain_id,
