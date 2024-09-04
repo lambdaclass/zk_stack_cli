@@ -125,7 +125,7 @@ pub(crate) enum Command {
     FreezeChain { chain_id: U256 },
     #[command(name = "unfreeze", about = "Unfreeze chain", visible_alias = "uf")]
     UnfreezeChain { chain_id: U256 },
-    #[command(visible_alias = "pv")]
+    #[command(visible_alias = "pv", about = "Get current protocol version")]
     ProtocolVersion {
         #[clap(
             short = 's',
