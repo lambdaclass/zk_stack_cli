@@ -69,17 +69,11 @@ fn diamond_cut_data_from_params(
 pub(crate) enum Command {
     #[command(visible_alias = "cfp")]
     ChangeFeeParams {
-        #[clap(required = true)]
         chain_id: U256,
-        #[clap(required = true)]
         batch_overhead_l1_gas: u32,
-        #[clap(required = true)]
         max_pubdata_per_batch: u32,
-        #[clap(required = true)]
         max_l2_gas_per_batch: u32,
-        #[clap(required = true)]
         priority_tx_max_pubdata: u32,
-        #[clap(required = true)]
         minimal_l2_gas_price: u64,
         #[clap(
             short = 'r',
@@ -99,9 +93,8 @@ pub(crate) enum Command {
     },
     #[command(visible_alias = "eu")]
     ExecuteUpgrade {
-        #[clap(required = true)]
         chain_id: U256,
-        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
         #[clap(
             name = "init-address",
@@ -121,29 +114,21 @@ pub(crate) enum Command {
         init_calldata: Option<Vec<u8>>,
     },
     #[command(name = "freeze", about = "Freeze chain", visible_alias = "fr")]
-    FreezeChain {
-        #[clap(required = true)]
-        chain_id: U256,
-    },
+    FreezeChain { chain_id: U256 },
     #[command(name = "unfreeze", about = "Unfreeze chain", visible_alias = "uf")]
-    UnfreezeChain {
-        #[clap(required = true)]
-        chain_id: U256,
-    },
+    UnfreezeChain { chain_id: U256 },
     #[command(
         name = "register-deployed-hyperchain",
         about = "Register already deployed hyperchain",
         visible_alias = "rdh"
     )]
     RegisterAlreadyDeployedHyperchain {
-        #[clap(required = true)]
         chain_id: U256,
-        #[clap(required = true)]
         hyperchain_address: Address,
     },
-    #[command(name = "set-initial-cut-hash", visible_alias = "ich")]
+    #[command(visible_alias = "ich")]
     SetInitialCutHash {
-        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
         #[clap(
             name = "init-address",
@@ -162,15 +147,12 @@ pub(crate) enum Command {
         )]
         init_calldata: Option<Vec<u8>>,
     },
-    #[command(name = "set-new-version-upgrade", visible_alias = "nvu")]
+    #[command(visible_alias = "nvu")]
     SetNewVersionUpgrade {
-        #[clap(required = true)]
         old_protocol_version: U256,
-        #[clap(required = true)]
         old_protocol_version_deadline: U256,
-        #[clap(required = true)]
         new_protocol_version: U256,
-        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
         #[clap(
             name = "init-address",
@@ -194,22 +176,15 @@ pub(crate) enum Command {
         about = "Set priority tx max gas limit",
         visible_alias = "pgl"
     )]
-    SetPriorityTxMaxGasLimit {
-        #[clap(required = true)]
-        chain_id: U256,
-        #[clap(required = true)]
-        max_gas_limit: U256,
-    },
+    SetPriorityTxMaxGasLimit { chain_id: U256, max_gas_limit: U256 },
     #[command(visible_alias = "pa")]
     SetPorterAvailability {
-        #[clap(required = true)]
         chain_id: U256,
-        #[clap(required = true, help = "0: false, 1: true")]
+        #[clap(help = "0: false, 1: true")]
         is_available: u8,
     },
     #[command(visible_alias = "tm")]
     SetTokenMultiplier {
-        #[clap(required = true)]
         chain_id: U256,
         #[clap(short = 'n', long = "nominator", required = false, default_value = "1")]
         nominator: u128,
@@ -223,9 +198,8 @@ pub(crate) enum Command {
     },
     #[command(visible_alias = "udc")]
     SetUpgradeDiamondCut {
-        #[clap(required = true)]
         old_protocol_version: U256,
-        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
         #[clap(
             name = "init-address",
@@ -246,11 +220,9 @@ pub(crate) enum Command {
     },
     #[command(visible_alias = "uc")]
     UpgradeChainFromVersion {
-        #[clap(required = true)]
         chain_id: U256,
-        #[clap(required = true)]
         old_protocol_version: U256,
-        #[clap(required = true, help = "Path to the facetCuts.json file")]
+        #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
         #[clap(
             name = "init-address",
