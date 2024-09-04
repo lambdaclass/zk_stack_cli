@@ -77,6 +77,7 @@ fn parse_u256(value: &str) -> Result<U256, String> {
 pub(crate) enum Command {
     #[command(visible_alias = "cfp")]
     ChangeFeeParams {
+        #[clap(value_parser = parse_u256)]
         chain_id: U256,
         #[clap(
             help = "The amount of L1 gas required to process the batch (except for the calldata)"
@@ -109,6 +110,7 @@ pub(crate) enum Command {
     },
     #[command(visible_alias = "eu")]
     ExecuteUpgrade {
+        #[clap(value_parser = parse_u256)]
         chain_id: U256,
         #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
@@ -130,9 +132,15 @@ pub(crate) enum Command {
         init_calldata: Option<Vec<u8>>,
     },
     #[command(name = "freeze", about = "Freeze chain", visible_alias = "fr")]
-    FreezeChain { chain_id: U256 },
+    FreezeChain {
+        #[clap(value_parser = parse_u256)]
+        chain_id: U256,
+    },
     #[command(name = "unfreeze", about = "Unfreeze chain", visible_alias = "uf")]
-    UnfreezeChain { chain_id: U256 },
+    UnfreezeChain {
+        #[clap(value_parser = parse_u256)]
+        chain_id: U256,
+    },
     #[command(about = "Get all hyperchains addressess", visible_alias = "hc")]
     Hyperchain {
         #[clap(
@@ -164,6 +172,7 @@ pub(crate) enum Command {
         visible_alias = "rdh"
     )]
     RegisterAlreadyDeployedHyperchain {
+        #[clap(value_parser = parse_u256)]
         chain_id: U256,
         hyperchain_address: Address,
     },
@@ -190,8 +199,11 @@ pub(crate) enum Command {
     },
     #[command(visible_alias = "nvu")]
     SetNewVersionUpgrade {
+        #[clap(value_parser = parse_u256)]
         old_protocol_version: U256,
+        #[clap(value_parser = parse_u256)]
         old_protocol_version_deadline: U256,
+        #[clap(value_parser = parse_u256)]
         new_protocol_version: U256,
         #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
@@ -217,15 +229,22 @@ pub(crate) enum Command {
         about = "Set priority tx max gas limit",
         visible_alias = "pgl"
     )]
-    SetPriorityTxMaxGasLimit { chain_id: U256, max_gas_limit: U256 },
+    SetPriorityTxMaxGasLimit {
+        #[clap(value_parser = parse_u256)]
+        chain_id: U256,
+        #[clap(value_parser = parse_u256)]
+        max_gas_limit: U256,
+    },
     #[command(visible_alias = "pa")]
     SetPorterAvailability {
+        #[clap(value_parser = parse_u256)]
         chain_id: U256,
         #[clap(help = "0: false, 1: true")]
         is_available: u8,
     },
     #[command(visible_alias = "tm")]
     SetTokenMultiplier {
+        #[clap(value_parser = parse_u256)]
         chain_id: U256,
         #[clap(short = 'n', long = "nominator", required = false, default_value = "1")]
         nominator: u128,
@@ -239,6 +258,7 @@ pub(crate) enum Command {
     },
     #[command(visible_alias = "udc")]
     SetUpgradeDiamondCut {
+        #[clap(value_parser = parse_u256)]
         old_protocol_version: U256,
         #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
@@ -261,7 +281,9 @@ pub(crate) enum Command {
     },
     #[command(visible_alias = "uc")]
     UpgradeChainFromVersion {
+        #[clap(value_parser = parse_u256)]
         chain_id: U256,
+        #[clap(value_parser = parse_u256)]
         old_protocol_version: U256,
         #[clap(help = "Path to the facetCuts.json file")]
         facet_cuts_path: String,
