@@ -75,6 +75,23 @@ fn parse_u256(value: &str) -> Result<U256, String> {
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
+    #[command(about = "Get admin address", visible_alias = "a")]
+    Admin {
+        #[clap(
+            short = 's',
+            long = "set",
+            help = "Propose a new admin",
+            exclusive = true
+        )]
+        new_admin: Option<Address>,
+        #[clap(
+            short = 'a',
+            long = "accept",
+            help = "Accept the admin transfer",
+            exclusive = true
+        )]
+        accept: bool,
+    },
     #[command(visible_alias = "cfp")]
     ChangeFeeParams {
         #[clap(value_parser = parse_u256)]
@@ -320,6 +337,29 @@ impl Command {
         let governance = try_governance_from_config(&cfg).await?;
         let state_transition_manager = try_state_transition_manager_from_config(&cfg).await?;
         match self {
+            Command::Admin { new_admin, accept } => {
+                if !accept && new_admin.is_none() {
+                    let admin = state_transition_manager.admin().await?;
+                    println!("{:?}", admin);
+                } else if accept {
+                    state_transition_manager.accept_admin().send().await?;
+                } else if let Some(address) = new_admin {
+                    let calldata = state_transition_manager
+                        .set_pending_admin(address)
+                        .function
+                        .encode_input(&address.into_tokens())?;
+                    run_upgrade(
+                        calldata.into(),
+                        false,
+                        true,
+                        0.into(),
+                        false,
+                        governance,
+                        cfg,
+                    )
+                    .await?;
+                }
+            }
             Command::ChangeFeeParams {
                 chain_id,
                 batch_overhead_l1_gas,
