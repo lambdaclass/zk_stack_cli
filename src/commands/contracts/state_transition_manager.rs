@@ -349,6 +349,7 @@ impl Command {
                         .function
                         .encode_input(&address.into_tokens())?;
                     run_upgrade(
+                        state_transition_manager.address(),
                         calldata.into(),
                         false,
                         true,
@@ -386,6 +387,7 @@ impl Command {
                     .function
                     .encode_input(&[chain_id.into_tokens(), fee_params.into_tokens()].concat())?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -411,6 +413,7 @@ impl Command {
                         &[chain_id.into_tokens(), diamond_cut_data.into_tokens()].concat(),
                     )?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -427,6 +430,7 @@ impl Command {
                     .function
                     .encode_input(&chain_id.into_tokens())?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -443,6 +447,7 @@ impl Command {
                     .function
                     .encode_input(&chain_id.into_tokens())?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -489,6 +494,7 @@ impl Command {
                         &[chain_id.into_tokens(), hyperchain_address.into_tokens()].concat(),
                     )?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -511,6 +517,7 @@ impl Command {
                     .function
                     .encode_input(&diamond_cut_data.into_tokens())?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -532,6 +539,7 @@ impl Command {
                         &[chain_id.into_tokens(), max_gas_limit.into_tokens()].concat(),
                     )?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -552,6 +560,7 @@ impl Command {
                     .function
                     .encode_input(&[chain_id.into_tokens(), is_available.into_tokens()].concat())?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -579,6 +588,7 @@ impl Command {
                         .concat(),
                     )?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -608,6 +618,7 @@ impl Command {
                         .concat(),
                     )?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -643,6 +654,7 @@ impl Command {
                         .concat(),
                     )?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -681,6 +693,7 @@ impl Command {
                         .concat(),
                     )?;
                 run_upgrade(
+                    state_transition_manager.address(),
                     calldata.into(),
                     false,
                     true,
@@ -698,6 +711,7 @@ impl Command {
                         .function
                         .encode_input(&address.into_tokens())?;
                     run_upgrade(
+                        state_transition_manager.address(),
                         calldata.into(),
                         false,
                         true,

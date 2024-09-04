@@ -50,8 +50,15 @@ pub(crate) async fn try_state_transition_manager_from_config(
         .state_transition_manager(chain_id.into())
         .call()
         .await?;
-    let l1_signer =
-        try_l1_signer_from_config(cfg.governance.owner_private_key.parse()?, cfg).await?;
+    let l1_signer = try_l1_signer_from_config(
+        cfg.wallet
+            .as_ref()
+            .context("Wallet Private Key not set")?
+            .private_key
+            .parse()?,
+        cfg,
+    )
+    .await?;
 
     Ok(StateTransitionManager::new(
         stm_address,

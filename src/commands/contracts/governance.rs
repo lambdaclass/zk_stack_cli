@@ -298,6 +298,7 @@ impl Command {
                     .function
                     .encode_input(&new_min_delay.into_tokens())?;
                 run_upgrade(
+                    governance.address(),
                     update_delay_calldata.into(),
                     shadow_upgrade || !transparent_upgrade,
                     execute,
@@ -321,6 +322,7 @@ impl Command {
                     .function
                     .encode_input(&new_security_council.into_tokens())?;
                 run_upgrade(
+                    governance.address(),
                     update_security_council_calldata.into(),
                     shadow_upgrade || !transparent_upgrade,
                     execute,
@@ -371,6 +373,7 @@ pub(crate) fn parse_operation(raw_operation: &str) -> eyre::Result<Operation> {
 }
 
 pub(crate) async fn run_upgrade(
+    target: Address,
     calldata: Bytes,
     is_shadow_upgrade: bool,
     execute_upgrade: bool,
@@ -381,7 +384,7 @@ pub(crate) async fn run_upgrade(
 ) -> eyre::Result<()> {
     Box::pin(async {
         let call = Call {
-            target: governance.address(),
+            target,
             value: U256::zero(),
             data: calldata,
         };
