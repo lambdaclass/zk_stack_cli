@@ -65,6 +65,14 @@ fn diamond_cut_data_from_params(
     })
 }
 
+fn parse_u256(value: &str) -> Result<U256, String> {
+    if value.starts_with("0x") {
+        U256::from_str_radix(&value[2..], 16).map_err(|err| err.to_string())
+    } else {
+        U256::from_dec_str(value).map_err(|err| err.to_string())
+    }
+}
+
 #[derive(Subcommand)]
 pub(crate) enum Command {
     #[command(visible_alias = "cfp")]
@@ -125,6 +133,22 @@ pub(crate) enum Command {
     FreezeChain { chain_id: U256 },
     #[command(name = "unfreeze", about = "Unfreeze chain", visible_alias = "uf")]
     UnfreezeChain { chain_id: U256 },
+    #[command(about = "Get all hyperchains addressess", visible_alias = "hc")]
+    Hyperchain {
+        #[clap(
+            long = "id",
+            help = "Get address of a hyperchain by its ID",
+            exclusive = true,
+            value_parser = parse_u256
+        )]
+        id: Option<U256>,
+        #[clap(
+            long = "ids",
+            help = "Get hyperchain IDs instead of addresses",
+            exclusive = true
+        )]
+        ids: bool,
+    },
     #[command(visible_alias = "pv", about = "Get current protocol version")]
     ProtocolVersion {
         #[clap(
@@ -366,6 +390,20 @@ impl Command {
                     cfg,
                 )
                 .await?;
+            }
+            Command::Hyperchain { id, ids } => {
+                if ids {
+                    let hyperchains = state_transition_manager
+                        .get_all_hyperchain_chain_i_ds()
+                        .await?;
+                    println!("{:?}", hyperchains);
+                } else if let Some(chain_id) = id {
+                    let address = state_transition_manager.get_hyperchain(chain_id).await?;
+                    println!("{chain_id}: {:?}", address);
+                } else {
+                    let hyperchains = state_transition_manager.get_all_hyperchains().await?;
+                    println!("{:?}", hyperchains);
+                };
             }
             Command::ProtocolVersion { semantic } => {
                 if semantic {
