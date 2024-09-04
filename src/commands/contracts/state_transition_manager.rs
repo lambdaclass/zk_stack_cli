@@ -324,8 +324,8 @@ pub(crate) enum Command {
     #[command(visible_alias = "vt", about = "Get or set ValidatorTimelock address")]
     ValidatorTimelock {
         #[clap(
-            short = 'a',
-            long = "address",
+            short = 's',
+            long = "set",
             help = "Address to set as ValidatorTimelock"
         )]
         address: Option<Address>,
@@ -723,7 +723,7 @@ impl Command {
                     .await?;
                 } else {
                     let address = state_transition_manager.validator_timelock().await?;
-                    println!("{address}");
+                    println!("{:?}", address);
                 }
             }
         };
