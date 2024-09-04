@@ -70,10 +70,18 @@ pub(crate) enum Command {
     #[command(visible_alias = "cfp")]
     ChangeFeeParams {
         chain_id: U256,
+        #[clap(
+            help = "The amount of L1 gas required to process the batch (except for the calldata)"
+        )]
         batch_overhead_l1_gas: u32,
+        #[clap(help = "The maximal number of pubdata that can be emitted per batch")]
         max_pubdata_per_batch: u32,
         max_l2_gas_per_batch: u32,
+        #[clap(
+            help = "The maximal amount of pubdata a priority transaction is allowed to publish"
+        )]
         priority_tx_max_pubdata: u32,
+        #[clap(help = "The minimal L2 gas price to be used by L1->L2 transactions")]
         minimal_l2_gas_price: u64,
         #[clap(
             short = 'r',
