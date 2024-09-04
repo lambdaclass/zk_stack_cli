@@ -75,7 +75,10 @@ fn parse_u256(value: &str) -> Result<U256, String> {
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
-    #[command(about = "Get admin address", visible_alias = "a")]
+    #[command(
+        about = "Get StateTransitionManager's admin address",
+        visible_alias = "a"
+    )]
     Admin {
         #[clap(
             short = 's',
@@ -91,6 +94,13 @@ pub(crate) enum Command {
             exclusive = true
         )]
         accept: bool,
+        #[clap(
+            long = "chain-id",
+            help = "Get the admin address for the specified chain",
+            exclusive = true,
+            value_parser = parse_u256
+        )]
+        chain_id: Option<U256>,
     },
     #[command(visible_alias = "cfp")]
     ChangeFeeParams {
@@ -337,10 +347,14 @@ impl Command {
         let governance = try_governance_from_config(&cfg).await?;
         let state_transition_manager = try_state_transition_manager_from_config(&cfg).await?;
         match self {
-            Command::Admin { new_admin, accept } => {
-                if !accept && new_admin.is_none() {
-                    let admin = state_transition_manager.admin().await?;
-                    println!("{:?}", admin);
+            Command::Admin {
+                new_admin,
+                accept,
+                chain_id,
+            } => {
+                if let Some(id) = chain_id {
+                    let address = state_transition_manager.get_chain_admin(id).await?;
+                    println!("{:?}", address);
                 } else if accept {
                     state_transition_manager.accept_admin().send().await?;
                 } else if let Some(address) = new_admin {
@@ -359,6 +373,9 @@ impl Command {
                         cfg,
                     )
                     .await?;
+                } else {
+                    let admin = state_transition_manager.admin().await?;
+                    println!("{:?}", admin);
                 }
             }
             Command::ChangeFeeParams {
