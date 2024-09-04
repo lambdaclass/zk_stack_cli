@@ -258,6 +258,15 @@ pub(crate) enum Command {
         )]
         init_calldata: Option<Vec<u8>>,
     },
+    #[command(visible_alias = "vt", about = "Get or set ValidatorTimelock address")]
+    ValidatorTimelock {
+        #[clap(
+            short = 'a',
+            long = "address",
+            help = "Address to set as ValidatorTimelock"
+        )]
+        address: Option<Address>,
+    },
 }
 
 impl Command {
@@ -581,6 +590,27 @@ impl Command {
                     cfg,
                 )
                 .await?;
+            }
+            Command::ValidatorTimelock { address } => {
+                if let Some(address) = address {
+                    let calldata = state_transition_manager
+                        .set_validator_timelock(address)
+                        .function
+                        .encode_input(&address.into_tokens())?;
+                    run_upgrade(
+                        calldata.into(),
+                        false,
+                        true,
+                        0.into(),
+                        false,
+                        governance,
+                        cfg,
+                    )
+                    .await?;
+                } else {
+                    let address = state_transition_manager.validator_timelock().await?;
+                    println!("{address}");
+                }
             }
         };
         Ok(())
