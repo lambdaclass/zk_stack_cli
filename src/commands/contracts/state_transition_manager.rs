@@ -7,7 +7,7 @@ use crate::{
 use clap::Subcommand;
 use serde::Deserialize;
 use zksync_ethers_rs::{
-    abi::Tokenize,
+    abi::{AbiEncode, Tokenize},
     types::{Address, Selector},
 };
 use zksync_ethers_rs::{
@@ -102,6 +102,8 @@ pub(crate) enum Command {
         )]
         chain_id: Option<U256>,
     },
+    #[command(about = "Get the stored batch zero hash", visible_alias = "bz")]
+    BatchZero {},
     #[command(visible_alias = "cfp")]
     ChangeFeeParams {
         #[clap(value_parser = parse_u256)]
@@ -168,6 +170,11 @@ pub(crate) enum Command {
         #[clap(value_parser = parse_u256)]
         chain_id: U256,
     },
+    #[command(
+        about = "Get the genesisUpgrade contract address",
+        visible_alias = "gu"
+    )]
+    GenesisUpgrade {},
     #[command(about = "Get all hyperchains addressess", visible_alias = "hc")]
     Hyperchain {
         #[clap(
@@ -378,6 +385,10 @@ impl Command {
                     println!("{:?}", admin);
                 }
             }
+            Command::BatchZero {} => {
+                let hash = state_transition_manager.stored_batch_zero().await?;
+                println!("{}", hash.encode_hex());
+            }
             Command::ChangeFeeParams {
                 chain_id,
                 batch_overhead_l1_gas,
@@ -474,6 +485,10 @@ impl Command {
                     cfg,
                 )
                 .await?;
+            }
+            Command::GenesisUpgrade {} => {
+                let address = state_transition_manager.genesis_upgrade().await?;
+                println!("{:?}", address);
             }
             Command::Hyperchain { id, ids } => {
                 if ids {
