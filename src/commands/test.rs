@@ -38,7 +38,6 @@ pub(crate) enum Command {
         reruns_wanted: Option<u8>,
         #[arg(
             long = "withdraw",
-            short = 'w',
             default_value_t = false,
             help = "If set, the funds will be withdrawn after each run."
         )]
