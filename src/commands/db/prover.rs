@@ -76,9 +76,6 @@ pub(crate) enum Command {
     #[clap(
         about = "Display the status for a given sequence of L1BatchNumbers, if no StageInfo flag is set, display all stages' info."
     )]
-    #[clap(
-        about = "Display the status for a given sequence of L1BatchNumbers, if no StageInfo flag is set, display all stages' info."
-    )]
     Status {
         #[clap(short = 'n', num_args = 1.., required = true)]
         batches: Vec<L1BatchNumber>,
