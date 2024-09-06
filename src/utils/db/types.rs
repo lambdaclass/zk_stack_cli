@@ -11,6 +11,61 @@ use zksync_ethers_rs::types::{
     U256,
 };
 
+#[derive(Debug)]
+pub(crate) enum StageFlags {
+    Bwg = 0b000001,
+    Lwg = 0b000010,
+    Nwg = 0b000100,
+    Rtwg = 0b001000,
+    Swg = 0b010000,
+    Compressor = 0b100000,
+}
+
+impl StageFlags {
+    pub(crate) fn as_u32(&self) -> u32 {
+        match self {
+            StageFlags::Bwg => 1 << 0,
+            StageFlags::Lwg => 1 << 1,
+            StageFlags::Nwg => 1 << 2,
+            StageFlags::Rtwg => 1 << 3,
+            StageFlags::Swg => 1 << 4,
+            StageFlags::Compressor => 1 << 5,
+        }
+    }
+}
+
+pub(crate) fn combine_flags(
+    bwg: bool,
+    lwg: bool,
+    nwg: bool,
+    rtwg: bool,
+    swg: bool,
+    compressor: bool,
+) -> u32 {
+    let mut flags = 0;
+
+    if bwg {
+        flags |= StageFlags::Bwg.as_u32();
+    }
+    if lwg {
+        flags |= StageFlags::Lwg.as_u32();
+    }
+    if nwg {
+        flags |= StageFlags::Nwg.as_u32();
+    }
+    if rtwg {
+        flags |= StageFlags::Rtwg.as_u32();
+    }
+    if swg {
+        flags |= StageFlags::Swg.as_u32();
+    }
+    if compressor {
+        flags |= StageFlags::Compressor.as_u32();
+    }
+
+    flags
+}
+
 #[derive(Debug, Clone)]
 pub struct BasicWitnessGeneratorJobInfo {
     pub l1_batch_number: L1BatchNumber,

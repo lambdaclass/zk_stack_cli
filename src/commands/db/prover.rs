@@ -20,6 +20,7 @@ use crate::{
                 get_basic_witness_job_status, get_compressor_job_status,
                 insert_prover_protocol_version, insert_witness_inputs, restart_batch_proof,
             },
+            types::combine_flags,
         },
         messages::{
             DATABASE_PROVER_PROTOCOL_VERSION_PATCH_PROMPT_MSG,
@@ -69,11 +70,56 @@ pub(crate) enum Command {
         #[arg(short = 'd')]
         default_values: bool,
     },
+    #[clap(
+        about = "Display the status for a given sequence of L1BatchNumbers, if no StageInfo flag is set, display all stages' info."
+    )]
     Status {
         #[clap(short = 'n', num_args = 1.., required = true)]
         batches: Vec<L1BatchNumber>,
         #[clap(short = 'v', long, default_value("false"))]
         verbose: bool,
+        #[clap(
+            short = 'b',
+            long,
+            default_value("false"),
+            help = "Print BasicWitnessGeneratorStageInfo if set"
+        )]
+        bwg: bool,
+        #[clap(
+            short = 'l',
+            long,
+            default_value("false"),
+            help = "Print LeafWitnessGeneratorStageInfo if set"
+        )]
+        lwg: bool,
+        #[clap(
+            short = 'n',
+            long,
+            default_value("false"),
+            help = "Print NodeWitnessGeneratorStageInfo if set"
+        )]
+        nwg: bool,
+        #[clap(
+            short = 'r',
+            long,
+            default_value("false"),
+            help = "Print RecursionTipWitnessGeneratorStageInfo if set"
+        )]
+        rtwg: bool,
+        #[clap(
+            short = 's',
+            long,
+            default_value("false"),
+            help = "Print SchedulerWitnessGeneratorStageInfo if set"
+        )]
+        swg: bool,
+        #[clap(
+            short = 'c',
+            long,
+            default_value("false"),
+            help = "Print CompressorStageInfo if set"
+        )]
+        compressor: bool,
     },
 }
 
@@ -293,7 +339,17 @@ impl Command {
                     }
                 };
             }
-            Command::Status { batches, verbose } => {
+            Command::Status {
+                batches,
+                verbose,
+                bwg,
+                lwg,
+                nwg,
+                rtwg,
+                swg,
+                compressor,
+            } => {
+                let flags = combine_flags(bwg, lwg, nwg, rtwg, swg, compressor);
                 let msg = format!(
                     "Fetching {}",
                     if batches.len() > 1 {
@@ -335,9 +391,9 @@ impl Command {
                     }
 
                     if !verbose {
-                        display_batch_status(batch_data);
+                        display_batch_status(batch_data, flags);
                     } else {
-                        display_batch_info(batch_data)?;
+                        display_batch_info(batch_data, flags)?;
                     }
                 }
             }

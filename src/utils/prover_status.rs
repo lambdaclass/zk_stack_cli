@@ -3,7 +3,7 @@ use super::db::{
     types::{
         BasicWitnessGeneratorJobInfo, LeafWitnessGeneratorJobInfo, NodeWitnessGeneratorJobInfo,
         ProofCompressionJobInfo, ProverJobFriInfo, RecursionTipWitnessGeneratorJobInfo,
-        SchedulerWitnessGeneratorJobInfo,
+        SchedulerWitnessGeneratorJobInfo, StageFlags,
     },
 };
 use circuit_definitions::zkevm_circuits::scheduler::aux::BaseLayerCircuitType;
@@ -446,13 +446,21 @@ pub async fn get_batches_data(
 
 // Display functions
 
-pub(crate) fn display_batch_status(batch_data: BatchData) {
-    display_status_for_stage(batch_data.basic_witness_generator);
-    display_status_for_stage(batch_data.leaf_witness_generator);
-    display_status_for_stage(batch_data.node_witness_generator);
-    display_status_for_stage(batch_data.recursion_tip_witness_generator);
-    display_status_for_stage(batch_data.scheduler_witness_generator);
-    display_status_for_stage(batch_data.compressor);
+pub(crate) fn display_batch_status(batch_data: BatchData, flags: u32) {
+    let stages = [
+        (StageFlags::Bwg, batch_data.basic_witness_generator),
+        (StageFlags::Lwg, batch_data.leaf_witness_generator),
+        (StageFlags::Nwg, batch_data.node_witness_generator),
+        (StageFlags::Rtwg, batch_data.recursion_tip_witness_generator),
+        (StageFlags::Swg, batch_data.scheduler_witness_generator),
+        (StageFlags::Compressor, batch_data.compressor),
+    ];
+
+    for (flag, stage) in stages {
+        if flags == 0 || flags & flag.as_u32() != 0 {
+            display_status_for_stage(stage);
+        }
+    }
 }
 
 fn display_status_for_stage(stage_info: StageInfo) {
@@ -487,13 +495,21 @@ fn display_aggregation_round(stage_info: &StageInfo) {
     };
 }
 
-pub(crate) fn display_batch_info(batch_data: BatchData) -> eyre::Result<()> {
-    display_info_for_stage(batch_data.basic_witness_generator)?;
-    display_info_for_stage(batch_data.leaf_witness_generator)?;
-    display_info_for_stage(batch_data.node_witness_generator)?;
-    display_info_for_stage(batch_data.recursion_tip_witness_generator)?;
-    display_info_for_stage(batch_data.scheduler_witness_generator)?;
-    display_info_for_stage(batch_data.compressor)?;
+pub(crate) fn display_batch_info(batch_data: BatchData, flags: u32) -> eyre::Result<()> {
+    let stages = [
+        (StageFlags::Bwg, batch_data.basic_witness_generator),
+        (StageFlags::Lwg, batch_data.leaf_witness_generator),
+        (StageFlags::Nwg, batch_data.node_witness_generator),
+        (StageFlags::Rtwg, batch_data.recursion_tip_witness_generator),
+        (StageFlags::Swg, batch_data.scheduler_witness_generator),
+        (StageFlags::Compressor, batch_data.compressor),
+    ];
+
+    for (flag, stage) in stages {
+        if flags == 0 || flags & flag.as_u32() != 0 {
+            display_info_for_stage(stage)?;
+        }
+    }
     Ok(())
 }
 
