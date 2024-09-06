@@ -31,9 +31,11 @@ use crate::{
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
+        prover_status::{display_batch_info, display_batch_status, get_batches_data, Status},
     },
 };
 use clap::Subcommand;
+use colored::Colorize;
 use eyre::ContextCompat;
 use spinoff::{spinners::Dots, Color, Spinner};
 use zksync_ethers_rs::types::{
@@ -66,6 +68,12 @@ pub(crate) enum Command {
     InsertProtocolVersion {
         #[arg(short = 'd')]
         default_values: bool,
+    },
+    Status {
+        #[clap(short = 'n', num_args = 1.., required = true)]
+        batches: Vec<L1BatchNumber>,
+        #[clap(short = 'v', long, default_value("false"))]
+        verbose: bool,
     },
 }
 
@@ -284,6 +292,54 @@ impl Command {
                         return Err(e);
                     }
                 };
+            }
+            Command::Status { batches, verbose } => {
+                let msg = format!(
+                    "Fetching {}",
+                    if batches.len() > 1 {
+                        "Batches".to_owned()
+                    } else {
+                        "Batch".to_owned()
+                    }
+                );
+                let mut spinner = Spinner::new(Dots, msg, Color::Blue);
+                let batches_data = get_batches_data(batches, &mut prover_db).await?;
+                spinner.success("Data Retrieved from DB");
+
+                for batch_data in batches_data {
+                    println!(
+                        "{} {} {}",
+                        "=".repeat(8),
+                        format!("Batch {:0>5} Status", batch_data.batch_number.0)
+                            .bold()
+                            .bright_cyan()
+                            .on_black(),
+                        "=".repeat(8)
+                    );
+
+                    if let Status::Custom(msg) =
+                        batch_data.compressor.witness_generator_jobs_status(10)
+                    {
+                        if msg.contains("Sent to server") {
+                            println!("> Proof sent to server ✅");
+                            continue;
+                        }
+                    }
+
+                    let basic_witness_generator_status = batch_data
+                        .basic_witness_generator
+                        .witness_generator_jobs_status(10);
+                    if matches!(basic_witness_generator_status, Status::JobsNotFound) {
+                        println!("> No batch found. 🚫");
+                        continue;
+                    }
+
+                    if !verbose {
+                        display_batch_status(batch_data);
+                    } else {
+                        display_batch_info(batch_data)?;
+                    }
+                }
             }
         };
 
