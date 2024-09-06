@@ -596,7 +596,7 @@ pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyr
         total_proof_time_from_processing += proof_time_from_processing;
     }
 
-    println!("Summing up the selected stages' proof_time, if no flags are set, these values represents the total time spent to proof and send a batch to L1");
+    println!("Summing up the selected stages' proof_time, if no flags are set, these values represent the total time spent to proof and send a batch to L1");
 
     println!(
         "\t > Total proof time from creation: {} \n\t > Total proof time from start of processing: {}",
