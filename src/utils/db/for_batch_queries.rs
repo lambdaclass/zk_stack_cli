@@ -15,7 +15,7 @@ pub(crate) async fn get_prover_jobs_info_for_batch(
     let query = format!(
         "
         SELECT *
-        FROM prover_jobs_fri
+        FROM prover_jobs_fri_archive
         WHERE
             l1_batch_number = {}
             AND aggregation_round = {}
