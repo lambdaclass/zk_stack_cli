@@ -1,13 +1,15 @@
 use super::db::{
     for_batch_queries::*,
     types::{
-        BasicWitnessGeneratorJobInfo, LeafWitnessGeneratorJobInfo, NodeWitnessGeneratorJobInfo,
-        ProofCompressionJobInfo, ProverJobFriInfo, RecursionTipWitnessGeneratorJobInfo,
-        SchedulerWitnessGeneratorJobInfo, StageFlags,
+        BasicWitnessGeneratorJobInfo, JobInfo, LeafWitnessGeneratorJobInfo,
+        NodeWitnessGeneratorJobInfo, ProofCompressionJobInfo, ProverJobFriInfo,
+        RecursionTipWitnessGeneratorJobInfo, SchedulerWitnessGeneratorJobInfo, StageFlags,
     },
 };
+use chrono::{Duration, NaiveDateTime, TimeDelta};
 use circuit_definitions::zkevm_circuits::scheduler::aux::BaseLayerCircuitType;
 use colored::Colorize;
+use eyre::{ContextCompat, Ok};
 use sqlx::{pool::PoolConnection, Postgres};
 use std::collections::BTreeMap;
 use strum::{Display, EnumString};
@@ -306,25 +308,17 @@ pub fn get_witness_generator_job_status_from_vec(
     }
 }
 
-#[allow(
-    clippy::as_conversions,
-    reason = "_atempts is u8, it's safe to convert to u32"
-)]
 pub fn get_prover_job_status(prover_jobs: ProverJobFriInfo, max_attempts: u32) -> Status {
     if matches!(
         prover_jobs._status,
         ProverJobStatus::Failed(_) | ProverJobStatus::InProgress(_),
-    ) && prover_jobs._attempts as u32 >= max_attempts
+    ) && prover_jobs._attempts >= max_attempts
     {
         return Status::Stuck;
     }
     Status::from(prover_jobs._status)
 }
 
-#[allow(
-    clippy::as_conversions,
-    reason = "_atempts is u8, it's safe to convert to u32"
-)]
 pub fn get_prover_jobs_status_from_vec(
     prover_jobs: &[ProverJobFriInfo],
     max_attempts: u32,
@@ -335,7 +329,7 @@ pub fn get_prover_jobs_status_from_vec(
         matches!(
             job._status,
             ProverJobStatus::Failed(_) | ProverJobStatus::InProgress(_),
-        ) && job._attempts as u32 >= max_attempts
+        ) && job._attempts >= max_attempts
     }) {
         Status::Stuck
     } else if prover_jobs
@@ -574,6 +568,91 @@ fn display_info_for_stage(stage_info: StageInfo) -> eyre::Result<()> {
     Ok(())
 }
 
+pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyre::Result<()> {
+    let stages = [
+        (StageFlags::Bwg, batch_data.basic_witness_generator),
+        (StageFlags::Lwg, batch_data.leaf_witness_generator),
+        (StageFlags::Nwg, batch_data.node_witness_generator),
+        (StageFlags::Rtwg, batch_data.recursion_tip_witness_generator),
+        (StageFlags::Swg, batch_data.scheduler_witness_generator),
+        (StageFlags::Compressor, batch_data.compressor),
+    ];
+
+    let mut proof_time: Vec<Option<(TimeDelta, TimeDelta)>> = Vec::new();
+    for (flag, stage) in stages {
+        if flags == 0 || flags & flag.as_u32() != 0 {
+            proof_time.push(display_proof_time_for_stage(stage)?);
+        }
+    }
+
+    let mut total_proof_time_from_processing =
+        TimeDelta::new(0, 0).context("Initializing Variable")?;
+    let mut total_proof_time_from_creation =
+        TimeDelta::new(0, 0).context("Initializing Variable")?;
+
+    for time_pair in proof_time.into_iter().flatten() {
+        let (proof_time_from_creation, proof_time_from_processing) = time_pair;
+        total_proof_time_from_creation += proof_time_from_creation;
+        total_proof_time_from_processing += proof_time_from_processing;
+    }
+
+    println!("Summing up the selected stages' proof_time, if no flags are set, these values represent the total time spent to proof and send a batch to L1");
+
+    println!(
+        "\t > Total proof time from creation: {} \n\t > Total proof time from start of processing: {}",
+        format_duration(total_proof_time_from_creation),
+        format_duration(total_proof_time_from_processing)
+    );
+
+    Ok(())
+}
+
+fn display_proof_time_for_stage(
+    stage_info: StageInfo,
+) -> eyre::Result<Option<(TimeDelta, TimeDelta)>> {
+    let max_attempts = 10;
+    display_aggregation_round(&stage_info);
+    let status = stage_info.witness_generator_jobs_status(max_attempts);
+    let mut stage_time_delta = None;
+    match status {
+        Status::Successful => {
+            println!("> {}: {}", stage_info.to_string().bold(), status);
+            match stage_info {
+                StageInfo::BasicWitnessGenerator {
+                    prover_jobs_info, ..
+                }
+                | StageInfo::LeafWitnessGenerator {
+                    prover_jobs_info, ..
+                }
+                | StageInfo::NodeWitnessGenerator {
+                    prover_jobs_info, ..
+                } => {
+                    stage_time_delta =
+                        display_prover_jobs_proof_time(prover_jobs_info, max_attempts)?
+                }
+                StageInfo::RecursionTipWitnessGenerator(job_info) => {
+                    stage_time_delta = display_last_jobs_proof_time(job_info)?
+                }
+                StageInfo::SchedulerWitnessGenerator(job_info) => {
+                    stage_time_delta = display_last_jobs_proof_time(job_info)?
+                }
+                _ => (),
+            }
+        }
+        Status::Custom(ref str) => match str.as_str() {
+            "Sent to server 📤" => {
+                println!("> {}: sent_to_server", stage_info.to_string().bold());
+                if let StageInfo::Compressor(job_info) = stage_info {
+                    stage_time_delta = display_last_jobs_proof_time(job_info)?
+                }
+            }
+            _ => println!("Not sent to server."),
+        },
+        _ => println!("Stage hasn't finished yet."),
+    }
+    Ok(stage_time_delta)
+}
+
 fn display_leaf_witness_generator_jobs_info(
     mut jobs_info: Vec<LeafWitnessGeneratorJobInfo>,
     max_attempts: u32,
@@ -662,6 +741,153 @@ fn display_prover_jobs_info(
         }
     }
     Ok(())
+}
+
+fn display_prover_jobs_proof_time(
+    prover_jobs_info: Vec<ProverJobFriInfo>,
+    max_attempts: u32,
+) -> eyre::Result<Option<(TimeDelta, TimeDelta)>> {
+    let prover_jobs_status = get_prover_jobs_status_from_vec(&prover_jobs_info, max_attempts);
+
+    println!("Status {prover_jobs_status}");
+    if matches!(prover_jobs_status, Status::Successful) {
+        let mut jobs_by_processing_started_at: BTreeMap<
+            Option<NaiveDateTime>,
+            Vec<ProverJobFriInfo>,
+        > = BTreeMap::new();
+        prover_jobs_info.iter().for_each(|job| {
+            jobs_by_processing_started_at
+                .entry(job._processing_started_at)
+                .or_default()
+                .push(job.clone())
+        });
+
+        let mut jobs_by_created_at: BTreeMap<NaiveDateTime, Vec<ProverJobFriInfo>> =
+            BTreeMap::new();
+        prover_jobs_info.iter().for_each(|job| {
+            jobs_by_created_at
+                .entry(job._created_at)
+                .or_default()
+                .push(job.clone())
+        });
+
+        let mut jobs_by_updated_at: BTreeMap<NaiveDateTime, Vec<ProverJobFriInfo>> =
+            BTreeMap::new();
+        prover_jobs_info.iter().for_each(|job| {
+            jobs_by_updated_at
+                .entry(job._updated_at)
+                .or_default()
+                .push(job.clone())
+        });
+
+        let mut earliest_processing_datetime: Option<NaiveDateTime> = None;
+        let mut earliest_created_datetime: NaiveDateTime = NaiveDateTime::MAX;
+        let mut latest_updated_datetime: NaiveDateTime = NaiveDateTime::MIN;
+
+        for datetime in jobs_by_processing_started_at.keys().flatten() {
+            if let Some(earliest) = earliest_processing_datetime {
+                if *datetime < earliest {
+                    earliest_processing_datetime = Some(*datetime);
+                }
+            } else {
+                earliest_processing_datetime = Some(*datetime);
+            }
+        }
+
+        for key in jobs_by_created_at.keys() {
+            if *key < earliest_created_datetime {
+                earliest_created_datetime = *key;
+            }
+        }
+
+        for key in jobs_by_updated_at.keys() {
+            if *key > latest_updated_datetime {
+                latest_updated_datetime = *key;
+            }
+        }
+
+        let proof_time_from_creation =
+            latest_updated_datetime.time() - earliest_created_datetime.time();
+
+        let proof_time_from_creation = Duration::seconds(proof_time_from_creation.num_seconds());
+
+        let proof_time_from_processing = latest_updated_datetime.time()
+            - earliest_processing_datetime
+                .unwrap_or(NaiveDateTime::MAX)
+                .time();
+
+        let proof_time_from_processing =
+            Duration::seconds(proof_time_from_processing.num_seconds());
+
+        println!("🕑 {}", "Proof Time".to_owned().bold());
+
+        println!(
+            "\t + CreatedAt: {} \n\t + ProcessingStartedAt: {} \n\t + UpdatedAt: {}",
+            earliest_created_datetime,
+            earliest_processing_datetime.unwrap_or(NaiveDateTime::MIN),
+            latest_updated_datetime
+        );
+
+        println!(
+            "\t > from creation: {} \n\t > from start of processing: {}",
+            format_duration(proof_time_from_creation),
+            format_duration(proof_time_from_processing)
+        );
+        return Ok(Some((proof_time_from_creation, proof_time_from_processing)));
+    }
+    Ok(None)
+}
+
+fn display_last_jobs_proof_time<T>(
+    job_info: Option<T>,
+) -> eyre::Result<Option<(TimeDelta, TimeDelta)>>
+where
+    T: JobInfo,
+{
+    if let Some(job) = job_info {
+        let earliest_processing_datetime: Option<NaiveDateTime> = job._processing_started_at();
+        let earliest_created_datetime: NaiveDateTime = job._created_at();
+        let latest_updated_datetime: NaiveDateTime = job._updated_at();
+
+        let proof_time_from_creation =
+            latest_updated_datetime.time() - earliest_created_datetime.time();
+
+        let proof_time_from_creation = Duration::seconds(proof_time_from_creation.num_seconds());
+
+        let proof_time_from_processing = latest_updated_datetime.time()
+            - earliest_processing_datetime
+                .unwrap_or(NaiveDateTime::MAX)
+                .time();
+
+        let proof_time_from_processing =
+            Duration::seconds(proof_time_from_processing.num_seconds());
+
+        println!("🕑 {}", "Proof Time".to_owned().bold());
+
+        println!(
+            "\t + CreatedAt: {} \n\t + ProcessingStartedAt: {} \n\t + UpdatedAt: {}",
+            earliest_created_datetime,
+            earliest_processing_datetime.unwrap_or(NaiveDateTime::MIN),
+            latest_updated_datetime
+        );
+
+        println!(
+            "\t > from creation: {} \n\t > from start of processing: {}",
+            format_duration(proof_time_from_creation),
+            format_duration(proof_time_from_processing)
+        );
+        return Ok(Some((proof_time_from_creation, proof_time_from_processing)));
+    }
+    Ok(None)
+}
+
+fn format_duration(duration: Duration) -> String {
+    let total_seconds = duration.num_seconds();
+    let hours = total_seconds / 3600;
+    let minutes = (total_seconds % 3600) / 60;
+    let seconds = total_seconds % 60;
+
+    format!("{hours:02}:{minutes:02}:{seconds:02}")
 }
 
 fn display_job_status_count(jobs: Vec<ProverJobFriInfo>) {

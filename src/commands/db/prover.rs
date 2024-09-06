@@ -32,7 +32,10 @@ use crate::{
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
-        prover_status::{display_batch_info, display_batch_status, get_batches_data, Status},
+        prover_status::{
+            display_batch_info, display_batch_proof_time, display_batch_status, get_batches_data,
+            Status,
+        },
     },
 };
 use clap::Subcommand;
@@ -78,6 +81,52 @@ pub(crate) enum Command {
         batches: Vec<L1BatchNumber>,
         #[clap(short = 'v', long, default_value("false"))]
         verbose: bool,
+        #[clap(
+            short = 'b',
+            long,
+            default_value("false"),
+            help = "Print BasicWitnessGeneratorStageInfo if set"
+        )]
+        bwg: bool,
+        #[clap(
+            short = 'l',
+            long,
+            default_value("false"),
+            help = "Print LeafWitnessGeneratorStageInfo if set"
+        )]
+        lwg: bool,
+        #[clap(
+            short = 'n',
+            long,
+            default_value("false"),
+            help = "Print NodeWitnessGeneratorStageInfo if set"
+        )]
+        nwg: bool,
+        #[clap(
+            short = 'r',
+            long,
+            default_value("false"),
+            help = "Print RecursionTipWitnessGeneratorStageInfo if set"
+        )]
+        rtwg: bool,
+        #[clap(
+            short = 's',
+            long,
+            default_value("false"),
+            help = "Print SchedulerWitnessGeneratorStageInfo if set"
+        )]
+        swg: bool,
+        #[clap(
+            short = 'c',
+            long,
+            default_value("false"),
+            help = "Print CompressorStageInfo if set"
+        )]
+        compressor: bool,
+    },
+    ProofTime {
+        #[clap(short = 'n', required = true)]
+        batch: L1BatchNumber,
         #[clap(
             short = 'b',
             long,
@@ -395,6 +444,25 @@ impl Command {
                     } else {
                         display_batch_info(batch_data, flags)?;
                     }
+                }
+            }
+            Command::ProofTime {
+                batch,
+                bwg,
+                lwg,
+                nwg,
+                rtwg,
+                swg,
+                compressor,
+            } => {
+                let flags = combine_flags(bwg, lwg, nwg, rtwg, swg, compressor);
+
+                let mut spinner = Spinner::new(Dots, "Fetching Batch", Color::Blue);
+                let batch_data = get_batches_data(vec![batch], &mut prover_db).await?;
+                spinner.success("Data Retrieved from DB");
+
+                for data in batch_data {
+                    display_batch_proof_time(data, flags)?;
                 }
             }
         };
