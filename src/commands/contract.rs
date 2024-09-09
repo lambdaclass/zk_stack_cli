@@ -156,8 +156,7 @@ fn encode_function_call(
                         }
                         "uint256" => {
                             // Parse as uint256
-                            let value: U256 = arg
-                                .parse()
+                            let value: U256 = U256::from_dec_str(&arg)
                                 .map_err(|_e| eyre::eyre!("Invalid uint256 format"))?;
                             Ok(Token::Uint(value))
                         }
