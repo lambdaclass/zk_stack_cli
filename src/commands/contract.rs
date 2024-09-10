@@ -1,9 +1,11 @@
 use crate::{config::ZKSyncConfig, utils::wallet::get_wallet_l1_l2_providers};
 use clap::Subcommand;
 use eyre::ContextCompat;
+use spinoff::{spinners, Color, Spinner};
 use std::str::FromStr;
 use zksync_ethers_rs::{
-    abi::Token,
+    abi::{Abi, Token},
+    contract::ContractFactory,
     core::utils::keccak256,
     providers::Middleware,
     types::{
@@ -31,7 +33,11 @@ pub(crate) enum Command {
         #[clap(long = "bytecode", short = 'b', required = true)]
         bytecode: String,
         #[clap(long = "constructor_args", short = 'a')]
-        constructor_args: Vec<String>,
+        constructor_args: Option<Vec<String>>,
+        #[clap(long = "constructor_types", short = 't')]
+        constructor_types: Option<Vec<String>>,
+        #[clap(long = "l1", default_value_t = false)]
+        l1: bool,
     },
     #[clap(about = "Call non-view functions on a contract.")]
     Send {
@@ -59,7 +65,7 @@ impl Command {
             } => {
                 let selector = get_fn_selector(&function_signature);
                 let types = parse_signature(&function_signature)?;
-                let tx_data = encode_function_call(selector, args, types)?;
+                let tx_data = encode_call(Some(selector), None, args, types)?;
                 let tx_data_bytes = Bytes::from(tx_data);
 
                 let tx = TypedTransaction::Eip1559(
@@ -79,9 +85,44 @@ impl Command {
                 println!("{receipt}");
             }
             Command::Deploy {
-                bytecode: _,
-                constructor_args: _,
-            } => todo!("Deploy"),
+                bytecode,
+                constructor_args,
+                constructor_types,
+                l1,
+            } => {
+                let bytecode_vec = hex::decode(
+                    bytecode
+                        .strip_prefix("0x")
+                        .context("Bytecode without 0x prefix")?,
+                )?
+                .to_vec();
+
+                let tx_data = encode_call(
+                    None,
+                    Some(bytecode_vec),
+                    constructor_args,
+                    constructor_types,
+                )?;
+                let tx_data_bytes = Bytes::from(tx_data);
+
+                let client = if l1 {
+                    zk_wallet.l1_signer()
+                } else {
+                    zk_wallet.l2_signer()
+                };
+
+                let factory = ContractFactory::new(
+                    Abi::default(), // Doesn't care
+                    tx_data_bytes,
+                    client,
+                );
+
+                let mut spinner =
+                    Spinner::new(spinners::Dots, "Deploying Contract...", Color::Blue);
+                let contract = factory.deploy(())?.send().await?;
+                let msg = format!("Contract deployed at: {:?}", contract.address());
+                spinner.success(&msg);
+            }
             Command::Send {
                 contract_address,
                 function_signature,
@@ -90,7 +131,7 @@ impl Command {
             } => {
                 let selector = get_fn_selector(&function_signature);
                 let types = parse_signature(&function_signature)?;
-                let tx_data = encode_function_call(selector, args, types)?;
+                let tx_data = encode_call(Some(selector), None, args, types)?;
                 let tx_data_bytes = Bytes::from(tx_data);
 
                 let mut raw_tx = Eip1559TransactionRequest::new()
@@ -99,30 +140,32 @@ impl Command {
                     .data(tx_data_bytes)
                     .value(U256::zero());
 
-                let fees = _l2_provider.estimate_fee(&raw_tx).await?;
+                let tx: TypedTransaction = raw_tx.clone().into();
+                let (signer, gas, fees) = if l1 {
+                    let signer = zk_wallet.l1_signer();
+
+                    let gas = zk_wallet.l1_provider().estimate_gas(&tx, None).await?;
+                    let fees = zk_wallet.l1_provider().estimate_fee(&tx).await?;
+                    (signer, gas, fees)
+                } else {
+                    let signer = zk_wallet.l2_signer();
+
+                    let gas = zk_wallet.l2_provider().estimate_gas(&tx, None).await?;
+                    let fees = zk_wallet.l2_provider().estimate_fee(&tx).await?;
+                    (signer, gas, fees)
+                };
+
                 raw_tx = raw_tx
                     .max_fee_per_gas(fees.max_fee_per_gas)
                     .max_priority_fee_per_gas(fees.max_priority_fee_per_gas)
-                    .gas(fees.gas_limit);
+                    .gas(gas);
 
                 let tx: TypedTransaction = raw_tx.into();
-
-                let receipt = if l1 {
-                    zk_wallet
-                        .l1_signer()
-                        .send_transaction(tx, None)
-                        .await?
-                        .await?
-                        .context("error unwrapping")?
-                } else {
-                    zk_wallet
-                        .l2_signer()
-                        .send_transaction(tx, None)
-                        .await?
-                        .await?
-                        .context("error unwrapping")?
-                };
-
+                let receipt = signer
+                    .send_transaction(tx, None)
+                    .await?
+                    .await?
+                    .context("error unwrapping")?;
                 println!("{receipt:#?}");
             }
         };
@@ -130,13 +173,19 @@ impl Command {
     }
 }
 
-fn encode_function_call(
-    selector: [u8; 4],
+fn encode_call(
+    selector: Option<[u8; 4]>,
+    bytecode: Option<Vec<u8>>,
     args: Option<Vec<String>>,
-    types: Option<Vec<&str>>,
+    types: Option<Vec<String>>,
 ) -> eyre::Result<Vec<u8>> {
     let mut data = Vec::new();
-    data.extend_from_slice(&selector);
+
+    if let Some(s) = selector {
+        data.extend_from_slice(&s);
+    } else if let Some(b) = bytecode {
+        data.extend_from_slice(&b);
+    }
 
     let tokens = match (args, types) {
         (Some(a), Some(t)) => {
@@ -146,7 +195,7 @@ fn encode_function_call(
             a.into_iter()
                 .zip(t.into_iter())
                 .map(|(arg, arg_type)| {
-                    match arg_type {
+                    match arg_type.as_str() {
                         "address" => {
                             // Parse as Address
                             let address: Address = arg
@@ -180,7 +229,7 @@ fn encode_function_call(
     Ok(data)
 }
 
-fn parse_signature(signature: &str) -> eyre::Result<Option<Vec<&str>>> {
+fn parse_signature(signature: &str) -> eyre::Result<Option<Vec<String>>> {
     let mut types = Vec::new();
 
     if let Some(start) = signature.find('(') {
@@ -190,7 +239,7 @@ fn parse_signature(signature: &str) -> eyre::Result<Option<Vec<&str>>> {
             // Split the parameters by comma
             for param in params.split(',') {
                 let trimmed_param = param.trim();
-                types.push(trimmed_param)
+                types.push(trimmed_param.to_owned())
             }
         } else {
             return Err(eyre::eyre!("Missing closing parenthesis in signature"));
