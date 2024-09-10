@@ -20,6 +20,7 @@ use crate::{
                 get_basic_witness_job_status, get_compressor_job_status,
                 insert_prover_protocol_version, insert_witness_inputs, restart_batch_proof,
             },
+            types::combine_flags,
         },
         messages::{
             DATABASE_PROVER_PROTOCOL_VERSION_PATCH_PROMPT_MSG,
@@ -31,9 +32,14 @@ use crate::{
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
+        prover_status::{
+            display_batch_info, display_batch_proof_time, display_batch_status, get_batches_data,
+            Status,
+        },
     },
 };
 use clap::Subcommand;
+use colored::Colorize;
 use eyre::ContextCompat;
 use spinoff::{spinners::Dots, Color, Spinner};
 use zksync_ethers_rs::types::{
@@ -66,6 +72,103 @@ pub(crate) enum Command {
     InsertProtocolVersion {
         #[arg(short = 'd')]
         default_values: bool,
+    },
+    #[clap(
+        about = "Display the status for a given sequence of L1BatchNumbers, if no StageInfo flag is set, display all stages' info."
+    )]
+    Status {
+        #[clap(short = 'n', num_args = 1.., required = true)]
+        batches: Vec<L1BatchNumber>,
+        #[clap(short = 'v', long, default_value("false"))]
+        verbose: bool,
+        #[clap(
+            short = 'b',
+            long,
+            default_value("false"),
+            help = "Print BasicWitnessGeneratorStageInfo if set"
+        )]
+        bwg: bool,
+        #[clap(
+            short = 'l',
+            long,
+            default_value("false"),
+            help = "Print LeafWitnessGeneratorStageInfo if set"
+        )]
+        lwg: bool,
+        #[clap(
+            short = 'n',
+            long,
+            default_value("false"),
+            help = "Print NodeWitnessGeneratorStageInfo if set"
+        )]
+        nwg: bool,
+        #[clap(
+            short = 'r',
+            long,
+            default_value("false"),
+            help = "Print RecursionTipWitnessGeneratorStageInfo if set"
+        )]
+        rtwg: bool,
+        #[clap(
+            short = 's',
+            long,
+            default_value("false"),
+            help = "Print SchedulerWitnessGeneratorStageInfo if set"
+        )]
+        swg: bool,
+        #[clap(
+            short = 'c',
+            long,
+            default_value("false"),
+            help = "Print CompressorStageInfo if set"
+        )]
+        compressor: bool,
+    },
+    ProofTime {
+        #[clap(short = 'n', required = true)]
+        batch: L1BatchNumber,
+        #[clap(
+            short = 'b',
+            long,
+            default_value("false"),
+            help = "Print BasicWitnessGeneratorStageInfo if set"
+        )]
+        bwg: bool,
+        #[clap(
+            short = 'l',
+            long,
+            default_value("false"),
+            help = "Print LeafWitnessGeneratorStageInfo if set"
+        )]
+        lwg: bool,
+        #[clap(
+            short = 'n',
+            long,
+            default_value("false"),
+            help = "Print NodeWitnessGeneratorStageInfo if set"
+        )]
+        nwg: bool,
+        #[clap(
+            short = 'r',
+            long,
+            default_value("false"),
+            help = "Print RecursionTipWitnessGeneratorStageInfo if set"
+        )]
+        rtwg: bool,
+        #[clap(
+            short = 's',
+            long,
+            default_value("false"),
+            help = "Print SchedulerWitnessGeneratorStageInfo if set"
+        )]
+        swg: bool,
+        #[clap(
+            short = 'c',
+            long,
+            default_value("false"),
+            help = "Print CompressorStageInfo if set"
+        )]
+        compressor: bool,
     },
 }
 
@@ -284,6 +387,83 @@ impl Command {
                         return Err(e);
                     }
                 };
+            }
+            Command::Status {
+                batches,
+                verbose,
+                bwg,
+                lwg,
+                nwg,
+                rtwg,
+                swg,
+                compressor,
+            } => {
+                let flags = combine_flags(bwg, lwg, nwg, rtwg, swg, compressor);
+                let msg = format!(
+                    "Fetching {}",
+                    if batches.len() > 1 {
+                        "Batches".to_owned()
+                    } else {
+                        "Batch".to_owned()
+                    }
+                );
+                let mut spinner = Spinner::new(Dots, msg, Color::Blue);
+                let batches_data = get_batches_data(batches, &mut prover_db).await?;
+                spinner.success("Data Retrieved from DB");
+
+                for batch_data in batches_data {
+                    println!(
+                        "{} {} {}",
+                        "=".repeat(8),
+                        format!("Batch {:0>5} Status", batch_data.batch_number.0)
+                            .bold()
+                            .bright_cyan()
+                            .on_black(),
+                        "=".repeat(8)
+                    );
+
+                    if let Status::Custom(msg) =
+                        batch_data.compressor.witness_generator_jobs_status(10)
+                    {
+                        if msg.contains("Sent to server") {
+                            println!("> Proof sent to server ✅");
+                            continue;
+                        }
+                    }
+
+                    let basic_witness_generator_status = batch_data
+                        .basic_witness_generator
+                        .witness_generator_jobs_status(10);
+                    if matches!(basic_witness_generator_status, Status::JobsNotFound) {
+                        println!("> No batch found. 🚫");
+                        continue;
+                    }
+
+                    if !verbose {
+                        display_batch_status(batch_data, flags);
+                    } else {
+                        display_batch_info(batch_data, flags)?;
+                    }
+                }
+            }
+            Command::ProofTime {
+                batch,
+                bwg,
+                lwg,
+                nwg,
+                rtwg,
+                swg,
+                compressor,
+            } => {
+                let flags = combine_flags(bwg, lwg, nwg, rtwg, swg, compressor);
+
+                let mut spinner = Spinner::new(Dots, "Fetching Batch", Color::Blue);
+                let batch_data = get_batches_data(vec![batch], &mut prover_db).await?;
+                spinner.success("Data Retrieved from DB");
+
+                for data in batch_data {
+                    display_batch_proof_time(data, flags)?;
+                }
             }
         };
 
