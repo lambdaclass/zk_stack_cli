@@ -4,7 +4,8 @@ use colored::Colorize;
 use spinoff::{spinners, Color, Spinner};
 use std::path::PathBuf;
 use zksync_ethers_rs::{
-    types::zksync::{api::L1BatchDetails, inputs::WitnessInputData, L1BatchNumber},
+    providers::{Http, Provider},
+    types::zksync::{inputs::WitnessInputData, L1BatchNumber},
     ZKMiddleware,
 };
 
@@ -76,31 +77,40 @@ impl Command {
                     vec![current_batch]
                 };
 
-                let msg = if batches_vec.len() > 1 {
-                    "Fetching Batches' Data"
-                } else {
-                    "Fetching Batch's Data"
-                };
-
-                let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
-
-                let mut batches_details = Vec::new();
-                for batch in batches_vec {
-                    if batch.0 > current_batch.0 {
-                        println!("Batch doesn't exist, Current batch: {}", current_batch.0);
-                        break;
-                    }
-                    batches_details.push(l2_provider.get_l1_batch_details(batch.0).await?);
-                }
-                spinner.success("Success");
-                display_batches_proof_time_from_details(batches_details);
+                display_batches_proof_time_from_l1_batch_details(
+                    batches_vec,
+                    current_batch,
+                    l2_provider,
+                )
+                .await?;
             }
         }
         Ok(())
     }
 }
 
-fn display_batches_proof_time_from_details(batches_details: Vec<L1BatchDetails>) {
+async fn display_batches_proof_time_from_l1_batch_details(
+    batches: Vec<L1BatchNumber>,
+    current_batch: L1BatchNumber,
+    l2_provider: Provider<Http>,
+) -> eyre::Result<()> {
+    let msg = if batches.len() > 1 {
+        "Fetching Batches' Data"
+    } else {
+        "Fetching Batch's Data"
+    };
+
+    let mut spinner = Spinner::new(spinners::Dots, msg, Color::Blue);
+
+    let mut batches_details = Vec::new();
+    for batch in batches {
+        if batch.0 > current_batch.0 {
+            println!("Batch doesn't exist, Current batch: {}", current_batch.0);
+            break;
+        }
+        batches_details.push(l2_provider.get_l1_batch_details(batch.0).await?);
+    }
+    spinner.success("Success");
     for batch_details in batches_details {
         println!(
             "{} {} {}",
@@ -112,17 +122,39 @@ fn display_batches_proof_time_from_details(batches_details: Vec<L1BatchDetails>)
             "=".repeat(8)
         );
         if let Some(committed_at) = batch_details.base.committed_at {
-            println!("Committed At: {committed_at}");
+            println!("{}: {committed_at}", "Committed At".yellow());
         }
         if let Some(commit_tx_hash) = batch_details.base.commit_tx_hash {
-            println!("Commit Tx Hash: {commit_tx_hash:?}");
+            println!(
+                "Commit Tx Hash: {}",
+                format!("{commit_tx_hash:?}").bright_blue()
+            );
         }
-
         if let Some(proven_at) = batch_details.base.proven_at {
-            println!("Proven At: {proven_at}");
+            println!("{}: {proven_at}", "Proven At".yellow());
         }
         if let Some(prove_tx_hash) = batch_details.base.prove_tx_hash {
-            println!("Proven Tx Hash: {prove_tx_hash:?}");
+            println!(
+                "Proven Tx Hash: {}",
+                format!("{prove_tx_hash:?}").bright_blue()
+            );
+        }
+        if let (Some(committed_at), Some(proven_at)) = (
+            batch_details.base.committed_at,
+            batch_details.base.proven_at,
+        ) {
+            let duration = proven_at - committed_at;
+            let formatted_duration = format!(
+                "{:02}:{:02}:{:02}",
+                duration.num_hours(),
+                duration.num_minutes() % 60,
+                duration.num_seconds() % 60
+            );
+            println!(
+                "ProofTime from Committed to Proven: {}",
+                formatted_duration.on_black().green()
+            );
         }
     }
+    Ok(())
 }
