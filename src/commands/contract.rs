@@ -7,6 +7,7 @@ use zksync_ethers_rs::{
     abi::{Abi, Token},
     contract::ContractFactory,
     core::utils::keccak256,
+    eip712::{DeployRequest, Eip712TransactionRequest},
     providers::Middleware,
     types::{
         transaction::eip2718::TypedTransaction, Address, Bytes, Eip1559TransactionRequest, H160,
@@ -99,29 +100,36 @@ impl Command {
 
                 let tx_data = encode_call(
                     None,
-                    Some(bytecode_vec),
-                    constructor_args,
+                    Some(bytecode_vec.clone()),
+                    constructor_args.clone(),
                     constructor_types,
                 )?;
                 let tx_data_bytes = Bytes::from(tx_data);
 
-                let client = if l1 {
-                    zk_wallet.l1_signer()
-                } else {
-                    zk_wallet.l2_signer()
-                };
-
-                let factory = ContractFactory::new(
-                    Abi::default(), // Doesn't care
-                    tx_data_bytes,
-                    client,
-                );
-
                 let mut spinner =
                     Spinner::new(spinners::Dots, "Deploying Contract...", Color::Blue);
-                let contract = factory.deploy(())?.send().await?;
-                let msg = format!("Contract deployed at: {:?}", contract.address());
-                spinner.success(&msg);
+                if l1 {
+                    let factory = ContractFactory::new(
+                        Abi::default(), // Don't care
+                        tx_data_bytes,
+                        zk_wallet.l1_signer(),
+                    );
+                    let contract = factory.deploy(())?.send().await?;
+                    let msg = format!("Contract deployed at: {:?}", contract.address());
+                    spinner.success(&msg);
+                } else {
+                    let deploy_request: DeployRequest = DeployRequest::with(
+                        Abi::default(),
+                        bytecode_vec,
+                        constructor_args.unwrap_or(vec![]),
+                    );
+
+                    let transaction: Eip712TransactionRequest = deploy_request.try_into()?;
+
+                    let receipt = zk_wallet.send_transaction_eip712(transaction).await;
+                    let msg = format!("Contract deployed at: {:?}", receipt.contract_address);
+                    spinner.success(&msg);
+                }
             }
             Command::Send {
                 contract_address,
