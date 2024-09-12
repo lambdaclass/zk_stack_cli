@@ -2,7 +2,7 @@ use crate::{config::ZKSyncConfig, utils::wallet::get_wallet_l1_l2_providers};
 use clap::Subcommand;
 use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
-use std::str::FromStr;
+use std::{ops::Div, str::FromStr};
 use zksync_ethers_rs::{
     abi::{Abi, Token},
     contract::ContractFactory,
@@ -69,18 +69,17 @@ impl Command {
                 let tx_data = encode_call(Some(selector), None, args, types)?;
                 let tx_data_bytes = Bytes::from(tx_data);
 
-                let tx = TypedTransaction::Eip1559(
-                    Eip1559TransactionRequest::new()
-                        .from(zk_wallet.l1_address())
-                        .to(H160::from_str(&contract_address)?)
-                        .data(tx_data_bytes)
-                        .value(U256::zero()),
-                );
+                let mut tx = Eip1559TransactionRequest::new()
+                    .to(H160::from_str(&contract_address)?)
+                    .data(tx_data_bytes)
+                    .value(U256::zero());
 
                 let receipt = if l1 {
-                    zk_wallet.l1_provider().call(&tx, None).await?
+                    tx = tx.from(zk_wallet.l1_address());
+                    zk_wallet.l1_provider().call(&tx.into(), None).await?
                 } else {
-                    zk_wallet.l2_provider().call(&tx, None).await?
+                    tx = tx.from(zk_wallet.l2_address());
+                    zk_wallet.l2_provider().call(&tx.into(), None).await?
                 };
 
                 println!("{receipt}");
@@ -143,30 +142,36 @@ impl Command {
                 let tx_data_bytes = Bytes::from(tx_data);
 
                 let mut raw_tx = Eip1559TransactionRequest::new()
-                    .from(zk_wallet.l1_address())
                     .to(H160::from_str(&contract_address)?)
                     .data(tx_data_bytes)
                     .value(U256::zero());
 
-                let tx: TypedTransaction = raw_tx.clone().into();
-                let (signer, gas, fees) = if l1 {
+                let (signer, fees) = if l1 {
                     let signer = zk_wallet.l1_signer();
 
-                    let gas = zk_wallet.l1_provider().estimate_gas(&tx, None).await?;
+                    raw_tx = raw_tx
+                        .from(zk_wallet.l1_address())
+                        .chain_id(zk_wallet.l1_provider().get_chainid().await?.as_u64());
+
+                    let tx: TypedTransaction = raw_tx.clone().into();
                     let fees = zk_wallet.l1_provider().estimate_fee(&tx).await?;
-                    (signer, gas, fees)
+                    (signer, fees)
                 } else {
                     let signer = zk_wallet.l2_signer();
 
-                    let gas = zk_wallet.l2_provider().estimate_gas(&tx, None).await?;
+                    raw_tx = raw_tx
+                        .from(zk_wallet.l2_address())
+                        .chain_id(zk_wallet.l2_provider().get_chainid().await?.as_u64());
+
+                    let tx: TypedTransaction = raw_tx.clone().into();
                     let fees = zk_wallet.l2_provider().estimate_fee(&tx).await?;
-                    (signer, gas, fees)
+                    (signer, fees)
                 };
 
                 raw_tx = raw_tx
                     .max_fee_per_gas(fees.max_fee_per_gas)
                     .max_priority_fee_per_gas(fees.max_priority_fee_per_gas)
-                    .gas(gas);
+                    .gas(fees.gas_limit.div(10_i32).saturating_mul(11_i32.into())); // headroom 10% extra
 
                 let tx: TypedTransaction = raw_tx.into();
                 let receipt = signer
