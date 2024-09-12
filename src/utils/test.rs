@@ -1,28 +1,25 @@
-use crate::utils::balance::display_balance;
-use crate::utils::wallet::new_zkwallet;
+use super::balance::{display_balance, get_erc20_balance, get_erc20_balance_decimals_symbol};
+use crate::utils::{contract::*, wallet::new_zkwallet};
 use colored::Colorize;
 use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
-use std::ops::Div;
-use std::sync::Arc;
+use std::{ops::Div, sync::Arc};
 use tokio::task::JoinSet;
-use zksync_ethers_rs::contracts::erc20::MINT_IERC20;
-use zksync_ethers_rs::core::rand::thread_rng;
-use zksync_ethers_rs::core::utils::{format_ether, parse_ether};
-use zksync_ethers_rs::signers::{LocalWallet, Signer};
-use zksync_ethers_rs::types::H256;
 use zksync_ethers_rs::{
+    contracts::erc20::MINT_IERC20,
     core::k256::ecdsa::SigningKey,
-    providers::{Http, Middleware, Provider},
-    signers::Wallet,
+    core::rand::{thread_rng, Rng},
+    core::utils::{format_ether, parse_ether},
+    providers::{Http, Middleware, Provider, ProviderError},
+    signers::{LocalWallet, Signer, Wallet},
     types::{
         transaction::eip2718::TypedTransaction, Address, Eip1559TransactionRequest, L2TxOverrides,
         TransactionReceipt, U256,
     },
+    types::{Bytes, H256},
     zk_wallet::ZKWallet,
+    ZKMiddleware,
 };
-
-use super::balance::{get_erc20_balance, get_erc20_balance_decimals_symbol};
 
 pub async fn send_transactions(
     from_wallet: &Arc<ZKWallet<Provider<Http>, LocalWallet>>,
@@ -73,7 +70,7 @@ pub async fn send_transactions_back(
 ) -> eyre::Result<Vec<H256>> {
     println!(
         "{} Transfer from {} wallet to {} wallet.",
-        "[L1->L2]".bold().bright_cyan().on_black(),
+        "[L2->L2]".bold().bright_cyan().on_black(),
         "each".bold().blue().on_black(),
         "rich".bold().red().on_black()
     );
@@ -257,4 +254,123 @@ pub async fn check_balance_and_deposit_or_mint(
         spinner.success("Enough L2 balance");
     }
     Ok(())
+}
+
+// Contract Being Used
+// SPDX-License-Identifier: UNLICENSED
+//pragma solidity ^0.8.13;
+//
+//contract StorageFibonacci {
+//    uint256 public storedData;
+//
+//    function set(uint256 x) public {
+//        storedData = fibonacci(x);
+//    }
+//
+//    function get() public view returns (uint256) {
+//        return storedData;
+//    }
+//
+//    // Calculate Fibonacci
+//    // Cannot be accessed from outside the contract
+//    function fibonacci(uint256 x) internal pure returns (uint256) {
+//        if (x == 0) return 0;
+//        if (x == 1) return 1;
+//
+//        uint256 a = 0;
+//        uint256 b = 1;
+//        uint256 c;
+//
+//        for (uint256 i = 2; i <= x; i++) {
+//            c = a + b;
+//            a = b;
+//            b = c;
+//        }
+//
+//        return b;
+//    }
+//}
+pub(crate) async fn send_contract_transactions_for_test(
+    from_wallet: &Arc<ZKWallet<Provider<Http>, LocalWallet>>,
+    contract_address: Address,
+    tpr: u64,
+) -> eyre::Result<Vec<H256>> {
+    println!(
+        "{} Contract Interaction",
+        "[L2->L2]".bold().bright_cyan().on_black(),
+    );
+
+    let function_signature = "set(uint256)";
+
+    let mut l2_txs_receipts: Vec<H256> = Vec::new();
+    let mut set = JoinSet::new();
+
+    let mut nonce = from_wallet
+        .l2_provider()
+        .get_transaction_count(from_wallet.l2_address(), None)
+        .await?;
+
+    let chain_id = from_wallet.l2_provider().get_chainid().await?;
+
+    let mut rng = thread_rng();
+    let mut random_values = vec![];
+    for _ in 0..tpr {
+        random_values.push(rng.gen_range(50_i32..150_i32));
+    }
+
+    for r in random_values {
+        let from_wallet_clone = Arc::clone(from_wallet);
+        set.spawn(async move {
+            println!("r: {r}");
+            let selector = get_fn_selector(function_signature);
+            let types = parse_signature(function_signature).map_err(|e| {
+                ProviderError::CustomError(format!("Error parsing signature: {e:?}"))
+            })?;
+
+            let tx_data = encode_call(Some(selector), None, Some(vec![r.to_string()]), types)
+                .map_err(|e| ProviderError::CustomError(format!("Error encoding call: {e:?}")))?;
+
+            let tx_data_bytes = Bytes::from(tx_data);
+
+            let mut raw_tx = Eip1559TransactionRequest::new()
+                .to(contract_address)
+                .data(tx_data_bytes)
+                .value(U256::zero())
+                .from(from_wallet_clone.l2_address())
+                .nonce(nonce)
+                .chain_id(chain_id.as_u64());
+
+            let tx: TypedTransaction = raw_tx.clone().into();
+            let fees = from_wallet_clone
+                .l2_provider()
+                .estimate_fee(&tx)
+                .await
+                .map_err(|e| ProviderError::CustomError(format!("Error estimating fee: {e:?}")))?;
+
+            raw_tx = raw_tx
+                .max_fee_per_gas(fees.max_fee_per_gas)
+                .max_priority_fee_per_gas(fees.max_priority_fee_per_gas)
+                .gas(fees.gas_limit.div(10_i32).saturating_mul(11_i32.into())); // headroom 10% extra
+
+            let tx: TypedTransaction = raw_tx.into();
+
+            from_wallet_clone
+                .l2_signer()
+                .send_transaction(tx, None)
+                .await
+                .map_err(|e| {
+                    ProviderError::CustomError(format!("Error sending transaction: {e:?}"))
+                })?
+                .await
+        });
+        nonce = nonce.saturating_add(U256::one());
+    }
+
+    while let Some(res) = set.join_next().await {
+        let tx_hash = res??
+            .context("Error unwrapping transaction receipt")?
+            .transaction_hash;
+        l2_txs_receipts.push(tx_hash);
+    }
+    Ok(l2_txs_receipts)
 }

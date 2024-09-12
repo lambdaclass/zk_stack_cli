@@ -1,7 +1,8 @@
 use crate::config::ZKSyncConfig;
-use crate::utils::balance::get_erc20_decimals_symbol;
-use crate::utils::gas_tracker::GasTracker;
-use crate::utils::{balance::display_balance, test::*, wallet::*};
+use crate::utils::{
+    balance::display_balance, balance::get_erc20_decimals_symbol, gas_tracker::GasTracker, test::*,
+    wallet::*,
+};
 use clap::Subcommand;
 use colored::*;
 use core::time;
@@ -12,9 +13,9 @@ use std::{
     sync::Arc,
     thread::sleep,
 };
-use zksync_ethers_rs::core::utils::parse_units;
 use zksync_ethers_rs::{
-    providers::Middleware, types::U256, wait_for_finalize_withdrawal, ZKMiddleware,
+    core::utils::parse_units, providers::Middleware, types::Address, types::U256,
+    wait_for_finalize_withdrawal, ZKMiddleware,
 };
 
 #[derive(Subcommand)]
@@ -64,6 +65,28 @@ pub(crate) enum Command {
             help = "Amount of BaseToken to deposit, 20% more will be deposited.\nThat extra 20% will remain in the main wallet,\nthe rest will be redistributed to random wallets"
         )]
         amount: f32,
+        #[arg(
+            long = "reruns",
+            short = 'r',
+            default_value_t = 1,
+            help = "Amount of times to run the program in a loop, it defaults to 1. Max is 255"
+        )]
+        reruns_wanted: u8,
+    },
+    #[clap(
+        about = "LoadTest with contract interactions for the zkStack Chain.\nCustom command, the contract performs a fibonacci calculation and stores the value.",
+        visible_alias = "ci"
+    )]
+    ContractInteraction {
+        #[clap(long = "tpr", required = true, help = "Transactions per run")]
+        tpr: u64,
+        #[arg(
+            long = "contract",
+            short = 'c',
+            required = true,
+            help = "Contract Address, Make sure it follows the Custom Fibonacci Contract"
+        )]
+        contract_address: Address,
         #[arg(
             long = "reruns",
             short = 'r',
@@ -340,6 +363,44 @@ impl Command {
                     sleep(time::Duration::from_millis(300));
                 }
                 println!("{gas_tracker}");
+                Ok(())
+            }
+            Command::ContractInteraction {
+                tpr,
+                contract_address,
+                reruns_wanted,
+            } => {
+                let reruns_to_complete: u8 = if reruns_wanted == 0 { 1 } else { reruns_wanted };
+
+                // The amount is a high value to avoid gas calculations and keep the test simple enough.
+                let parsed_amount_to_deposit: U256 = parse_units("50", base_token_decimals)?.into();
+                while reruns < reruns_to_complete {
+                    check_balance_and_deposit_or_mint(
+                        Arc::clone(&arc_zk_wallet),
+                        base_token_address,
+                        parsed_amount_to_deposit,
+                    )
+                    .await?;
+
+                    println!(
+                        "\n{} N: {}\n",
+                        "Run".red().on_black(),
+                        (current_reruns).to_string().yellow().on_black()
+                    );
+
+                    // Begin Contract Interaction
+                    send_contract_transactions_for_test(&arc_zk_wallet, contract_address, tpr)
+                        .await?;
+                    // End Contract Interaction
+                    println!("{}", "#".repeat(64));
+
+                    if reruns_wanted != 0 {
+                        reruns += 1;
+                    }
+                    current_reruns += 1;
+
+                    sleep(time::Duration::from_millis(300));
+                }
                 Ok(())
             }
         }
