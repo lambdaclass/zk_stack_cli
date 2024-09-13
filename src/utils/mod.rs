@@ -8,6 +8,7 @@ use zksync_ethers_rs::{
 
 pub(crate) mod balance;
 pub(crate) mod config;
+pub(crate) mod contract;
 pub(crate) mod contracts;
 pub(crate) mod db;
 pub(crate) mod gas_tracker;
