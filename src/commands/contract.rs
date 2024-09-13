@@ -2,7 +2,13 @@ use crate::{config::ZKSyncConfig, utils::contract::*, utils::wallet::get_wallet_
 use clap::Subcommand;
 use eyre::ContextCompat;
 use spinoff::{spinners, Color, Spinner};
-use std::{ops::Div, str::FromStr};
+use std::{
+    fs::File,
+    io::{BufReader, Cursor},
+    ops::Div,
+    path::PathBuf,
+    str::FromStr,
+};
 use zksync_ethers_rs::{
     abi::Abi,
     contract::ContractFactory,
@@ -86,12 +92,7 @@ impl Command {
                 constructor_types,
                 l1,
             } => {
-                let bytecode_vec = hex::decode(
-                    bytecode
-                        .strip_prefix("0x")
-                        .context("Bytecode without 0x prefix")?,
-                )?
-                .to_vec();
+                let bytecode_vec = hex::decode(bytecode)?.to_vec();
 
                 let tx_data = encode_call(
                     None,
@@ -113,8 +114,10 @@ impl Command {
                     let msg = format!("Contract deployed at: {:?}", contract.address());
                     spinner.success(&msg);
                 } else {
+                    let mut contract_deployer_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+                    contract_deployer_path.push("contract_abi/StorageFibonacci.json");
                     let deploy_request: DeployRequest = DeployRequest::with(
-                        Abi::default(),
+                        Abi::load(BufReader::new(File::open(contract_deployer_path)?))?,
                         bytecode_vec,
                         constructor_args.unwrap_or(vec![]),
                     );
