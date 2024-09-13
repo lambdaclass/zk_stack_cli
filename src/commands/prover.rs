@@ -27,7 +27,7 @@ pub(crate) enum Command {
         eip_4844_blobs: bool,
     },
     #[clap(
-        about = "Prover - Batch Details. It gets the proof-time of the specified batch.",
+        about = "Prover - Batch Details. It gets the proof-time of the specified batch/es.",
         visible_alias = "batch-details"
     )]
     BatchDetails {
