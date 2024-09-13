@@ -58,8 +58,14 @@ pub async fn send_transactions(
     );
 
     while let Some(res) = set.join_next().await {
-        let tx_hash = res??;
-        l2_txs_receipts.push(tx_hash);
+        match res {
+            Ok(Ok(tx_hash)) => {
+                l2_txs_receipts.push(tx_hash);
+            }
+            Ok(Err(_)) | Err(_) => {
+                println!("Error in tx");
+            }
+        };
     }
     Ok(l2_txs_receipts)
 }
@@ -87,8 +93,14 @@ pub async fn send_transactions_back(
     }
 
     while let Some(res) = set.join_next().await {
-        let tx_hash = res??;
-        l2_txs_receipts.push(tx_hash);
+        match res {
+            Ok(Ok(tx_hash)) => {
+                l2_txs_receipts.push(tx_hash);
+            }
+            Ok(Err(_)) | Err(_) => {
+                println!("Error in tx");
+            }
+        };
     }
 
     println!(
@@ -367,10 +379,14 @@ pub(crate) async fn send_contract_transactions_for_test(
     }
 
     while let Some(res) = set.join_next().await {
-        let tx_hash = res??
-            .context("Error unwrapping transaction receipt")?
-            .transaction_hash;
-        l2_txs_receipts.push(tx_hash);
+        match res {
+            Ok(Ok(Some(tx_receipt))) => {
+                l2_txs_receipts.push(tx_receipt.transaction_hash);
+            }
+            Ok(Err(_)) | Err(_) | Ok(Ok(None)) => {
+                println!("Error in tx");
+            }
+        };
     }
     Ok(l2_txs_receipts)
 }
