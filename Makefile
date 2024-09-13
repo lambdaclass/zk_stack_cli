@@ -1,12 +1,12 @@
 cli: 
-	cargo +nightly install --path .
+	cargo install --path .
 	zks autocomplete install
 
 build-cli:
-	cargo +nightly build --release
+	cargo build --release
 
 fmt:
-	cargo +nightly fmt --all
+	cargo fmt --all
 
 clippy:
-	cargo +nightly clippy --all-targets -- -D warnings
+	cargo clippy --all-targets -- -D warnings
