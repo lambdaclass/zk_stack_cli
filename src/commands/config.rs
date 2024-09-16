@@ -1,5 +1,8 @@
 use crate::{
-    config::Database,
+    config::{
+        BridgehubConfig, Database, DatabaseConfig, GovernanceConfig, NetworkConfig, WalletConfig,
+        ZKSyncConfig,
+    },
     utils::{
         config::{
             config_file_names, config_path, config_path_interactive_selection, confirm,
@@ -15,7 +18,10 @@ use crate::{
     },
 };
 use clap::{Parser, Subcommand};
-use zksync_ethers_rs::types::Address;
+use eyre::Context;
+use std::env;
+use std::str::FromStr;
+use zksync_ethers_rs::types::{zksync::ETHEREUM_ADDRESS, Address, H160};
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
@@ -27,6 +33,11 @@ pub(crate) enum Command {
     },
     #[clap(about = "Create a new config.")]
     Create { config_name: String },
+    #[clap(about = "Create a new config from zksync's ENV file variables.")]
+    CreateFromEnv {
+        config_name: String,
+        config_override: bool,
+    },
     #[clap(about = "Set the config to use.")]
     Set { config_name: Option<String> },
     #[clap(about = "Display a config.")]
@@ -120,6 +131,91 @@ impl Command {
                     }
                 }
                 let config = prompt_zksync_config()?;
+                let toml_config = toml::to_string_pretty(&config)?;
+                println!(
+                    "Config created at: {}\n{toml_config}",
+                    config_path.display()
+                );
+                std::fs::write(config_path, toml_config)?;
+            }
+            // This command makes use of the zksync-era's env file
+            // Extra env variables needed:
+            // L1_EXPLORER_URL
+            // L2_EXPLORER_URL
+            // WALLET_ADDR
+            // WALLET_PK
+            // GOVERNANCE_ADDRESS
+            // GOVERNANCE_OWNER_PK
+            // BRIDGEHUB_OWNER_PK
+            // BRIDGEHUB_ADMIN_PK
+            Command::CreateFromEnv {
+                config_name,
+                config_override,
+            } => {
+                let config_path = config_path(&config_name)?;
+                if config_path.exists() && !config_override {
+                    println!("Aborted");
+                    return Ok::<(), eyre::Error>(());
+                }
+                let config = ZKSyncConfig {
+                    network: NetworkConfig {
+                        l1_rpc_url: Some(
+                            env::var("ETH_CLIENT_WEB3_URL")
+                                .context("ETH_CLIENT_WEB3_URL Not present")?,
+                        ),
+                        l1_chain_id: Some(
+                            env::var("ETH_CLIENT_CHAIN_ID")
+                                .context("ETH_CLIENT_CHAIN_ID Not present")?
+                                .parse::<u64>()?,
+                        ),
+                        l1_explorer_url: Some(
+                            env::var("L1_EXPLORER_URL").context("L1_EXPLORER_URL Not present")?,
+                        ),
+                        l2_rpc_url: env::var("API_WEB3_JSON_RPC_HTTP_URL")
+                            .context("API_WEB3_JSON_RPC_HTTP_URL Not present")?,
+                        l2_chain_id: Some(
+                            env::var("CHAIN_ETH_ZKSYNC_NETWORK_ID")
+                                .context("CHAIN_ETH_ZKSYNC_NETWORK_ID Not present")?
+                                .parse::<u64>()?,
+                        ),
+                        l2_explorer_url: Some(
+                            env::var("L2_EXPLORER_URL").context("L2_EXPLORER_URL Not present")?,
+                        ),
+                    },
+                    wallet: Some(WalletConfig {
+                        address: H160::from_str(
+                            &env::var("WALLET_ADDR").context("WALLET_ADDR Not present")?,
+                        )?,
+                        private_key: env::var("WALLET_PK").context("WALLET_PK Not present")?,
+                    }),
+                    db: Some(DatabaseConfig {
+                        server: Database::from_str(
+                            &env::var("DATABASE_URL").context("DATABASE_URL Not present")?,
+                        )?,
+                        prover: Database::from_str(
+                            &env::var("DATABASE_PROVER_URL")
+                                .context("DATABASE_PROVER_URL Not present")?,
+                        )?,
+                    }),
+                    governance: GovernanceConfig {
+                        address: H160::from_str(
+                            &env::var("GOVERNANCE_ADDRESS")
+                                .context("GOVERNANCE_ADDRESS Not present")?,
+                        )?,
+                        owner_private_key: env::var("GOVERNANCE_OWNER_PK")
+                            .context("GOVERNANCE_OWNER_PK Not present")?,
+                    },
+                    bridgehub: BridgehubConfig {
+                        admin_private_key: Some(
+                            env::var("BRIDGEHUB_ADMIN_PK")
+                                .context("BRIDGEHUB_ADMIN_PK Not present")?,
+                        ),
+                        owner_private_key: Some(
+                            env::var("BRIDGEHUB_OWNER_PK")
+                                .context("BRIDGEHUB_OWNER_PK Not present")?,
+                        ),
+                    },
+                };
                 let toml_config = toml::to_string_pretty(&config)?;
                 println!(
                     "Config created at: {}\n{toml_config}",
