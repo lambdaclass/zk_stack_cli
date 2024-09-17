@@ -21,7 +21,7 @@ use clap::{Parser, Subcommand};
 use eyre::Context;
 use std::env;
 use std::str::FromStr;
-use zksync_ethers_rs::types::{zksync::ETHEREUM_ADDRESS, Address, H160};
+use zksync_ethers_rs::types::{Address, H160};
 
 #[derive(Subcommand)]
 pub(crate) enum Command {
