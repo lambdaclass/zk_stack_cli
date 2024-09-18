@@ -568,6 +568,15 @@ fn display_info_for_stage(stage_info: StageInfo) -> eyre::Result<()> {
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+pub struct StageProofTime {
+    _proof_time_from_creation: TimeDelta,
+    _proof_time_from_processing: TimeDelta,
+    created_datetime: NaiveDateTime,
+    _processing_datetime: Option<NaiveDateTime>,
+    updated_datetime: NaiveDateTime,
+}
+
 pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyre::Result<()> {
     let stages = [
         (StageFlags::Bwg, batch_data.basic_witness_generator),
@@ -578,42 +587,60 @@ pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyr
         (StageFlags::Compressor, batch_data.compressor),
     ];
 
-    let mut proof_time: Vec<Option<(TimeDelta, TimeDelta)>> = Vec::new();
-    for (flag, stage) in stages {
+    let mut proof_time: Vec<Option<StageProofTime>> = Vec::new();
+    for (flag, stage) in &stages {
         if flags == 0 || flags & flag.as_u32() != 0 {
-            proof_time.push(display_proof_time_for_stage(stage)?);
+            proof_time.push(display_proof_time_for_stage(stage.clone())?);
         }
     }
 
-    let mut total_proof_time_from_processing =
-        TimeDelta::new(0, 0).context("Initializing Variable")?;
-    let mut total_proof_time_from_creation =
-        TimeDelta::new(0, 0).context("Initializing Variable")?;
+    let compressor_stage = stages.last().context("Not Found")?.1.clone();
 
-    for time_pair in proof_time.into_iter().flatten() {
-        let (proof_time_from_creation, proof_time_from_processing) = time_pair;
-        total_proof_time_from_creation += proof_time_from_creation;
-        total_proof_time_from_processing += proof_time_from_processing;
+    let status = compressor_stage.witness_generator_jobs_status(10);
+    if let Status::Custom(ref str) = status {
+        match str.as_str() {
+            "Sent to server 📤" => {
+                println!("> {}", str.bold());
+                let first_created_datetime = proof_time
+                    .first()
+                    .context("Not found")?
+                    .context("Not found")?
+                    .created_datetime;
+
+                let compressor_updated_datetime = proof_time
+                    .last()
+                    .context("Not found")?
+                    .context("Not found")?
+                    .updated_datetime;
+
+                let total_proof_time_from_creation =
+                    compressor_updated_datetime - first_created_datetime;
+
+                println!("Starting with the CreatedAt timestamp of the first stage,");
+                println!("and ending with the UpdatedAt timestamp from the compressor's table.");
+                println!("This value represents the total time spent proving a batch.");
+                println!("Note that it does not include the transaction time to L1; for that, use the {} command.", "zks prover batch-details".to_owned().on_black().yellow());
+                println!(
+                    "\t > {}: {}",
+                    "Total proof time from creation"
+                        .to_owned()
+                        .on_black()
+                        .yellow(),
+                    format_duration(total_proof_time_from_creation),
+                );
+            }
+            _ => println!("Not sent to server yet."),
+        }
     }
-
-    println!("Summing up the selected stages' proof_time, if no flags are set, these values represent the total time spent to proof and send a batch to L1");
-
-    println!(
-        "\t > Total proof time from creation: {} \n\t > Total proof time from start of processing: {}",
-        format_duration(total_proof_time_from_creation),
-        format_duration(total_proof_time_from_processing)
-    );
 
     Ok(())
 }
 
-fn display_proof_time_for_stage(
-    stage_info: StageInfo,
-) -> eyre::Result<Option<(TimeDelta, TimeDelta)>> {
+fn display_proof_time_for_stage(stage_info: StageInfo) -> eyre::Result<Option<StageProofTime>> {
     let max_attempts = 10;
     display_aggregation_round(&stage_info);
     let status = stage_info.witness_generator_jobs_status(max_attempts);
-    let mut stage_time_delta = None;
+    let mut stage_proof_time = None;
     match status {
         Status::Successful => {
             println!("> {}: {}", stage_info.to_string().bold(), status);
@@ -627,14 +654,14 @@ fn display_proof_time_for_stage(
                 | StageInfo::NodeWitnessGenerator {
                     prover_jobs_info, ..
                 } => {
-                    stage_time_delta =
+                    stage_proof_time =
                         display_prover_jobs_proof_time(prover_jobs_info, max_attempts)?
                 }
                 StageInfo::RecursionTipWitnessGenerator(job_info) => {
-                    stage_time_delta = display_last_jobs_proof_time(job_info)?
+                    stage_proof_time = display_last_jobs_proof_time(job_info)?
                 }
                 StageInfo::SchedulerWitnessGenerator(job_info) => {
-                    stage_time_delta = display_last_jobs_proof_time(job_info)?
+                    stage_proof_time = display_last_jobs_proof_time(job_info)?
                 }
                 _ => (),
             }
@@ -643,14 +670,14 @@ fn display_proof_time_for_stage(
             "Sent to server 📤" => {
                 println!("> {}: sent_to_server", stage_info.to_string().bold());
                 if let StageInfo::Compressor(job_info) = stage_info {
-                    stage_time_delta = display_last_jobs_proof_time(job_info)?
+                    stage_proof_time = display_last_jobs_proof_time(job_info)?
                 }
             }
             _ => println!("Not sent to server."),
         },
         _ => println!("Stage hasn't finished yet."),
     }
-    Ok(stage_time_delta)
+    Ok(stage_proof_time)
 }
 
 fn display_leaf_witness_generator_jobs_info(
@@ -746,7 +773,7 @@ fn display_prover_jobs_info(
 fn display_prover_jobs_proof_time(
     prover_jobs_info: Vec<ProverJobFriInfo>,
     max_attempts: u32,
-) -> eyre::Result<Option<(TimeDelta, TimeDelta)>> {
+) -> eyre::Result<Option<StageProofTime>> {
     let prover_jobs_status = get_prover_jobs_status_from_vec(&prover_jobs_info, max_attempts);
 
     println!("Status {prover_jobs_status}");
@@ -806,15 +833,12 @@ fn display_prover_jobs_proof_time(
             }
         }
 
-        let proof_time_from_creation =
-            latest_updated_datetime.time() - earliest_created_datetime.time();
+        let proof_time_from_creation = latest_updated_datetime - earliest_created_datetime;
 
         let proof_time_from_creation = Duration::seconds(proof_time_from_creation.num_seconds());
 
-        let proof_time_from_processing = latest_updated_datetime.time()
-            - earliest_processing_datetime
-                .unwrap_or(NaiveDateTime::MAX)
-                .time();
+        let proof_time_from_processing =
+            latest_updated_datetime - earliest_processing_datetime.unwrap_or(NaiveDateTime::MAX);
 
         let proof_time_from_processing =
             Duration::seconds(proof_time_from_processing.num_seconds());
@@ -833,14 +857,20 @@ fn display_prover_jobs_proof_time(
             format_duration(proof_time_from_creation),
             format_duration(proof_time_from_processing)
         );
-        return Ok(Some((proof_time_from_creation, proof_time_from_processing)));
+
+        let stage_proof_time = StageProofTime {
+            created_datetime: earliest_created_datetime,
+            _processing_datetime: earliest_processing_datetime,
+            updated_datetime: latest_updated_datetime,
+            _proof_time_from_creation: proof_time_from_creation,
+            _proof_time_from_processing: proof_time_from_processing,
+        };
+        return Ok(Some(stage_proof_time));
     }
     Ok(None)
 }
 
-fn display_last_jobs_proof_time<T>(
-    job_info: Option<T>,
-) -> eyre::Result<Option<(TimeDelta, TimeDelta)>>
+fn display_last_jobs_proof_time<T>(job_info: Option<T>) -> eyre::Result<Option<StageProofTime>>
 where
     T: JobInfo,
 {
@@ -849,15 +879,12 @@ where
         let earliest_created_datetime: NaiveDateTime = job._created_at();
         let latest_updated_datetime: NaiveDateTime = job._updated_at();
 
-        let proof_time_from_creation =
-            latest_updated_datetime.time() - earliest_created_datetime.time();
+        let proof_time_from_creation = latest_updated_datetime - earliest_created_datetime;
 
         let proof_time_from_creation = Duration::seconds(proof_time_from_creation.num_seconds());
 
-        let proof_time_from_processing = latest_updated_datetime.time()
-            - earliest_processing_datetime
-                .unwrap_or(NaiveDateTime::MAX)
-                .time();
+        let proof_time_from_processing =
+            latest_updated_datetime - earliest_processing_datetime.unwrap_or(NaiveDateTime::MAX);
 
         let proof_time_from_processing =
             Duration::seconds(proof_time_from_processing.num_seconds());
@@ -876,7 +903,15 @@ where
             format_duration(proof_time_from_creation),
             format_duration(proof_time_from_processing)
         );
-        return Ok(Some((proof_time_from_creation, proof_time_from_processing)));
+
+        let stage_proof_time = StageProofTime {
+            created_datetime: earliest_created_datetime,
+            _processing_datetime: earliest_processing_datetime,
+            updated_datetime: latest_updated_datetime,
+            _proof_time_from_creation: proof_time_from_creation,
+            _proof_time_from_processing: proof_time_from_processing,
+        };
+        return Ok(Some(stage_proof_time));
     }
     Ok(None)
 }
