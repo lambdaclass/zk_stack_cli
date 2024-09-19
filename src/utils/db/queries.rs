@@ -286,7 +286,7 @@ fn input_table_name_for(aggregation_round: AggregationRound) -> &'static str {
     }
 }
 
-pub async fn get_proof_generation_times_for_time_frame(
+pub async fn get_proof_time(
     prover_db: &mut PoolConnection<Postgres>,
     l1_batch_number: Option<L1BatchNumber>,
     days: u32,

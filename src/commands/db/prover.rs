@@ -17,9 +17,8 @@ use crate::{
                 map_node_wg_info, map_recursion_tip_wg_info, map_scheduler_wg_info,
             },
             queries::{
-                get_basic_witness_job_status, get_compressor_job_status,
-                get_proof_generation_times_for_time_frame, insert_prover_protocol_version,
-                insert_witness_inputs, restart_batch_proof,
+                get_basic_witness_job_status, get_compressor_job_status, get_proof_time,
+                insert_prover_protocol_version, insert_witness_inputs, restart_batch_proof,
             },
             types::combine_flags,
         },
@@ -34,8 +33,8 @@ use crate::{
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
         prover_status::{
-            display_batch_info, display_batch_proof_time, display_batch_status, get_batches_data,
-            Status,
+            display_batch_info, display_batch_prover_jobs_timestamps, display_batch_status,
+            get_batches_data, Status,
         },
     },
 };
@@ -129,7 +128,7 @@ pub(crate) enum Command {
     #[clap(
         about = "Display the DB's timestamps for a given sequence of L1BatchNumbers, if no StageInfo flag is set, display all stages' timestamps."
     )]
-    Timestamps {
+    ProverJobsTimestamps {
         #[clap(short = 'n', required = true)]
         batch: L1BatchNumber,
         #[clap(
@@ -468,7 +467,7 @@ impl Command {
                     }
                 }
             }
-            Command::Timestamps {
+            Command::ProverJobsTimestamps {
                 batch,
                 bwg,
                 lwg,
@@ -484,14 +483,13 @@ impl Command {
                 spinner.success("Data Retrieved from DB");
 
                 for data in batch_data {
-                    display_batch_proof_time(data, flags)?;
+                    display_batch_prover_jobs_timestamps(data, flags)?;
                 }
             }
             Command::ProofTime { batch, days } => {
                 let mut spinner = Spinner::new(Dots, "Fetching Data", Color::Blue);
 
-                let batch_data =
-                    get_proof_generation_times_for_time_frame(&mut prover_db, batch, days).await?;
+                let batch_data = get_proof_time(&mut prover_db, batch, days).await?;
                 spinner.success("Data Retrieved from DB");
 
                 println!(

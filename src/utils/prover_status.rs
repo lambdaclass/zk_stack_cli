@@ -577,7 +577,10 @@ pub struct StageProofTime {
     updated_datetime: NaiveDateTime,
 }
 
-pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyre::Result<()> {
+pub(crate) fn display_batch_prover_jobs_timestamps(
+    batch_data: BatchData,
+    flags: u32,
+) -> eyre::Result<()> {
     let stages = [
         (StageFlags::Bwg, batch_data.basic_witness_generator),
         (StageFlags::Lwg, batch_data.leaf_witness_generator),
@@ -590,7 +593,7 @@ pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyr
     let mut proof_time: Vec<Option<StageProofTime>> = Vec::new();
     for (flag, stage) in &stages {
         if flags == 0 || flags & flag.as_u32() != 0 {
-            proof_time.push(display_proof_time_for_stage(stage.clone())?);
+            proof_time.push(display_prover_jobs_timestamps_for_stage(stage.clone())?);
         }
     }
 
@@ -622,7 +625,7 @@ pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyr
                 println!("Note that it does not include the transaction time to L1; for that, use the {} command.", "zks prover batch-details".to_owned().on_black().yellow());
                 println!(
                     "For a more detailed output use the {} command",
-                    "zks db prover proof-time".to_owned().on_black().yellow()
+                    "zks db prover proof-time.".to_owned().on_black().yellow()
                 );
                 println!(
                     "\t > {}: {}",
@@ -640,7 +643,9 @@ pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyr
     Ok(())
 }
 
-fn display_proof_time_for_stage(stage_info: StageInfo) -> eyre::Result<Option<StageProofTime>> {
+fn display_prover_jobs_timestamps_for_stage(
+    stage_info: StageInfo,
+) -> eyre::Result<Option<StageProofTime>> {
     let max_attempts = 10;
     display_aggregation_round(&stage_info);
     let status = stage_info.witness_generator_jobs_status(max_attempts);
@@ -659,13 +664,13 @@ fn display_proof_time_for_stage(stage_info: StageInfo) -> eyre::Result<Option<St
                     prover_jobs_info, ..
                 } => {
                     stage_proof_time =
-                        display_prover_jobs_proof_time(prover_jobs_info, max_attempts)?
+                        display_prover_jobs_timestamps(prover_jobs_info, max_attempts)?
                 }
                 StageInfo::RecursionTipWitnessGenerator(job_info) => {
-                    stage_proof_time = display_last_jobs_proof_time(job_info)?
+                    stage_proof_time = display_last_jobs_timestamps(job_info)?
                 }
                 StageInfo::SchedulerWitnessGenerator(job_info) => {
-                    stage_proof_time = display_last_jobs_proof_time(job_info)?
+                    stage_proof_time = display_last_jobs_timestamps(job_info)?
                 }
                 _ => (),
             }
@@ -674,7 +679,7 @@ fn display_proof_time_for_stage(stage_info: StageInfo) -> eyre::Result<Option<St
             "Sent to server 📤" => {
                 println!("> {}: sent_to_server", stage_info.to_string().bold());
                 if let StageInfo::Compressor(job_info) = stage_info {
-                    stage_proof_time = display_last_jobs_proof_time(job_info)?
+                    stage_proof_time = display_last_jobs_timestamps(job_info)?
                 }
             }
             _ => println!("Not sent to server."),
@@ -774,7 +779,7 @@ fn display_prover_jobs_info(
     Ok(())
 }
 
-fn display_prover_jobs_proof_time(
+fn display_prover_jobs_timestamps(
     prover_jobs_info: Vec<ProverJobFriInfo>,
     max_attempts: u32,
 ) -> eyre::Result<Option<StageProofTime>> {
@@ -874,7 +879,7 @@ fn display_prover_jobs_proof_time(
     Ok(None)
 }
 
-fn display_last_jobs_proof_time<T>(job_info: Option<T>) -> eyre::Result<Option<StageProofTime>>
+fn display_last_jobs_timestamps<T>(job_info: Option<T>) -> eyre::Result<Option<StageProofTime>>
 where
     T: JobInfo,
 {

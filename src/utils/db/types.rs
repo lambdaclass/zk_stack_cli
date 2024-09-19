@@ -484,8 +484,6 @@ pub(crate) fn proof_generation_time_from_row(
 ) -> Result<ProofGenerationTime, sqlx::Error> {
     let time_taken: NaiveTime = row.get("time_taken");
 
-    println!("{time_taken:?}");
-
     Ok(ProofGenerationTime {
         l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
         time_taken,
