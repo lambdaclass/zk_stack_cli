@@ -5,7 +5,10 @@ use zksync_ethers_rs::types::{
     zksync::{
         basic_fri_types::AggregationRound,
         protocol_version::VersionPatch,
-        prover_dal::{ProofCompressionJobStatus, ProverJobStatus, Stallable, WitnessJobStatus},
+        prover_dal::{
+            ProofCompressionJobStatus, ProofGenerationTime, ProverJobStatus, Stallable,
+            WitnessJobStatus,
+        },
         L1BatchNumber, ProtocolVersionId,
     },
     U256,
@@ -474,6 +477,20 @@ impl FromRow<'_, PgRow> for ProofCompressionJobInfo {
             _picked_by: row.get("picked_by"),
         })
     }
+}
+
+pub(crate) fn proof_generation_time_from_row(
+    row: &'_ PgRow,
+) -> Result<ProofGenerationTime, sqlx::Error> {
+    let time_taken: NaiveTime = row.get("time_taken");
+
+    println!("{time_taken:?}");
+
+    Ok(ProofGenerationTime {
+        l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
+        time_taken,
+        created_at: row.get("created_at"),
+    })
 }
 
 fn get_int2_as_u32_from_pg_row(row: &PgRow, index: &str) -> Result<u32, sqlx::Error> {

@@ -621,6 +621,10 @@ pub(crate) fn display_batch_proof_time(batch_data: BatchData, flags: u32) -> eyr
                 println!("This value represents the total time spent proving a batch.");
                 println!("Note that it does not include the transaction time to L1; for that, use the {} command.", "zks prover batch-details".to_owned().on_black().yellow());
                 println!(
+                    "For a more detailed output use the {} command",
+                    "zks db prover proof-time".to_owned().on_black().yellow()
+                );
+                println!(
                     "\t > {}: {}",
                     "Total proof time from creation"
                         .to_owned()

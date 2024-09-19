@@ -7,10 +7,12 @@ use zksync_ethers_rs::{
     types::zksync::{
         basic_fri_types::AggregationRound,
         protocol_version::VersionPatch,
-        prover_dal::{ProofCompressionJobStatus, WitnessJobStatus},
+        prover_dal::{ProofCompressionJobStatus, ProofGenerationTime, WitnessJobStatus},
         L1BatchNumber, ProtocolVersionId,
     },
 };
+
+use super::types::proof_generation_time_from_row;
 
 pub async fn get_batch_proofs_stuck_at_wg_round<WG>(
     aggregation_round: AggregationRound,
@@ -282,4 +284,56 @@ fn input_table_name_for(aggregation_round: AggregationRound) -> &'static str {
         AggregationRound::RecursionTip => "recursion_tip_witness_jobs_fri",
         AggregationRound::Scheduler => "scheduler_witness_jobs_fri",
     }
+}
+
+pub async fn get_proof_generation_times_for_time_frame(
+    prover_db: &mut PoolConnection<Postgres>,
+    l1_batch_number: Option<L1BatchNumber>,
+    days: u32,
+) -> eyre::Result<Vec<ProofGenerationTime>> {
+    let query = match l1_batch_number {
+        None => {
+            format!(
+                "
+                SELECT
+                    comp.l1_batch_number,
+                    CAST((comp.updated_at - wit.created_at) AS TIME) AS time_taken,
+                    wit.created_at
+                FROM
+                    proof_compression_jobs_fri AS comp
+                    JOIN witness_inputs_fri AS wit ON comp.l1_batch_number = wit.l1_batch_number
+                WHERE
+                    wit.created_at >  (NOW() - INTERVAL '{days} days')
+                ORDER BY
+                    time_taken DESC;
+                "
+            )
+        }
+        Some(b) => {
+            format!(
+                "
+                SELECT
+                    comp.l1_batch_number,
+                    CAST((comp.updated_at - wit.created_at) AS TIME) AS time_taken,
+                    wit.created_at
+                FROM
+                    proof_compression_jobs_fri AS comp
+                    JOIN witness_inputs_fri AS wit ON comp.l1_batch_number = wit.l1_batch_number
+                WHERE
+                    comp.l1_batch_number = {}
+                ",
+                b.0
+            )
+        }
+    };
+
+    let rows = prover_db.fetch_all(query.as_str()).await?;
+
+    let res: eyre::Result<Vec<ProofGenerationTime>> = rows
+        .iter()
+        .map(proof_generation_time_from_row)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(Into::into);
+
+    res
 }

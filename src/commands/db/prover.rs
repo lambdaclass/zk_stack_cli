@@ -18,7 +18,8 @@ use crate::{
             },
             queries::{
                 get_basic_witness_job_status, get_compressor_job_status,
-                insert_prover_protocol_version, insert_witness_inputs, restart_batch_proof,
+                get_proof_generation_times_for_time_frame, insert_prover_protocol_version,
+                insert_witness_inputs, restart_batch_proof,
             },
             types::combine_flags,
         },
@@ -124,7 +125,10 @@ pub(crate) enum Command {
         )]
         compressor: bool,
     },
-    ProofTime {
+    #[clap(
+        about = "Display the DB's timestamps for a given sequence of L1BatchNumbers, if no StageInfo flag is set, display all stages' timestamps."
+    )]
+    Timestamps {
         #[clap(short = 'n', required = true)]
         batch: L1BatchNumber,
         #[clap(
@@ -169,6 +173,23 @@ pub(crate) enum Command {
             help = "Print CompressorStageInfo if set"
         )]
         compressor: bool,
+    },
+    #[clap(
+        about = "Calculates the ProofTime of batches generated from now up to a specified number of days in the past."
+    )]
+    ProofTime {
+        #[clap(
+            short = 'n',
+            help = "If L1BatchNumber is set, the command will just retrieve the data of the specified batch"
+        )]
+        batch: Option<L1BatchNumber>,
+        #[clap(
+            short = 'd',
+            default_value("0"),
+            required = false,
+            help = "Specify the number of days to create the interval (default is 0)."
+        )]
+        days: u32,
     },
 }
 
@@ -446,7 +467,7 @@ impl Command {
                     }
                 }
             }
-            Command::ProofTime {
+            Command::Timestamps {
                 batch,
                 bwg,
                 lwg,
@@ -463,6 +484,29 @@ impl Command {
 
                 for data in batch_data {
                     display_batch_proof_time(data, flags)?;
+                }
+            }
+            Command::ProofTime { batch, days } => {
+                let mut spinner = Spinner::new(Dots, "Fetching Data", Color::Blue);
+
+                let batch_data =
+                    get_proof_generation_times_for_time_frame(&mut prover_db, batch, days).await?;
+                spinner.success("Data Retrieved from DB");
+
+                println!(
+                    "\n| {:^15} | {:^19} | {:^30} |",
+                    "l1_batch_number".to_owned().on_black().bright_cyan(),
+                    "proof_time".to_owned().on_black().bright_cyan(),
+                    "created_at".to_owned().on_black().bright_cyan()
+                );
+                println!("| {:-<15} | {:-<19} | {:-<30} |", "", "", "");
+                for pgt in batch_data {
+                    println!(
+                        "| {:^15} | {:^19} | {:^30} |",
+                        pgt.l1_batch_number.to_string(),
+                        pgt.time_taken.to_string(),
+                        pgt.created_at.to_string()
+                    )
                 }
             }
         };
