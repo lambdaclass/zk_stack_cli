@@ -2,28 +2,31 @@ use super::balance::{display_balance, get_erc20_balance, get_erc20_balance_decim
 use crate::utils::{contract::*, wallet::new_zkwallet};
 use colored::Colorize;
 use eyre::ContextCompat;
+use itertools::Itertools;
 use spinoff::{spinners, Color, Spinner};
 use std::{ops::Div, sync::Arc};
 use tokio::task::JoinSet;
 use zksync_ethers_rs::{
     contracts::erc20::MINT_IERC20,
-    core::k256::ecdsa::SigningKey,
-    core::rand::{thread_rng, Rng},
-    core::utils::{format_ether, parse_ether},
+    core::{
+        k256::ecdsa::SigningKey,
+        rand::{thread_rng, Rng},
+        utils::{format_ether, format_units, parse_ether},
+    },
     providers::{Http, Middleware, Provider, ProviderError},
     signers::{LocalWallet, Signer, Wallet},
     types::{
-        transaction::eip2718::TypedTransaction, Address, Eip1559TransactionRequest, L2TxOverrides,
-        TransactionReceipt, U256,
+        transaction::eip2718::TypedTransaction, Address, Bytes, Eip1559TransactionRequest,
+        L2TxOverrides, TransactionReceipt, H256, U256,
     },
-    types::{Bytes, H256},
+    utils::L2_ETH_TOKEN_ADDRESS,
     zk_wallet::ZKWallet,
     ZKMiddleware,
 };
 
 pub async fn send_transactions(
     from_wallet: &Arc<ZKWallet<Provider<Http>, LocalWallet>>,
-    to_wallets: &Vec<Arc<ZKWallet<Provider<Http>, LocalWallet>>>,
+    to_wallets: &[Arc<ZKWallet<Provider<Http>, LocalWallet>>],
     parsed_amount: U256,
 ) -> eyre::Result<Vec<H256>> {
     println!(
@@ -41,7 +44,7 @@ pub async fn send_transactions(
         .get_transaction_count(from_wallet.l2_address(), None)
         .await?;
 
-    for w in to_wallets {
+    for w in to_wallets.iter() {
         let from_wallet_clone = Arc::clone(from_wallet);
         let to = w.l2_address();
         set.spawn(async move {
@@ -71,7 +74,7 @@ pub async fn send_transactions(
 }
 
 pub async fn send_transactions_back(
-    from_wallets: &Vec<Arc<ZKWallet<Provider<Http>, LocalWallet>>>,
+    from_wallets: &[Arc<ZKWallet<Provider<Http>, LocalWallet>>],
     to_wallet: &Arc<ZKWallet<Provider<Http>, LocalWallet>>,
 ) -> eyre::Result<Vec<H256>> {
     println!(
@@ -84,7 +87,7 @@ pub async fn send_transactions_back(
     let mut l2_txs_receipts: Vec<H256> = Vec::new();
     let mut set = JoinSet::new();
 
-    for w in from_wallets {
+    for w in from_wallets.iter() {
         let to_wallet_clone = Arc::clone(to_wallet);
         let from_wallet_clone = Arc::clone(w);
         set.spawn(async move {
@@ -168,18 +171,30 @@ pub async fn get_n_random_wallets(
     l1_provider: &Provider<Http>,
     l2_provider: &Provider<Http>,
 ) -> eyre::Result<Vec<Arc<ZKWallet<Provider<Http>, LocalWallet>>>> {
-    let mut wallets = Vec::new();
+    let mut set = JoinSet::new();
     for i in 1..=number_of_wallets {
-        let local_wallet = LocalWallet::new(&mut thread_rng());
-        let pk_bytes = local_wallet.signer().to_bytes();
-        let pk = hex::encode(pk_bytes);
-        println!(
-            "Wallet [{i:0>3}] addr: {:?} || pk: 0x{pk}",
-            local_wallet.address(),
-        );
-        let w = new_zkwallet(local_wallet, l1_provider, l2_provider).await?;
-        wallets.push(Arc::new(w));
+        // These clones are necessary to move the providers into the async block,
+        let l1_clone = l1_provider.clone();
+        let l2_clone = l2_provider.clone();
+        set.spawn(async move {
+            let local_wallet = LocalWallet::new(&mut thread_rng());
+            let pk_bytes = local_wallet.signer().to_bytes();
+            let pk = hex::encode(pk_bytes);
+            println!(
+                "Wallet [{i:0>3}] addr: {:?} || pk: 0x{pk}",
+                local_wallet.address(),
+            );
+            new_zkwallet(local_wallet, &l1_clone, &l2_clone).await
+        });
     }
+    let wallets = set
+        .join_all()
+        .await
+        .into_iter()
+        .collect::<Result<Vec<ZKWallet<Provider<Http>, LocalWallet>>, _>>()?
+        .into_iter()
+        .map(Arc::new)
+        .collect_vec();
     Ok(wallets)
 }
 
@@ -224,12 +239,26 @@ pub async fn check_balance_and_deposit_or_mint(
         .await?;
 
     if l2_balance.le(&amount) {
-        let (l1_balance, _, token_symbol) = get_erc20_balance_decimals_symbol(
-            base_token_address,
-            wallet.l1_address(),
-            wallet.l1_provider(),
-        )
-        .await?;
+        let (l1_balance, _, token_symbol) = if base_token_address == L2_ETH_TOKEN_ADDRESS {
+            (
+                format_units(
+                    wallet
+                        .l1_provider()
+                        .get_balance(wallet.l1_address(), None)
+                        .await?,
+                    18_i32,
+                )?,
+                18_i32,
+                "ETH".to_owned(),
+            )
+        } else {
+            get_erc20_balance_decimals_symbol(
+                base_token_address,
+                wallet.l1_address(),
+                wallet.l1_provider(),
+            )
+            .await?
+        };
 
         spinner.update(spinners::Dots, "Checking L1 Balance", Color::Blue);
 
