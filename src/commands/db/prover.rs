@@ -39,6 +39,7 @@ use crate::{
         },
     },
 };
+use chrono::{offset::TimeZone, DateTime, Local};
 use clap::Subcommand;
 use colored::Colorize;
 use eyre::ContextCompat;
@@ -501,11 +502,13 @@ impl Command {
                 );
                 println!("| {:-<15} | {:-<19} | {:-<30} |", "", "", "");
                 for pgt in batch_data {
+                    let created_at_local: DateTime<Local> =
+                        Local.from_utc_datetime(&pgt.created_at);
                     println!(
                         "| {:^15} | {:^19} | {:^30} |",
                         pgt.l1_batch_number.to_string(),
                         pgt.time_taken.to_string(),
-                        pgt.created_at.to_string()
+                        created_at_local.naive_local().to_string()
                     )
                 }
             }
