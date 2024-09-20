@@ -229,26 +229,24 @@ impl Command {
                 println!("Confirmed Tokens: {confirmed_tokens:#?}");
             }
             Command::L1BatchDetails {
-                batches,
+                mut batches,
                 proof_time,
             } => {
                 let current_batch = l2_provider.get_l1_batch_number().await?.as_u32().into();
 
-                let batches_vec = if let Some(batches_vec) = batches {
-                    batches_vec
-                } else {
-                    vec![current_batch]
-                };
+                if batches.is_empty() {
+                    batches.push(current_batch);
+                }
 
                 if proof_time {
                     display_batches_proof_time_from_l1_batch_details(
-                        batches_vec,
+                        batches,
                         current_batch,
                         l2_provider,
                     )
                     .await?;
                 } else {
-                    display_batches_details(batches_vec, current_batch, l2_provider).await?;
+                    display_batches_details(batches, current_batch, l2_provider).await?;
                 }
             }
             Command::L2ToL1LogProof {
