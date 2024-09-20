@@ -5,17 +5,14 @@ use zksync_ethers_rs::types::{
     zksync::{
         basic_fri_types::AggregationRound,
         protocol_version::VersionPatch,
-        prover_dal::{ProofCompressionJobStatus, ProverJobStatus, Stallable, WitnessJobStatus},
+        prover_dal::{
+            ProofCompressionJobStatus, ProofGenerationTime, ProverJobStatus, Stallable,
+            WitnessJobStatus,
+        },
         L1BatchNumber, ProtocolVersionId,
     },
     U256,
 };
-
-pub(crate) trait JobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime>;
-    fn _created_at(&self) -> NaiveDateTime;
-    fn _updated_at(&self) -> NaiveDateTime;
-}
 
 #[derive(Debug)]
 pub(crate) enum StageFlags {
@@ -333,18 +330,6 @@ pub struct RecursionTipWitnessGeneratorJobInfo {
     pub _protocol_version_patch: Option<VersionPatch>,
 }
 
-impl JobInfo for RecursionTipWitnessGeneratorJobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime> {
-        self._processing_started_at
-    }
-    fn _created_at(&self) -> NaiveDateTime {
-        self._created_at
-    }
-    fn _updated_at(&self) -> NaiveDateTime {
-        self._updated_at
-    }
-}
-
 impl Stallable for RecursionTipWitnessGeneratorJobInfo {
     fn get_status(&self) -> WitnessJobStatus {
         self._status.clone()
@@ -388,18 +373,6 @@ pub struct SchedulerWitnessGeneratorJobInfo {
     pub _protocol_version: Option<i32>,
     pub _picked_by: Option<String>,
     pub _protocol_version_patch: Option<VersionPatch>,
-}
-
-impl JobInfo for SchedulerWitnessGeneratorJobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime> {
-        self._processing_started_at
-    }
-    fn _created_at(&self) -> NaiveDateTime {
-        self._created_at
-    }
-    fn _updated_at(&self) -> NaiveDateTime {
-        self._updated_at
-    }
 }
 
 impl Stallable for SchedulerWitnessGeneratorJobInfo {
@@ -446,18 +419,6 @@ pub struct ProofCompressionJobInfo {
     pub _picked_by: Option<String>,
 }
 
-impl JobInfo for ProofCompressionJobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime> {
-        self._processing_started_at
-    }
-    fn _created_at(&self) -> NaiveDateTime {
-        self._created_at
-    }
-    fn _updated_at(&self) -> NaiveDateTime {
-        self._updated_at
-    }
-}
-
 impl FromRow<'_, PgRow> for ProofCompressionJobInfo {
     fn from_row(row: &'_ PgRow) -> Result<Self, sqlx::Error> {
         Ok(Self {
@@ -474,6 +435,16 @@ impl FromRow<'_, PgRow> for ProofCompressionJobInfo {
             _picked_by: row.get("picked_by"),
         })
     }
+}
+
+pub(crate) fn proof_generation_time_from_row(
+    row: &'_ PgRow,
+) -> Result<ProofGenerationTime, sqlx::Error> {
+    Ok(ProofGenerationTime {
+        l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
+        time_taken: row.get("time_taken"),
+        created_at: row.get("created_at"),
+    })
 }
 
 fn get_int2_as_u32_from_pg_row(row: &PgRow, index: &str) -> Result<u32, sqlx::Error> {
