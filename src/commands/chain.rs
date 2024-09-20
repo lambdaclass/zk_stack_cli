@@ -38,8 +38,8 @@ pub(crate) enum Command {
     },
     #[clap(about = "Retrieves details for a given L1 batch.")]
     L1BatchDetails {
-        #[clap(short = 'n', num_args = 1.., default_value_t = Vec::default)]
-        batches: Option<Vec<L1BatchNumber>>,
+        #[clap(short = 'n', num_args = 1..)]
+        batches: Vec<L1BatchNumber>,
         #[clap(
             short = 't',
             default_value_t = false,
