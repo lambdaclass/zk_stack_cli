@@ -7904,7 +7904,7 @@ dependencies = [
 [[package]]
 name = "zksync-ethers-rs"
 version = "0.2.1"
-source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=feat/deploy_eip712#a1dbfa3cc50f47457ecb7c600af891fc918f5200"
+source = "git+https://github.com/lambdaclass/zksync-web3-rs?branch=zksync-ethers-rs-v1#dbe148d56487c117ca48e38c6655fc6fb8055df8"
 dependencies = [
  "anyhow",
  "async-trait",
