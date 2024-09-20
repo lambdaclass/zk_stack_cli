@@ -43,7 +43,7 @@ pub(crate) enum Command {
         #[clap(
             short = 't',
             default_value_t = false,
-            help = "The command display the proof-time based on the L1 txs' timestamps, if this flag is not set, it will display the data in raw format."
+            help = "The command displays the proof-time based on the L1 txs' timestamps."
         )]
         proof_time: bool,
     },
