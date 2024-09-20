@@ -46,7 +46,7 @@ impl TryFrom<&ZKSyncConfig> for ZKWallet<ZKWalletProvider, LocalWallet> {
         let wallet = wallet.with_chain_id(l2_chain_id);
         let l2_signer = SignerMiddleware::new(l2_provider.clone(), wallet);
 
-        let zk_wallet = ZKWallet::new(l1_signer, l2_signer);
+        let zk_wallet = ZKWallet::new(l1_signer.into(), l2_signer.into());
 
         Ok(zk_wallet)
     }
@@ -65,7 +65,7 @@ pub(crate) async fn new_zkwallet(
     let wallet = wallet.with_chain_id(l2_chain_id);
     let l2_signer = SignerMiddleware::new(l2_provider.clone(), wallet);
 
-    let zk_wallet = ZKWallet::new(l1_signer, l2_signer);
+    let zk_wallet = ZKWallet::new(l1_signer.into(), l2_signer.into());
     Ok(zk_wallet)
 }
 
