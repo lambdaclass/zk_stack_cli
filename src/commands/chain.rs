@@ -2,6 +2,7 @@ use crate::{
     config::ZKSyncConfig,
     utils::{
         balance::{display_l1_balance, display_l2_balance},
+        chain::{display_batches_details, display_batches_proof_time_from_l1_batch_details},
         try_l1_provider_from_config, try_l2_provider_from_config,
     },
 };
@@ -12,7 +13,7 @@ use zksync_ethers_rs::{
     abi::Hash,
     core::utils::format_ether,
     providers::Middleware,
-    types::{Address, Bytes, U64},
+    types::{zksync::L1BatchNumber, Address, Bytes, U64},
     ZKMiddleware,
 };
 
@@ -36,7 +37,16 @@ pub(crate) enum Command {
         limit: u8,
     },
     #[clap(about = "Retrieves details for a given L1 batch.")]
-    L1BatchDetails { batch: u32 },
+    L1BatchDetails {
+        #[clap(short = 'n', num_args = 1..)]
+        batches: Vec<L1BatchNumber>,
+        #[clap(
+            short = 't',
+            default_value_t = false,
+            help = "The command displays the proof-time based on the L1 txs' timestamps."
+        )]
+        proof_time: bool,
+    },
     L2ToL1LogProof {
         #[clap(long, name = "TRANSACTION_HASH")]
         transaction: Hash,
@@ -218,9 +228,26 @@ impl Command {
                 let confirmed_tokens = l2_provider.get_confirmed_tokens(from, limit).await?;
                 println!("Confirmed Tokens: {confirmed_tokens:#?}");
             }
-            Command::L1BatchDetails { batch } => {
-                let l1_batch_details = l2_provider.get_l1_batch_details(batch).await?;
-                println!("{l1_batch_details:#?}");
+            Command::L1BatchDetails {
+                mut batches,
+                proof_time,
+            } => {
+                let current_batch = l2_provider.get_l1_batch_number().await?.as_u32().into();
+
+                if batches.is_empty() {
+                    batches.push(current_batch);
+                }
+
+                if proof_time {
+                    display_batches_proof_time_from_l1_batch_details(
+                        batches,
+                        current_batch,
+                        l2_provider,
+                    )
+                    .await?;
+                } else {
+                    display_batches_details(batches, current_batch, l2_provider).await?;
+                }
             }
             Command::L2ToL1LogProof {
                 transaction,
