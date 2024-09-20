@@ -65,7 +65,7 @@ pub async fn start() -> eyre::Result<()> {
         ZKSyncCommand::Wallet(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Chain(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Prover(cmd) => cmd.run(cfg).await?,
-        ZKSyncCommand::Contract(cmd) => cmd.run(cfg)?,
+        ZKSyncCommand::Contract(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Contracts(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Autocomplete(cmd) => cmd.run()?,
         ZKSyncCommand::Utils(cmd) => cmd.run(cfg)?,
