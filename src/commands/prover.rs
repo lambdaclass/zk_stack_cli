@@ -1,3 +1,4 @@
+use crate::config::ZKSyncConfig;
 use clap::Subcommand;
 use std::path::PathBuf;
 use zksync_ethers_rs::types::zksync::inputs::WitnessInputData;
@@ -22,7 +23,7 @@ pub(crate) enum Command {
 }
 
 impl Command {
-    pub fn run(self) -> eyre::Result<()> {
+    pub async fn run(self, _cfg: ZKSyncConfig) -> eyre::Result<()> {
         match self {
             Command::DebugWitnessInputs {
                 file_path,

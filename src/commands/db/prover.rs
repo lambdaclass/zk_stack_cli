@@ -17,8 +17,9 @@ use crate::{
                 map_node_wg_info, map_recursion_tip_wg_info, map_scheduler_wg_info,
             },
             queries::{
-                get_basic_witness_job_status, get_compressor_job_status,
-                insert_prover_protocol_version, insert_witness_inputs, restart_batch_proof,
+                get_basic_witness_job_status, get_compressor_job_status, get_proof_time_for_batch,
+                get_proof_time_within_period, insert_prover_protocol_version,
+                insert_witness_inputs, restart_batch_proof,
             },
             types::combine_flags,
         },
@@ -32,12 +33,10 @@ use crate::{
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
-        prover_status::{
-            display_batch_info, display_batch_proof_time, display_batch_status, get_batches_data,
-            Status,
-        },
+        prover_status::{display_batch_info, display_batch_status, get_batches_data, Status},
     },
 };
+use chrono::{offset::TimeZone, DateTime, Local};
 use clap::Subcommand;
 use colored::Colorize;
 use eyre::ContextCompat;
@@ -124,51 +123,22 @@ pub(crate) enum Command {
         )]
         compressor: bool,
     },
+    #[clap(
+        about = "Calculates the ProofTime of batches generated from now up to a specified number of days in the past."
+    )]
     ProofTime {
-        #[clap(short = 'n', required = true)]
-        batch: L1BatchNumber,
-        #[clap(
-            short = 'b',
-            long,
-            default_value("false"),
-            help = "Print BasicWitnessGeneratorStageInfo if set"
-        )]
-        bwg: bool,
-        #[clap(
-            short = 'l',
-            long,
-            default_value("false"),
-            help = "Print LeafWitnessGeneratorStageInfo if set"
-        )]
-        lwg: bool,
         #[clap(
             short = 'n',
-            long,
-            default_value("false"),
-            help = "Print NodeWitnessGeneratorStageInfo if set"
+            help = "If L1BatchNumber is set, the command will just retrieve the data of the specified batch"
         )]
-        nwg: bool,
+        batch: Option<L1BatchNumber>,
         #[clap(
-            short = 'r',
-            long,
-            default_value("false"),
-            help = "Print RecursionTipWitnessGeneratorStageInfo if set"
+            short = 'd',
+            default_value("0"),
+            required = false,
+            help = "Specify the number of days to create the interval (default is 0)."
         )]
-        rtwg: bool,
-        #[clap(
-            short = 's',
-            long,
-            default_value("false"),
-            help = "Print SchedulerWitnessGeneratorStageInfo if set"
-        )]
-        swg: bool,
-        #[clap(
-            short = 'c',
-            long,
-            default_value("false"),
-            help = "Print CompressorStageInfo if set"
-        )]
-        compressor: bool,
+        days: u32,
     },
 }
 
@@ -446,23 +416,34 @@ impl Command {
                     }
                 }
             }
-            Command::ProofTime {
-                batch,
-                bwg,
-                lwg,
-                nwg,
-                rtwg,
-                swg,
-                compressor,
-            } => {
-                let flags = combine_flags(bwg, lwg, nwg, rtwg, swg, compressor);
+            Command::ProofTime { batch, days } => {
+                let mut spinner = Spinner::new(Dots, "Fetching Data", Color::Blue);
 
-                let mut spinner = Spinner::new(Dots, "Fetching Batch", Color::Blue);
-                let batch_data = get_batches_data(vec![batch], &mut prover_db).await?;
+                let batch_data = match batch {
+                    Some(l1_batch_number) => {
+                        vec![get_proof_time_for_batch(&mut prover_db, l1_batch_number).await?]
+                    }
+                    None => get_proof_time_within_period(&mut prover_db, days).await?,
+                };
+
                 spinner.success("Data Retrieved from DB");
 
-                for data in batch_data {
-                    display_batch_proof_time(data, flags)?;
+                println!(
+                    "\n| {:^15} | {:^19} | {:^30} |",
+                    "l1_batch_number".to_owned().on_black().bright_cyan(),
+                    "proof_time".to_owned().on_black().bright_cyan(),
+                    "created_at".to_owned().on_black().bright_cyan()
+                );
+                println!("| {:-<15} | {:-<19} | {:-<30} |", "", "", "");
+                for pgt in batch_data {
+                    let created_at_local: DateTime<Local> =
+                        Local.from_utc_datetime(&pgt.created_at);
+                    println!(
+                        "| {:^15} | {:^19} | {:^30} |",
+                        pgt.l1_batch_number.to_string(),
+                        pgt.time_taken.to_string(),
+                        created_at_local.naive_local().to_string()
+                    )
                 }
             }
         };
