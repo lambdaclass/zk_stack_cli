@@ -17,8 +17,9 @@ use crate::{
                 map_node_wg_info, map_recursion_tip_wg_info, map_scheduler_wg_info,
             },
             queries::{
-                get_basic_witness_job_status, get_compressor_job_status, get_proof_time,
-                insert_prover_protocol_version, insert_witness_inputs, restart_batch_proof,
+                get_basic_witness_job_status, get_compressor_job_status, get_proof_time_for_batch,
+                get_proof_time_within_period, insert_prover_protocol_version,
+                insert_witness_inputs, restart_batch_proof,
             },
             types::combine_flags,
         },
@@ -32,10 +33,7 @@ use crate::{
             DATABASE_PROVER_RESTART_ALREADY_PROVED_BATCH_PROOF_CONFIRMATION_MSG,
             DATABASE_PROVER_RESTART_BATCH_PROOF_CONFIRMATION_MSG,
         },
-        prover_status::{
-            display_batch_info, display_batch_prover_jobs_timestamps, display_batch_status,
-            get_batches_data, Status,
-        },
+        prover_status::{display_batch_info, display_batch_status, get_batches_data, Status},
     },
 };
 use chrono::{offset::TimeZone, DateTime, Local};
@@ -82,55 +80,6 @@ pub(crate) enum Command {
         batches: Vec<L1BatchNumber>,
         #[clap(short = 'v', long, default_value("false"))]
         verbose: bool,
-        #[clap(
-            short = 'b',
-            long,
-            default_value("false"),
-            help = "Print BasicWitnessGeneratorStageInfo if set"
-        )]
-        bwg: bool,
-        #[clap(
-            short = 'l',
-            long,
-            default_value("false"),
-            help = "Print LeafWitnessGeneratorStageInfo if set"
-        )]
-        lwg: bool,
-        #[clap(
-            short = 'n',
-            long,
-            default_value("false"),
-            help = "Print NodeWitnessGeneratorStageInfo if set"
-        )]
-        nwg: bool,
-        #[clap(
-            short = 'r',
-            long,
-            default_value("false"),
-            help = "Print RecursionTipWitnessGeneratorStageInfo if set"
-        )]
-        rtwg: bool,
-        #[clap(
-            short = 's',
-            long,
-            default_value("false"),
-            help = "Print SchedulerWitnessGeneratorStageInfo if set"
-        )]
-        swg: bool,
-        #[clap(
-            short = 'c',
-            long,
-            default_value("false"),
-            help = "Print CompressorStageInfo if set"
-        )]
-        compressor: bool,
-    },
-    #[clap(
-        about = "Display the DB's timestamps for a given sequence of L1BatchNumbers, if no StageInfo flag is set, display all stages' timestamps."
-    )]
-    ProverJobsTimestamps {
-        #[clap(short = 'n', required = true)]
-        batch: L1BatchNumber,
         #[clap(
             short = 'b',
             long,
@@ -467,29 +416,16 @@ impl Command {
                     }
                 }
             }
-            Command::ProverJobsTimestamps {
-                batch,
-                bwg,
-                lwg,
-                nwg,
-                rtwg,
-                swg,
-                compressor,
-            } => {
-                let flags = combine_flags(bwg, lwg, nwg, rtwg, swg, compressor);
-
-                let mut spinner = Spinner::new(Dots, "Fetching Batch", Color::Blue);
-                let batch_data = get_batches_data(vec![batch], &mut prover_db).await?;
-                spinner.success("Data Retrieved from DB");
-
-                for data in batch_data {
-                    display_batch_prover_jobs_timestamps(data, flags)?;
-                }
-            }
             Command::ProofTime { batch, days } => {
                 let mut spinner = Spinner::new(Dots, "Fetching Data", Color::Blue);
 
-                let batch_data = get_proof_time(&mut prover_db, batch, days).await?;
+                let batch_data = match batch {
+                    Some(l1_batch_number) => {
+                        vec![get_proof_time_for_batch(&mut prover_db, l1_batch_number).await?]
+                    }
+                    None => get_proof_time_within_period(&mut prover_db, days).await?,
+                };
+
                 spinner.success("Data Retrieved from DB");
 
                 println!(

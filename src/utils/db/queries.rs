@@ -286,46 +286,25 @@ fn input_table_name_for(aggregation_round: AggregationRound) -> &'static str {
     }
 }
 
-pub async fn get_proof_time(
+pub async fn get_proof_time_within_period(
     prover_db: &mut PoolConnection<Postgres>,
-    l1_batch_number: Option<L1BatchNumber>,
     days: u32,
 ) -> eyre::Result<Vec<ProofGenerationTime>> {
-    let query = match l1_batch_number {
-        None => {
-            format!(
-                "
-                SELECT
-                    comp.l1_batch_number,
-                    CAST((comp.updated_at - wit.created_at) AS TIME) AS time_taken,
-                    wit.created_at
-                FROM
-                    proof_compression_jobs_fri AS comp
-                    JOIN witness_inputs_fri AS wit ON comp.l1_batch_number = wit.l1_batch_number
-                WHERE
-                    wit.created_at >  (NOW() - INTERVAL '{days} days')
-                ORDER BY
-                    time_taken DESC;
-                "
-            )
-        }
-        Some(b) => {
-            format!(
-                "
-                SELECT
-                    comp.l1_batch_number,
-                    CAST((comp.updated_at - wit.created_at) AS TIME) AS time_taken,
-                    wit.created_at
-                FROM
-                    proof_compression_jobs_fri AS comp
-                    JOIN witness_inputs_fri AS wit ON comp.l1_batch_number = wit.l1_batch_number
-                WHERE
-                    comp.l1_batch_number = {}
-                ",
-                b.0
-            )
-        }
-    };
+    let query = format!(
+        "
+        SELECT
+            comp.l1_batch_number,
+            CAST((comp.updated_at - wit.created_at) AS TIME) AS time_taken,
+            wit.created_at
+        FROM
+            proof_compression_jobs_fri AS comp
+            JOIN witness_inputs_fri AS wit ON comp.l1_batch_number = wit.l1_batch_number
+        WHERE
+            wit.created_at >  (NOW() - INTERVAL '{days} days')
+        ORDER BY
+            time_taken DESC;
+        "
+    );
 
     let rows = prover_db.fetch_all(query.as_str()).await?;
 
@@ -336,4 +315,26 @@ pub async fn get_proof_time(
         .map_err(Into::into);
 
     res
+}
+
+pub(crate) async fn get_proof_time_for_batch(
+    prover_db: &mut PoolConnection<Postgres>,
+    l1_batch_number: L1BatchNumber,
+) -> eyre::Result<ProofGenerationTime> {
+    let query = format!(
+        "
+        SELECT
+            comp.l1_batch_number,
+            CAST((comp.updated_at - wit.created_at) AS TIME) AS time_taken,
+            wit.created_at
+        FROM
+            proof_compression_jobs_fri AS comp
+            JOIN witness_inputs_fri AS wit ON comp.l1_batch_number = wit.l1_batch_number
+        WHERE
+            comp.l1_batch_number = {l1_batch_number}
+        ",
+    );
+    let row = prover_db.fetch_one(query.as_str()).await?;
+
+    Ok(proof_generation_time_from_row(&row)?)
 }

@@ -14,12 +14,6 @@ use zksync_ethers_rs::types::{
     U256,
 };
 
-pub(crate) trait JobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime>;
-    fn _created_at(&self) -> NaiveDateTime;
-    fn _updated_at(&self) -> NaiveDateTime;
-}
-
 #[derive(Debug)]
 pub(crate) enum StageFlags {
     Bwg = 0b000001,
@@ -336,18 +330,6 @@ pub struct RecursionTipWitnessGeneratorJobInfo {
     pub _protocol_version_patch: Option<VersionPatch>,
 }
 
-impl JobInfo for RecursionTipWitnessGeneratorJobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime> {
-        self._processing_started_at
-    }
-    fn _created_at(&self) -> NaiveDateTime {
-        self._created_at
-    }
-    fn _updated_at(&self) -> NaiveDateTime {
-        self._updated_at
-    }
-}
-
 impl Stallable for RecursionTipWitnessGeneratorJobInfo {
     fn get_status(&self) -> WitnessJobStatus {
         self._status.clone()
@@ -393,18 +375,6 @@ pub struct SchedulerWitnessGeneratorJobInfo {
     pub _protocol_version_patch: Option<VersionPatch>,
 }
 
-impl JobInfo for SchedulerWitnessGeneratorJobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime> {
-        self._processing_started_at
-    }
-    fn _created_at(&self) -> NaiveDateTime {
-        self._created_at
-    }
-    fn _updated_at(&self) -> NaiveDateTime {
-        self._updated_at
-    }
-}
-
 impl Stallable for SchedulerWitnessGeneratorJobInfo {
     fn get_status(&self) -> WitnessJobStatus {
         self._status.clone()
@@ -447,18 +417,6 @@ pub struct ProofCompressionJobInfo {
     pub _processing_started_at: Option<NaiveDateTime>,
     pub _time_taken: Option<NaiveTime>,
     pub _picked_by: Option<String>,
-}
-
-impl JobInfo for ProofCompressionJobInfo {
-    fn _processing_started_at(&self) -> Option<NaiveDateTime> {
-        self._processing_started_at
-    }
-    fn _created_at(&self) -> NaiveDateTime {
-        self._created_at
-    }
-    fn _updated_at(&self) -> NaiveDateTime {
-        self._updated_at
-    }
 }
 
 impl FromRow<'_, PgRow> for ProofCompressionJobInfo {
