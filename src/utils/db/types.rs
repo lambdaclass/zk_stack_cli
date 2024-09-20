@@ -482,11 +482,9 @@ impl FromRow<'_, PgRow> for ProofCompressionJobInfo {
 pub(crate) fn proof_generation_time_from_row(
     row: &'_ PgRow,
 ) -> Result<ProofGenerationTime, sqlx::Error> {
-    let time_taken: NaiveTime = row.get("time_taken");
-
     Ok(ProofGenerationTime {
         l1_batch_number: get_l1_batch_number_from_pg_row(row)?,
-        time_taken,
+        time_taken: row.get("time_taken"),
         created_at: row.get("created_at"),
     })
 }
