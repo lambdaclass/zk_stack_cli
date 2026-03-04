@@ -3,6 +3,8 @@ use crate::utils::balance::display_balance;
 use crate::utils::wallet::get_wallet_l1_l2_providers;
 use clap::Subcommand;
 use eyre::ContextCompat;
+#[allow(unused_imports)]
+use serde_json;
 use spinoff::{spinner, spinners, Color, Spinner};
 use zksync_ethers_rs::{
     abi::Hash,
@@ -81,7 +83,7 @@ pub(crate) enum Command {
 
 // TODO Handle ETH
 impl Command {
-    pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    pub async fn run(self, cfg: ZKSyncConfig, json: bool) -> eyre::Result<()> {
         let wallet_config = cfg
             .clone()
             .wallet
@@ -130,13 +132,23 @@ impl Command {
                     }
                 };
 
-                let msg = if explorer_url {
-                    format!("Success: {l1_explorer_url}/tx/{deposit_hash:?}")
+                if json {
+                    spinner.success("Done");
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "txHash": format!("{deposit_hash:?}"),
+                            "explorerUrl": format!("{l1_explorer_url}/tx/{deposit_hash:?}"),
+                        })
+                    );
                 } else {
-                    format!("Success, Deposit hash: {deposit_hash:?}")
-                };
-
-                spinner.success(&msg);
+                    let msg = if explorer_url {
+                        format!("Success: {l1_explorer_url}/tx/{deposit_hash:?}")
+                    } else {
+                        format!("Success, Deposit hash: {deposit_hash:?}")
+                    };
+                    spinner.success(&msg);
+                }
             }
             Command::FinalizeWithdraw {
                 l2_withdrawal_tx_hash,
@@ -173,13 +185,23 @@ impl Command {
                         zk_wallet.transfer_base_token(amount, to, None).await?
                     };
 
-                    let msg = if explorer_url {
-                        format!("Success: {l2_explorer_url}/tx/{transfer_hash:?}")
+                    if json {
+                        spinner.success("Done");
+                        println!(
+                            "{}",
+                            serde_json::json!({
+                                "txHash": format!("{transfer_hash:?}"),
+                                "explorerUrl": format!("{l2_explorer_url}/tx/{transfer_hash:?}"),
+                            })
+                        );
                     } else {
-                        format!("Success, Transfer hash: {transfer_hash:?}")
-                    };
-
-                    spinner.success(&msg);
+                        let msg = if explorer_url {
+                            format!("Success: {l2_explorer_url}/tx/{transfer_hash:?}")
+                        } else {
+                            format!("Success, Transfer hash: {transfer_hash:?}")
+                        };
+                        spinner.success(&msg);
+                    }
                 }
             }
             Command::Withdraw {
@@ -216,10 +238,24 @@ impl Command {
                 spinner.success(&msg);
             }
             Command::Address => {
-                println!("Wallet address: {:?}", wallet_config.address);
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({ "address": format!("{:?}", wallet_config.address) })
+                    );
+                } else {
+                    println!("Wallet address: {:?}", wallet_config.address);
+                }
             }
             Command::PrivateKey => {
-                println!("Wallet private key: {:?}", wallet_config.private_key);
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({ "privateKey": wallet_config.private_key })
+                    );
+                } else {
+                    println!("Wallet private key: {:?}", wallet_config.private_key);
+                }
             }
         };
 

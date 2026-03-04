@@ -9,6 +9,10 @@ pub const VERSION_STRING: &str = env!("CARGO_PKG_VERSION");
 #[derive(Parser)]
 #[command(name="zks", author, version=VERSION_STRING, about, long_about = None)]
 pub struct ZKSyncCLI {
+    /// Output results as JSON for scripting and automation.
+    #[arg(long, global = true)]
+    json: bool,
+
     #[command(subcommand)]
     command: ZKSyncCommand,
 }
@@ -56,14 +60,14 @@ enum ZKSyncCommand {
 }
 
 pub async fn start() -> eyre::Result<()> {
-    let ZKSyncCLI { command } = ZKSyncCLI::parse();
+    let ZKSyncCLI { command, json } = ZKSyncCLI::parse();
     if let ZKSyncCommand::Config(cmd) = command {
         return cmd.run().await;
     }
     let cfg = load_selected_config().await?;
     match command {
-        ZKSyncCommand::Wallet(cmd) => cmd.run(cfg).await?,
-        ZKSyncCommand::Chain(cmd) => cmd.run(cfg).await?,
+        ZKSyncCommand::Wallet(cmd) => cmd.run(cfg, json).await?,
+        ZKSyncCommand::Chain(cmd) => cmd.run(cfg, json).await?,
         ZKSyncCommand::Prover(cmd) => cmd.run(cfg).await?,
         ZKSyncCommand::Contract(cmd) => cmd.run(cfg)?,
         ZKSyncCommand::Contracts(cmd) => cmd.run(cfg).await?,

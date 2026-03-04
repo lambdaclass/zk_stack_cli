@@ -149,8 +149,29 @@ pub(crate) enum Command {
     },
 }
 
+/// Print a value as JSON or fall back to the debug representation wrapped in a JSON string.
+fn print_json_or_debug<T: std::fmt::Debug>(value: &T, json: bool) {
+    if json {
+        // Represent the debug output as a JSON string field so callers always
+        // receive valid JSON even for types that don't implement Serialize.
+        let debug_str = format!("{value:#?}");
+        println!("{}", serde_json::json!({ "result": debug_str }));
+    } else {
+        println!("{value:#?}");
+    }
+}
+
+/// Print a plain string value either as JSON `{"result": "..."}` or as-is.
+fn print_json_or_plain(value: &str, json: bool) {
+    if json {
+        println!("{}", serde_json::json!({ "result": value }));
+    } else {
+        println!("{value}");
+    }
+}
+
 impl Command {
-    pub async fn run(self, cfg: ZKSyncConfig) -> eyre::Result<()> {
+    pub async fn run(self, cfg: ZKSyncConfig, json: bool) -> eyre::Result<()> {
         let l2_provider = try_l2_provider_from_config(&cfg)?;
         let l1_provider = try_l1_provider_from_config(&cfg)?;
 
@@ -171,46 +192,70 @@ impl Command {
         match self {
             Command::GetCode { contract } => {
                 let deployed_bytecode = l2_provider.get_code(contract, None).await?;
-                println!("{deployed_bytecode:#?}");
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "contract": format!("{contract:#?}"),
+                            "bytecode": format!("{deployed_bytecode:#?}")
+                        })
+                    );
+                } else {
+                    println!("{deployed_bytecode:#?}");
+                }
             }
             Command::GetTransaction { transaction } => {
-                let transaction = l2_provider
+                let tx = l2_provider
                     .get_transaction(transaction)
                     .await?
                     .context("No pending transaction")?;
-                println!("{transaction:#?}");
+                print_json_or_debug(&tx, json);
             }
             Command::BridgeContracts => {
                 let bridge_contracts = l2_provider.get_bridge_contracts().await?;
-                if let Some(l1_shared_bridge) = bridge_contracts.l1_shared_default_bridge {
-                    println!("L1 Shared Bridge: {l1_shared_bridge:#?}");
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "l1SharedBridge": bridge_contracts.l1_shared_default_bridge.map(|a| format!("{a:#?}")),
+                            "l1Erc20Bridge": bridge_contracts.l1_erc20_default_bridge.map(|a| format!("{a:#?}")),
+                            "l1WethBridge": bridge_contracts.l1_weth_bridge.map(|a| format!("{a:#?}")),
+                            "l2SharedBridge": bridge_contracts.l2_shared_default_bridge.map(|a| format!("{a:#?}")),
+                            "l2Erc20Bridge": bridge_contracts.l2_erc20_default_bridge.map(|a| format!("{a:#?}")),
+                            "l2WethBridge": bridge_contracts.l2_weth_bridge.map(|a| format!("{a:#?}")),
+                        })
+                    );
                 } else {
-                    println!("L1 Shared Bridge: Not set");
-                }
-                if let Some(l1_erc20_bridge) = bridge_contracts.l1_erc20_default_bridge {
-                    println!("L1 ERC20 Bridge: {l1_erc20_bridge:#?}");
-                } else {
-                    println!("L1 ERC20 Bridge: Not set");
-                }
-                if let Some(l1_weth_bridge) = bridge_contracts.l1_weth_bridge {
-                    println!("L1 WETH Bridge: {l1_weth_bridge:#?}");
-                } else {
-                    println!("L1 WETH Bridge: Not set");
-                }
-                if let Some(l2_shared_bridge) = bridge_contracts.l2_shared_default_bridge {
-                    println!("L2 Shared Bridge: {l2_shared_bridge:#?}");
-                } else {
-                    println!("L2 Shared Bridge: Not set");
-                }
-                if let Some(l2_erc20_bridge) = bridge_contracts.l2_erc20_default_bridge {
-                    println!("L2 ERC20 Bridge: {l2_erc20_bridge:#?}");
-                } else {
-                    println!("L2 ERC20 Bridge: Not set");
-                }
-                if let Some(l2_weth_bridge) = bridge_contracts.l2_weth_bridge {
-                    println!("L2 WETH Bridge: {l2_weth_bridge:#?}");
-                } else {
-                    println!("L2 WETH Bridge: Not set");
+                    if let Some(l1_shared_bridge) = bridge_contracts.l1_shared_default_bridge {
+                        println!("L1 Shared Bridge: {l1_shared_bridge:#?}");
+                    } else {
+                        println!("L1 Shared Bridge: Not set");
+                    }
+                    if let Some(l1_erc20_bridge) = bridge_contracts.l1_erc20_default_bridge {
+                        println!("L1 ERC20 Bridge: {l1_erc20_bridge:#?}");
+                    } else {
+                        println!("L1 ERC20 Bridge: Not set");
+                    }
+                    if let Some(l1_weth_bridge) = bridge_contracts.l1_weth_bridge {
+                        println!("L1 WETH Bridge: {l1_weth_bridge:#?}");
+                    } else {
+                        println!("L1 WETH Bridge: Not set");
+                    }
+                    if let Some(l2_shared_bridge) = bridge_contracts.l2_shared_default_bridge {
+                        println!("L2 Shared Bridge: {l2_shared_bridge:#?}");
+                    } else {
+                        println!("L2 Shared Bridge: Not set");
+                    }
+                    if let Some(l2_erc20_bridge) = bridge_contracts.l2_erc20_default_bridge {
+                        println!("L2 ERC20 Bridge: {l2_erc20_bridge:#?}");
+                    } else {
+                        println!("L2 ERC20 Bridge: Not set");
+                    }
+                    if let Some(l2_weth_bridge) = bridge_contracts.l2_weth_bridge {
+                        println!("L2 WETH Bridge: {l2_weth_bridge:#?}");
+                    } else {
+                        println!("L2 WETH Bridge: Not set");
+                    }
                 }
             }
             Command::GetBytecodeByHash { hash } => {
@@ -218,7 +263,15 @@ impl Command {
                     .get_bytecode_by_hash(hash)
                     .await?
                     .map(Bytes::from);
-                if let Some(contract_bytecode) = contract_bytecode {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "hash": format!("{hash:#?}"),
+                            "bytecode": contract_bytecode.as_ref().map(|b| format!("{b:#?}"))
+                        })
+                    );
+                } else if let Some(contract_bytecode) = contract_bytecode {
                     println!("{contract_bytecode:#?}");
                 } else {
                     println!("0x");
@@ -226,7 +279,14 @@ impl Command {
             }
             Command::ConfirmedTokens { from, limit } => {
                 let confirmed_tokens = l2_provider.get_confirmed_tokens(from, limit).await?;
-                println!("Confirmed Tokens: {confirmed_tokens:#?}");
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({ "tokens": format!("{confirmed_tokens:#?}") })
+                    );
+                } else {
+                    println!("Confirmed Tokens: {confirmed_tokens:#?}");
+                }
             }
             Command::L1BatchDetails {
                 mut batches,
@@ -274,7 +334,15 @@ impl Command {
             }
             Command::MainContract { explorer_url } => {
                 let main_contract_address = l2_provider.get_main_contract().await?;
-                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "mainContract": format!("{main_contract_address:#?}"),
+                            "explorerUrl": format!("{l2_explorer_url}/address/{main_contract_address:#?}"),
+                        })
+                    );
+                } else if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
                         "Main Contract:\n{l2_explorer_url}/address/{main_contract_address:#?}",
                     );
@@ -284,7 +352,15 @@ impl Command {
             }
             Command::BridgehubContract { explorer_url } => {
                 let bridgehub_contract_address = l2_provider.get_bridgehub_contract().await?;
-                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "bridgehubContract": format!("{bridgehub_contract_address:#?}"),
+                            "explorerUrl": format!("{l2_explorer_url}/address/{bridgehub_contract_address:#?}"),
+                        })
+                    );
+                } else if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
                         "Bridgehub Contract:\n{l2_explorer_url}/address/{bridgehub_contract_address:#?}",
                     );
@@ -294,7 +370,15 @@ impl Command {
             }
             Command::TestnetPaymaster { explorer_url } => {
                 let testnet_paymaster_address = l2_provider.get_testnet_paymaster().await?;
-                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "testnetPaymaster": format!("{testnet_paymaster_address:#?}"),
+                            "explorerUrl": format!("{l2_explorer_url}/address/{testnet_paymaster_address:#?}"),
+                        })
+                    );
+                } else if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
                         "Testnet Paymaster Address:\n{l2_explorer_url}/address/{testnet_paymaster_address:#?}",
                     );
@@ -304,11 +388,26 @@ impl Command {
             }
             Command::L1ChainID => {
                 let l1_chain_id = l2_provider.get_l1_chain_id().await?;
-                println!("L1 Chain ID: {l1_chain_id:#?}");
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({ "l1ChainId": format!("{l1_chain_id:#?}") })
+                    );
+                } else {
+                    println!("L1 Chain ID: {l1_chain_id:#?}");
+                }
             }
             Command::L1BaseTokenAddress { explorer_url } => {
                 let l1_base_token_address = l2_provider.get_base_token_l1_address().await?;
-                if explorer_url && cfg.network.l2_explorer_url.is_some() {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "l1BaseTokenAddress": format!("{l1_base_token_address:#?}"),
+                            "explorerUrl": format!("{l1_explorer_url}/address/{l1_base_token_address:#?}"),
+                        })
+                    );
+                } else if explorer_url && cfg.network.l2_explorer_url.is_some() {
                     println!(
                         "L1 Base Token Address:\n{l1_explorer_url}/address/{l1_base_token_address:#?}",
                     );
@@ -330,15 +429,39 @@ impl Command {
                     let v = format_ether(v);
                     all_account_parsed_balances.insert(k, v);
                 }
-                println!("{all_account_parsed_balances:#?}");
+                if json {
+                    // Convert address keys to hex strings for valid JSON object keys
+                    let json_map: HashMap<String, &String> = all_account_parsed_balances
+                        .iter()
+                        .map(|(addr, bal)| (format!("{addr:#?}"), bal))
+                        .collect();
+                    println!("{}", serde_json::json!({ "balances": json_map }));
+                } else {
+                    println!("{all_account_parsed_balances:#?}");
+                }
             }
             Command::L1BatchNumber => {
                 let l1_batch_number = l2_provider.get_l1_batch_number().await?;
-                println!("Latest L1 Batch Number: {l1_batch_number:#?}");
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({ "l1BatchNumber": format!("{l1_batch_number:#?}") })
+                    );
+                } else {
+                    println!("Latest L1 Batch Number: {l1_batch_number:#?}");
+                }
             }
             Command::BlockDetails { block_number } => {
                 let block_details = l2_provider.get_block_details(block_number).await?;
-                if let Some(block_details) = block_details {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "blockNumber": block_number,
+                            "details": block_details.as_ref().map(|d| format!("{d:#?}"))
+                        })
+                    );
+                } else if let Some(block_details) = block_details {
                     println!("{block_details:#?}");
                 } else {
                     println!("Block {block_number} not found");
@@ -351,19 +474,43 @@ impl Command {
                     .get_transaction_details(transaction_hash)
                     .await?
                     .context("No pending transaction")?;
-                println!("{transaction_details:#?}");
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "hash": format!("{transaction_hash:#?}"),
+                            "details": format!("{transaction_details:#?}")
+                        })
+                    );
+                } else {
+                    println!("{transaction_details:#?}");
+                }
             }
             Command::L1GasPrice => {
                 let current_l1_gas_price = l2_provider.get_l1_gas_price().await?;
-                println!("Current L1 Gas Price (wei): {current_l1_gas_price:#?}");
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({ "l1GasPriceWei": format!("{current_l1_gas_price:#?}") })
+                    );
+                } else {
+                    println!("Current L1 Gas Price (wei): {current_l1_gas_price:#?}");
+                }
             }
             Command::FeeParams => {
                 let fee_params = l2_provider.get_fee_params().await?;
-                println!("{fee_params:#?}");
+                print_json_or_debug(&fee_params, json);
             }
             Command::ProtocolVersion { id } => {
                 let protocol_version = l2_provider.get_protocol_version(id).await?;
-                if let Some(protocol_version) = protocol_version {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "protocolVersion": protocol_version.as_ref().map(|v| format!("{v:#?}"))
+                        })
+                    );
+                } else if let Some(protocol_version) = protocol_version {
                     println!("{protocol_version:#?}");
                 } else {
                     println!("Protocol version not found");
@@ -398,7 +545,16 @@ impl Command {
                 let deposit_finalization_hash =
                     zksync_ethers_rs::deposit::l2_deposit_tx_hash(l1_deposit_tx_hash, &l1_provider)
                         .await;
-                if explorer_url {
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "l1DepositTxHash": format!("{l1_deposit_tx_hash:#?}"),
+                            "l2FinalizationTxHash": format!("{deposit_finalization_hash:#?}"),
+                            "explorerUrl": format!("{l2_explorer_url}/tx/{deposit_finalization_hash:#?}"),
+                        })
+                    );
+                } else if explorer_url {
                     let url = cfg
                         .network
                         .l2_explorer_url
