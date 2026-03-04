@@ -13,7 +13,7 @@ use zksync_ethers_rs::{
     abi::Hash,
     core::utils::format_ether,
     providers::Middleware,
-    types::{zksync::L1BatchNumber, Address, Bytes, U64},
+    types::{zksync::L1BatchNumber, Address, Bytes, Eip1559TransactionRequest, U256, U64},
     ZKMiddleware,
 };
 
@@ -146,6 +146,28 @@ pub(crate) enum Command {
         l1_deposit_tx_hash: Hash,
         #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
+    },
+    #[clap(
+        about = "Estimates the fee for a L2 transaction using zks_estimateFee. \
+                 Returns gas_limit, max_fee_per_gas, max_priority_fee_per_gas, \
+                 and gas_per_pubdata_limit."
+    )]
+    EstimateFee {
+        #[clap(long, help = "Target contract or account address.")]
+        to: Address,
+        #[clap(
+            long,
+            help = "Sender address. Defaults to the zero address if not provided."
+        )]
+        from: Option<Address>,
+        #[clap(long, help = "Calldata to include in the transaction.")]
+        data: Option<Bytes>,
+        #[clap(
+            long,
+            help = "Value in wei to send with the transaction.",
+            default_value = "0"
+        )]
+        value: U256,
     },
 }
 
@@ -406,6 +428,41 @@ impl Command {
                     println!("Deposit finalization: {url}/tx/{deposit_finalization_hash:#?}");
                 } else {
                     println!("Deposit finalization hash: {deposit_finalization_hash:#?}");
+                }
+            }
+            Command::EstimateFee {
+                to,
+                from,
+                data,
+                value,
+            } => {
+                let mut tx = Eip1559TransactionRequest::new().to(to).value(value);
+                if let Some(from) = from {
+                    tx = tx.from(from);
+                }
+                if let Some(data) = data {
+                    tx = tx.data(data);
+                }
+                let fee = l2_provider.estimate_fee(&tx).await?;
+                if json {
+                    println!(
+                        "{}",
+                        serde_json::json!({
+                            "gasLimit": fee.gas_limit.to_string(),
+                            "maxFeePerGas": fee.max_fee_per_gas.to_string(),
+                            "maxPriorityFeePerGas": fee.max_priority_fee_per_gas.to_string(),
+                            "gasPerPubdataLimit": fee.gas_per_pubdata_limit.to_string(),
+                        })
+                    );
+                } else {
+                    println!("Fee estimate:");
+                    println!("  Gas limit:              {}", fee.gas_limit);
+                    println!("  Max fee per gas:        {} wei", fee.max_fee_per_gas);
+                    println!(
+                        "  Max priority fee/gas:   {} wei",
+                        fee.max_priority_fee_per_gas
+                    );
+                    println!("  Gas per pubdata limit:  {}", fee.gas_per_pubdata_limit);
                 }
             }
         };
