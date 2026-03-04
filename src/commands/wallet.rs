@@ -38,6 +38,12 @@ pub(crate) enum Command {
         to: Option<Address>,
         #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
+        #[clap(
+            long,
+            required = false,
+            help = "Preview the deposit without sending the transaction."
+        )]
+        dry_run: bool,
     },
     #[clap(about = "Finalize a pending withdrawal.")]
     FinalizeWithdraw {
@@ -60,6 +66,12 @@ pub(crate) enum Command {
         l1: bool,
         #[clap(long, short = 'e', required = false)]
         explorer_url: bool,
+        #[clap(
+            long,
+            required = false,
+            help = "Preview the transfer without sending the transaction."
+        )]
+        dry_run: bool,
     },
     #[clap(about = "Withdraw funds from the wallet. TODO.")]
     Withdraw {
@@ -119,24 +131,36 @@ impl Command {
                 token_address,
                 to,
                 explorer_url,
+                dry_run,
             } => {
-                let mut spinner: Spinner = Spinner::new(send_frames, "Depositing", Color::Cyan);
-                let deposit_hash = match (to, token_address) {
-                    (None, None) => zk_wallet.deposit_base_token(amount).await?,
-                    (None, Some(token)) => zk_wallet.deposit_erc20(amount, token).await?,
-                    (Some(to), None) => zk_wallet.deposit_base_token_to(amount, to).await?,
-                    (Some(to), Some(token)) => {
-                        zk_wallet.deposit_erc20_to(amount, token, to).await?
+                if dry_run {
+                    println!("Dry run — no transaction will be sent.");
+                    println!("  From (L1): {:?}", wallet_config.address);
+                    println!("  To   (L2): {:?}", to.unwrap_or(wallet_config.address));
+                    println!("  Amount:    {amount} wei");
+                    match token_address {
+                        Some(token) => println!("  Token:     {token:?}"),
+                        None => println!("  Token:     base token"),
                     }
-                };
-
-                let msg = if explorer_url {
-                    format!("Success: {l1_explorer_url}/tx/{deposit_hash:?}")
                 } else {
-                    format!("Success, Deposit hash: {deposit_hash:?}")
-                };
+                    let mut spinner: Spinner = Spinner::new(send_frames, "Depositing", Color::Cyan);
+                    let deposit_hash = match (to, token_address) {
+                        (None, None) => zk_wallet.deposit_base_token(amount).await?,
+                        (None, Some(token)) => zk_wallet.deposit_erc20(amount, token).await?,
+                        (Some(to), None) => zk_wallet.deposit_base_token_to(amount, to).await?,
+                        (Some(to), Some(token)) => {
+                            zk_wallet.deposit_erc20_to(amount, token, to).await?
+                        }
+                    };
 
-                spinner.success(&msg);
+                    let msg = if explorer_url {
+                        format!("Success: {l1_explorer_url}/tx/{deposit_hash:?}")
+                    } else {
+                        format!("Success, Deposit hash: {deposit_hash:?}")
+                    };
+
+                    spinner.success(&msg);
+                }
             }
             Command::FinalizeWithdraw {
                 l2_withdrawal_tx_hash,
@@ -159,9 +183,19 @@ impl Command {
                 to,
                 l1,
                 explorer_url,
+                dry_run,
             } => {
                 if l1 {
                     todo!("L1 transfers not supported by ZKWallet");
+                } else if dry_run {
+                    println!("Dry run — no transaction will be sent.");
+                    println!("  From: {:?}", wallet_config.address);
+                    println!("  To:   {to:?}");
+                    println!("  Amount: {amount} wei");
+                    match token_address {
+                        Some(token) => println!("  Token: {token:?}"),
+                        None => println!("  Token: base token"),
+                    }
                 } else {
                     let mut spinner: Spinner =
                         Spinner::new(send_frames, "Transferring", Color::Cyan);
